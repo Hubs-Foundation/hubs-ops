@@ -1,0 +1,166 @@
+# DTLS certificate is expected to be uploaded to service as "dtls.pem" and
+# "dtls.key" via "hab file upload"
+[general]
+server_name = "Janus"
+iface = "0.0.0.0"
+
+api_secret = "api_secret"
+admin_secret = "admin_secret"
+
+debug_level = 4
+token_auth = "no"
+session_timeout = 60
+
+# Include enable tmp recordings, see janus.cfg
+# recordings_tmp_ext = tmp
+
+[media]
+ipv6 = "true"
+max_nack_queue = 300
+rtp_port_range = "20000-40000"
+dtls_mtu = 1472
+force_bundle = "false"
+force_rtcp_mux = "false"
+no_media_timer = 1
+
+[nat]
+nice_debug = "false"
+ice_lite = "false"
+ice_tcp = "false"
+
+# Include to enable public address if 1:1 NAT (see janus.cfg)
+# nat_1_1_mapping = "1.2.3.4"
+
+# Include to enable stun server
+# stun_server = "yourstunserver"
+# stun_port = 3478
+
+# Include to enable turn server
+# turn_server = "myturnserver.com"
+# turn_port = 3478
+# turn_type = "udp"
+# turn_user = "turnuser"
+# turn_pwd = "turnpassword"
+
+# Include to enable turn REST api
+# turn_rest_api = "http://yourbackend.com/path/to/api"
+# turn_rest_api_key = "anyapikeyyoumayhaveset"
+# turn_rest_api_method = "GET"
+
+# Include to enable ice_enforce_list
+# ice_enforce_list = eth0
+ice_ignore_list = "vmnet"
+
+[plugins]
+
+# List of disabled plugins
+# (All plugins are disabled by default)
+disabled = [
+  "libjanus_audiobridge.so",
+  "libjanus_echotest.so",
+  "libjanus_recordplay.so",
+  "libjanus_streaming.so",
+  "libjanus_textroom.so",
+  "libjanus_videocall.so",
+  "libjanus_videoroom.so"
+]
+
+[plugins.audiobridge]
+# TODO
+
+[plugins.echotest]
+# TODO
+
+[plugins.recordplay]
+# TODO
+
+[plugins.streaming]
+# TODO
+
+[plugins.textroom]
+# TODO
+
+[plugins.videocall]
+# TODO
+
+[plugins.videoroom]
+# TODO
+
+[transports]
+
+# List of disabled transports (all transports are disabled by default)
+disabled = [
+  "libjanus_http.so",
+  "libjanus_pfunix.so",
+  "libjanus_websockets.so"
+]
+
+
+[transports.pfunix]
+enabled = "no"
+admin_enabled = "no"
+json = "indented"
+type = "SOCK_SEQPACKET"
+admin_type = "SOCK_SEQPACKET"
+
+# Certificates for HTTPS are assumed to be uploaded via hab upload file as
+# https.pem and https.key
+[transports.http]
+json = "indented"
+base_path = "/janus"
+threads = "unlimited"
+http = "yes"
+port = 8080
+#interface = "eth0"
+#ip = "127.0.0.1"
+https = "no"
+#secure_port = 8089
+#secure_interface = "eth0"
+#secure_ip = "127.0.0.1"
+#acl = "127.,192.168.0."
+admin_base_path = "/admin"
+admin_threads = "unlimited"
+admin_http = "no"
+admin_port = 7088
+#admin_interface = "eth0"
+#admin_ip = "127.0.0.1"
+admin_https = "no"
+#admin_secure_port = 7889
+#admin_secure_interface = "eth0"
+#admin_secure_ip = "127.0.0.1"
+#admin_acl = "127.,192.168.0."
+#allow_origin = "http://your.origin"
+
+# Certificates for WSS are assumed to be uploaded via hab upload file as
+# wss.pem and wss.key
+[transports.websockets]
+json = "indented"
+ws = "yes"
+ws_port = 8188
+#ws_interface = "eth0"
+#ws_ip = "127.0.0.1"
+wss = "no"
+#wss_port = 8989
+#wss_interface = "eth0"
+#wss_ip = "127.0.0.1"
+#ws_logging = 7
+#ws_acl = "127.,192.168.0."
+admin_ws = "no"
+admin_ws_port = 7188
+#admin_ws_interface = "eth0"
+#admin_ws_ip = "127.0.0.1"
+admin_wss = "no"
+#admin_wss_port = 7989
+#admin_wss_interface = "eth0"
+#admin_wss_ip = "127.0.0.1"
+#admin_ws_acl = "127.,192.168.0."
+
+[events]
+broadcast = "no"
+stats_period = 5
+
+# List of disabled events
+# (No events are disabled by default)
+#disabled = [
+  #"libjanus_sampleevh.so"
+#]
