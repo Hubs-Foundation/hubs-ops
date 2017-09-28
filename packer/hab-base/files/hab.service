@@ -2,7 +2,7 @@
 Description=The Habitat Supervisor
 
 [Service]
-ExecStart=/usr/bin/bash -c "/usr/bin/hab sup run --org mozillareality --strategy rolling --ring mr $$(/usr/bin/hab-discover-peer)"
+ExecStart=/bin/bash -c "/usr/bin/hab sup run --org mozillareality --ring mr $$(/usr/bin/hab-discover-peer)"
 
 [Install]
 WantedBy=default.target

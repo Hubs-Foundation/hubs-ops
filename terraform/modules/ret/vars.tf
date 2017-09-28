@@ -1,3 +1,11 @@
+variable "ret_ami" {
+  description = "Reticulum server AMI"
+}
+
+variable "ret_instance_type" {
+  description = "Reticulum server instance type"
+}
+
 variable "ret_http_port" {
   description = "Reticulum HTTP service listener port"
   default = 4000

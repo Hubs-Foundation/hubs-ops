@@ -26,26 +26,39 @@
     "ami_name": "hab-base-{{timestamp}}"
   }],
   "provisioners": [
-    { "type": "file", "source": "files/hab.service", "destination": "hab.service" },
-    { "type": "file", "source": "files/hab-discover-peer", "destination": "hab-discover-peer" },
-    { "type": "file", "source": "keys/mr.sym.key", "destination": "mr.sym.key" },
-    { "type": "file", "source": "keys/deploy.pub", "destination": "deploy.pub" },
-    { "type": "file", "source": "keys/reticulum.box.key", "destination": "reticulum.box.key" },
-    { "type": "file", "source": "keys/janus-gateway.box.key", "destination": "janus-gateway.box.key" },
     {
       "type": "shell",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
       "inline": [
-        "sudo apt-get update",
-        "sudo apt install -y awscli jq",
+        "apt-get update",
+        "apt install -y awscli jq"
+      ]
+    },
+    { "type": "file", "source": "files/hab.service", "destination": "hab.service" },
+    { "type": "file", "source": "files/hab-discover-peer", "destination": "hab-discover-peer" },
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
+      "inline": [
         "curl -L \"https://api.bintray.com/content/habitat/stable/linux/x86_64/hab-%24latest-x86_64-linux.tar.gz?bt_package=hab-x86_64-linux\" | tar xvz",
-        "sudo find . -name 'hab' -exec mv {} /usr/bin \\;",
-        "sudo chmod +x /usr/bin/hab",
-        "sudo mv hab.service /etc/systemd/system/default.target.wants",
-        "sudo mv hab-discover-peer /usr/bin",
-        "sudo chmod +x hab-discover-peer /usr/bin",
-        "sudo mkdir -p /hab/cache/keys",
-        "sudo mv *.key /hab/cache/keys",
-        "sudo mv *.pub /hab/cache/keys"
+        "find . -name 'hab' -exec mv {} /usr/bin \\;",
+        "chmod +x /usr/bin/hab",
+        "mv hab.service /etc/systemd/system/default.target.wants",
+        "chown root:root /etc/systemd/system/default.target.wants/hab.service",
+        "mv hab-discover-peer /usr/bin",
+        "chown root:root /usr/bin/hab-discover-peer",
+        "chmod +x /usr/bin/hab-discover-peer",
+        "mkdir -p /hab/cache"
+      ]
+    },
+    { "type": "file", "source": "keys", "destination": "." },
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
+      "inline": [
+        "mv keys /hab/cache",
+        "chown -R root:root /hab/cache/keys",
+        "chmod -R 0600 /hab/cache/keys"
       ]
     }
   ]

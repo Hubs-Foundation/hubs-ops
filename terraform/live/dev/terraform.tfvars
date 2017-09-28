@@ -28,8 +28,22 @@ shared = {
   azs = "us-west-1b,us-west-1c"
   state_bucket = "terraform-dev.gfodor"
   dynamodb_table = "terraform-dev-lock"
+  describe_instances_policy = <<EOF
+{
+
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+          "Effect": "Allow",
+          "Action": "ec2:DescribeInstances",
+          "Resource": "*"
+      }
+    ]
+  }
+  EOF
   ec2_role_policy = <<EOF
 {
+
     "Version": "2012-10-17",
     "Statement": [
       {

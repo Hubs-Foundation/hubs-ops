@@ -90,11 +90,48 @@ resource "aws_security_group" "ret" {
   name = "${var.shared["env"]}-ret"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
 
+  egress {
+    from_port = "80"
+    to_port = "80"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port = "443"
+    to_port = "443"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   ingress {
     from_port = "${var.ret_http_port}"
     to_port = "${var.ret_http_port}"
     protocol = "tcp"
+    security_groups = ["${aws_security_group.ret-alb.id}"]
+  }
+
+  ingress {
+    from_port = "${var.ret_webrtc_port}"
+    to_port = "${var.ret_webrtc_port}"
+    protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # SSH
+  ingress {
+    from_port = "22"
+    to_port = "22"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow intra-sg crosstalk (OTP, habitat)
+  ingress {
+    from_port = "0"
+    to_port = "65535"
+    protocol = "tcp"
+    self = true
   }
 }
 
@@ -108,9 +145,19 @@ resource "aws_iam_instance_profile" "ret" {
   role = "${aws_iam_role.ret.id}"
 }
 
+resource "aws_iam_policy" "ret-describe-instances" {
+  name = "${var.shared["env"]}-ret-describe-instances"
+  policy = "${var.shared["describe_instances_policy"]}"
+}
+
+resource "aws_iam_role_policy_attachment" "ret-attach-describe-instances" {
+  role = "${aws_iam_role.ret.name}"
+  policy_arn = "${aws_iam_policy.ret-describe-instances.arn}"
+}
+
 resource "aws_launch_configuration" "ret" {
-  image_id = "ami-8edbf0ee"
-  instance_type = "t2.micro"
+  image_id = "${var.ret_ami}"
+  instance_type = "${var.ret_instance_type}"
   security_groups = ["${aws_security_group.ret.id}"]
   key_name = "${data.terraform_remote_state.keys.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.ret.id}"
