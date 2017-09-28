@@ -177,5 +177,6 @@ resource "aws_autoscaling_group" "ret" {
   target_group_arns = ["${aws_alb_target_group.ret-alb-group-http.arn}"]
 
   lifecycle { create_before_destroy = true }
-  tag { key = "Name", value = "${var.shared["env"]}-ret", propagate_at_launch = true }
+  tag { key = "Name", value = "${var.shared["env"]}-ret", propagate_at_launch = false }
+  tag { key = "hab-ring", value = "${var.shared["env"]}", propagate_at_launch = true }
 }
