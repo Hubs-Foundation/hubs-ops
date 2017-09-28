@@ -7,7 +7,10 @@
     "type": "amazon-ebs",
     "access_key": "{{user `aws_access_key`}}",
     "secret_key": "{{user `aws_secret_key`}}",
-    "region": "us-east-1",
+    "region": "us-west-1",
+    "associate_public_ip_address": true,
+    "iam_instance_profile": "dev-ret",
+    "subnet_id": "subnet-26e0f47e",
     "source_ami_filter": {
       "filters": {
       "virtualization-type": "hvm",
@@ -17,9 +20,33 @@
       "owners": ["099720109477"],
       "most_recent": true
     },
-    "instance_type": "t2.small",
+    "instance_type": "m3.medium",
     "ssh_username": "ubuntu",
     "iam_instance_profile": "ec2-default",
-    "ami_name": "packer-example {{timestamp}}"
-  }]
+    "ami_name": "hab-base-{{timestamp}}"
+  }],
+  "provisioners": [
+    { "type": "file", "source": "files/hab.service", "destination": "hab.service" },
+    { "type": "file", "source": "files/hab-discover-peer", "destination": "hab-discover-peer" },
+    { "type": "file", "source": "keys/mr.sym.key", "destination": "mr.sym.key" },
+    { "type": "file", "source": "keys/deploy.pub", "destination": "deploy.pub" },
+    { "type": "file", "source": "keys/reticulum.box.key", "destination": "reticulum.box.key" },
+    { "type": "file", "source": "keys/janus-gateway.box.key", "destination": "janus-gateway.box.key" },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo apt-get update",
+        "sudo apt install -y awscli jq",
+        "curl -L \"https://api.bintray.com/content/habitat/stable/linux/x86_64/hab-%24latest-x86_64-linux.tar.gz?bt_package=hab-x86_64-linux\" | tar xvz",
+        "sudo find . -name 'hab' -exec mv {} /usr/bin \\;",
+        "sudo chmod +x /usr/bin/hab",
+        "sudo mv hab.service /etc/systemd/system/default.target.wants",
+        "sudo mv hab-discover-peer /usr/bin",
+        "sudo chmod +x hab-discover-peer /usr/bin",
+        "sudo mkdir -p /hab/cache/keys",
+        "sudo mv *.key /hab/cache/keys",
+        "sudo mv *.pub /hab/cache/keys"
+      ]
+    }
+  ]
 }
