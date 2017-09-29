@@ -12,7 +12,7 @@ terragrunt = {
   }
 }
 
-ret_ami = "ami-426e5e22"
+ret_ami = "ami-803606e0"
 ret_instance_type = "m3.medium"
 ret_http_port = 4000
 ret_webrtc_port = 5000

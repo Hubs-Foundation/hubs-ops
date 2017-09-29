@@ -126,10 +126,26 @@ resource "aws_security_group" "ret" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Allow intra-sg crosstalk (OTP, habitat)
+  # Habitat API
   ingress {
-    from_port = "0"
-    to_port = "65535"
+    from_port = "9631"
+    to_port = "9631"
+    protocol = "tcp"
+    self = true
+  }
+
+  # Habitat Gossip
+  ingress {
+    from_port = "9638"
+    to_port = "9638"
+    protocol = "udp"
+    self = true
+  }
+
+  # OTP
+  ingress {
+    from_port = "9100"
+    to_port = "9200"
     protocol = "tcp"
     self = true
   }
@@ -163,6 +179,10 @@ resource "aws_launch_configuration" "ret" {
   iam_instance_profile = "${aws_iam_instance_profile.ret.id}"
   associate_public_ip_address = true
   lifecycle { create_before_destroy = true }
+  user_data = <<EOF
+#!/usr/bin/env bash
+sudo /usr/bin/hab svc start mozillareality/janus-gateway
+EOF
 }
 
 resource "aws_autoscaling_group" "ret" {

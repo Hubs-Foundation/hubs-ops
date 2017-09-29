@@ -10,7 +10,7 @@
     "region": "us-west-1",
     "associate_public_ip_address": true,
     "iam_instance_profile": "dev-ret",
-    "subnet_id": "subnet-26e0f47e",
+    "subnet_id": "subnet-5bc2d503",
     "source_ami_filter": {
       "filters": {
       "virtualization-type": "hvm",
@@ -48,7 +48,8 @@
         "mv hab-discover-peer /usr/bin",
         "chown root:root /usr/bin/hab-discover-peer",
         "chmod +x /usr/bin/hab-discover-peer",
-        "mkdir -p /hab/cache"
+        "mkdir -p /hab/cache",
+        "useradd hab"
       ]
     },
     { "type": "file", "source": "keys", "destination": "." },

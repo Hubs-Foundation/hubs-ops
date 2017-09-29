@@ -65,6 +65,7 @@ resource "aws_route" "public_gateway_route" {
 
 resource "aws_eip" "nat_eip" {
   count    = "${length(split(",", var.public_ranges))}"
+  depends_on = ["aws_internet_gateway.mod"]
   vpc = true
 }
 
