@@ -8,7 +8,7 @@ data "aws_availability_zones" "all" {}
 resource "aws_vpc" "mod" {
   cidr_block = "${var.cidr}"
   tags { 
-    Name = "${var.shared["env"]}-vpc"
+    Name = "${var.shared["env"]}-mr-vpc"
   }
 }
 

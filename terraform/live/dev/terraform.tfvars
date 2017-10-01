@@ -13,11 +13,11 @@ terragrunt = {
     backend = "s3"
 
     config {
-      bucket = "terraform-dev.gfodor"
+      bucket = "mr-dev.terraform"
       key = "${path_relative_to_include()}/terraform.tfstate"
       region = "us-west-1"
       encrypt = true
-      dynamodb_table = "terraform-dev-lock"
+      dynamodb_table = "mr-dev-terraform-lock"
     }
   }
 }
@@ -25,9 +25,9 @@ terragrunt = {
 shared = {
   region = "us-west-1"
   env = "dev"
-  azs = "us-west-1b,us-west-1c"
-  state_bucket = "terraform-dev.gfodor"
-  dynamodb_table = "terraform-dev-lock"
+  azs = "us-west-1a,us-west-1b"
+  state_bucket = "mr-dev.terraform"
+  dynamodb_table = "mr-dev-terraform-lock"
   describe_instances_policy = <<EOF
 {
 
