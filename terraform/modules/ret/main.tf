@@ -4,27 +4,10 @@ terraform { backend "s3" {} }
 provider "aws" { region = "${var.shared["region"]}", version = "~> 0.1" }
 data "aws_availability_zones" "all" {}
 
-data "terraform_remote_state" "vpc" {
-  backend = "s3"
-  config = {
-    key = "vpc/terraform.tfstate"
-    bucket = "${var.shared["state_bucket"]}"
-    region = "${var.shared["region"]}"
-    dynamodb_table = "${var.shared["dynamodb_table"]}"
-    encrypt = "true"
-  }
-}
-
-data "terraform_remote_state" "keys" {
-  backend = "s3"
-  config = {
-    key = "keys/terraform.tfstate"
-    bucket = "${var.shared["state_bucket"]}"
-    region = "${var.shared["region"]}"
-    dynamodb_table = "${var.shared["dynamodb_table"]}"
-    encrypt = "true"
-  }
-}
+data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+data "terraform_remote_state" "keys" { backend = "s3", config = { key = "keys/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bastion/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+data "terraform_remote_state" "hab" { backend = "s3", config = { key = "hab/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
 resource "aws_security_group" "ret-alb" {
   name = "${var.shared["env"]}-ret-alb"
@@ -198,5 +181,7 @@ resource "aws_autoscaling_group" "ret" {
 
   lifecycle { create_before_destroy = true }
   tag { key = "Name", value = "${var.shared["env"]}-ret", propagate_at_launch = false }
+  tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }
+  tag { key = "host-type", value = "${var.shared["env"]}-ret", propagate_at_launch = true }
   tag { key = "hab-ring", value = "${var.shared["env"]}", propagate_at_launch = true }
 }

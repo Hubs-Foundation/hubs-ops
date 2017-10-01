@@ -1,0 +1,38 @@
+{
+  "variables": {
+    "aws_access_key": "",
+    "aws_secret_key": ""
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "region": "us-west-1",
+    "associate_public_ip_address": true,
+    "iam_instance_profile": "dev-packer",
+    "subnet_id": "subnet-abacbdf3",
+    "security_group_id": "sg-37a2c751",
+    "source_ami_filter": {
+      "filters": {
+      "virtualization-type": "hvm",
+      "name": "ubuntu/images/*ubuntu-xenial-16.04-amd64-server-*",
+      "root-device-type": "ebs"
+      },
+      "owners": ["099720109477"],
+      "most_recent": true
+    },
+    "instance_type": "m3.medium",
+    "ssh_username": "ubuntu",
+    "ami_name": "bastion-{{timestamp}}"
+  }],
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
+      "inline": [
+        "apt-get update",
+        "apt-get install -y unattended-upgrades"
+      ]
+    }
+  ]
+}

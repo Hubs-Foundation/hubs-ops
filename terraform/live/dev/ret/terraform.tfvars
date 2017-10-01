@@ -8,11 +8,11 @@ terragrunt = {
   }
 
   dependencies {
-    paths = ["../vpc", "../keys"]
+    paths = ["../vpc", "../keys", "../bastion", "../hab"]
   }
 }
 
-ret_ami = "ami-803606e0"
+ret_ami = "ami-53e2d233"
 ret_instance_type = "m3.medium"
 ret_http_port = 4000
 ret_webrtc_port = 5000
