@@ -82,7 +82,7 @@ resource "aws_launch_configuration" "hab" {
   security_groups = ["${aws_security_group.hab.id}"]
   key_name = "${data.terraform_remote_state.keys.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.hab.id}"
-  associate_public_ip_address = true
+  associate_public_ip_address = false
   lifecycle { create_before_destroy = true }
 }
 
@@ -90,7 +90,7 @@ resource "aws_autoscaling_group" "hab" {
   name = "${var.shared["env"]}-hab"
   launch_configuration = "${aws_launch_configuration.hab.id}"
   availability_zones = ["${data.aws_availability_zones.all.names}"]
-  vpc_zone_identifier = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
+  vpc_zone_identifier = ["${data.terraform_remote_state.vpc.private_subnet_ids}"]
 
   min_size = "${var.min_hab_servers}"
   max_size = "${var.max_hab_servers}"
