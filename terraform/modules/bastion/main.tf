@@ -60,5 +60,4 @@ resource "aws_autoscaling_group" "bastion" {
   tag { key = "Name", value = "${var.shared["env"]}-bastion", propagate_at_launch = false }
   tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }
   tag { key = "host-type", value = "${var.shared["env"]}-bastion", propagate_at_launch = true }
-  tag { key = "hab-ring", value = "${var.shared["env"]}", propagate_at_launch = true }
 }
