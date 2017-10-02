@@ -140,7 +140,7 @@ resource "aws_iam_role" "ret" {
 }
 
 resource "aws_iam_role_policy_attachment" "bastion-base-policy" {
-  role = "${aws_iam_role.hab.name}"
+  role = "${aws_iam_role.ret.name}"
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
 
@@ -152,7 +152,10 @@ resource "aws_iam_instance_profile" "ret" {
 resource "aws_launch_configuration" "ret" {
   image_id = "${var.ret_ami}"
   instance_type = "${var.ret_instance_type}"
-  security_groups = ["${aws_security_group.ret.id}"]
+  security_groups = [
+    "${aws_security_group.ret.id}",
+    "${data.terraform_remote_state.hab.hab_security_group_id}"
+  ]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.ret.id}"
   associate_public_ip_address = true
