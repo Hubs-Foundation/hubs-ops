@@ -9,17 +9,23 @@ INSTANCE_ID=$(curl -s "http://169.254.169.254/latest/meta-data/instance-id")
 REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed 's/[a-z]$//')
 PRIVATE_IP=$(curl -s "http://169.254.169.254/latest/meta-data/local-ipv4")
 
+EC2_INFO=""
+
+while [ -z "$EC2_INFO" ] ; do
+  EC2_INFO=$(aws ec2 --region us-west-1 describe-instances)
+done
+
 # Get the ring name
-HAB_RING=$(aws ec2 --region us-west-1 describe-instances |  jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$INSTANCE_ID\") | .Tags | .[] | select(.Key == \"hab-ring\") | .Value ")
+HAB_RING=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$INSTANCE_ID\") | .Tags | .[] | select(.Key == \"hab-ring\") | .Value ")
 
 # Get the environment name
-ENV=$(aws ec2 --region us-west-1 describe-instances |  jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$INSTANCE_ID\") | .Tags | .[] | select(.Key == \"env\") | .Value ")
+ENV=$(echo "$EC2_INFO" |  jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$INSTANCE_ID\") | .Tags | .[] | select(.Key == \"env\") | .Value ")
 
 # Prefer a node of type "hab" for this environment
-HAB_PEER=$(aws ec2 --region $REGION describe-instances | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENV}-hab\"))) | .[] | select(.State | .Code == 16) | .PrivateIpAddress" | grep -v $PRIVATE_IP | shuf | head -n1)
+HAB_PEER=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENV}-hab\"))) | .[] | select(.State | .Code == 16) | .PrivateIpAddress" | grep -v $PRIVATE_IP | shuf | head -n1)
 
 # Otherwise pick a peer from the same ring
-RING_PEER=$(aws ec2 --region $REGION describe-instances | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"hab-ring\"] == \"$HAB_RING\"))) | .[] | select(.State | .Code == 16) | .PrivateIpAddress" | grep -v $PRIVATE_IP | shuf | head -n1)
+RING_PEER=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"hab-ring\"] == \"$HAB_RING\"))) | .[] | select(.State | .Code == 16) | .PrivateIpAddress" | grep -v $PRIVATE_IP | shuf | head -n1)
 
 PEER=$HAB_PEER
 

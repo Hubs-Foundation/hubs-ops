@@ -39,7 +39,6 @@ resource "aws_security_group" "hab-ring" {
   name = "${var.shared["env"]}-hab-ring"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
 
-  # Habitat API
   ingress {
     from_port = "9631"
     to_port = "9631"
@@ -47,8 +46,35 @@ resource "aws_security_group" "hab-ring" {
     self = true
   }
 
-  # Habitat Gossip
+  egress {
+    from_port = "9631"
+    to_port = "9631"
+    protocol = "tcp"
+    self = true
+  }
+
   ingress {
+    from_port = "9638"
+    to_port = "9638"
+    protocol = "tcp"
+    self = true
+  }
+
+  egress {
+    from_port = "9638"
+    to_port = "9638"
+    protocol = "tcp"
+    self = true
+  }
+
+  ingress {
+    from_port = "9638"
+    to_port = "9638"
+    protocol = "udp"
+    self = true
+  }
+
+  egress {
     from_port = "9638"
     to_port = "9638"
     protocol = "udp"
@@ -74,7 +100,7 @@ resource "aws_iam_instance_profile" "hab" {
 resource "aws_launch_configuration" "hab" {
   image_id = "${var.hab_ami}"
   instance_type = "${var.hab_instance_type}"
-  security_groups = ["${aws_security_group.hab.id}"]
+  security_groups = ["${aws_security_group.hab.id}", "${aws_security_group.hab-ring.id}"]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.hab.id}"
   associate_public_ip_address = false

@@ -26,7 +26,7 @@
     "ami_name": "hab-base-{{timestamp}}"
   }],
   "provisioners": [
-    { "type": "file", "source": "files/set_host_type_prompt.sh", "destination": "set_host_type_prompt.sh" },
+    { "type": "file", "source": "../shared/files/set_host_type_prompt.sh", "destination": "set_host_type_prompt.sh" },
     {
       "type": "shell",
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",

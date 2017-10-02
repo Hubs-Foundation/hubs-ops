@@ -106,23 +106,7 @@ resource "aws_security_group" "ret" {
     from_port = "22"
     to_port = "22"
     protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Habitat API
-  ingress {
-    from_port = "9631"
-    to_port = "9631"
-    protocol = "tcp"
-    self = true
-  }
-
-  # Habitat Gossip
-  ingress {
-    from_port = "9638"
-    to_port = "9638"
-    protocol = "udp"
-    self = true
+    security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
   }
 
   # OTP
@@ -154,7 +138,7 @@ resource "aws_launch_configuration" "ret" {
   instance_type = "${var.ret_instance_type}"
   security_groups = [
     "${aws_security_group.ret.id}",
-    "${data.terraform_remote_state.hab.hab_security_group_id}"
+    "${data.terraform_remote_state.hab.hab_ring_security_group_id}"
   ]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.ret.id}"
