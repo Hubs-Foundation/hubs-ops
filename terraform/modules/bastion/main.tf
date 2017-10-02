@@ -4,7 +4,7 @@ provider "aws" { region = "${var.shared["region"]}", version = "~> 0.1" }
 data "aws_availability_zones" "all" {}
 
 data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
-data "terraform_remote_state" "keys" { backend = "s3", config = { key = "keys/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
 resource "aws_security_group" "bastion" {
   name = "${var.shared["env"]}-bastion"
@@ -41,7 +41,7 @@ resource "aws_launch_configuration" "bastion" {
   image_id = "${var.bastion_ami}"
   instance_type = "${var.bastion_instance_type}"
   security_groups = ["${aws_security_group.bastion.id}"]
-  key_name = "${data.terraform_remote_state.keys.mr_ssh_key_id}"
+  key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.bastion.id}"
   associate_public_ip_address = true
   lifecycle { create_before_destroy = true }

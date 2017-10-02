@@ -28,7 +28,7 @@ shared = {
   azs = "us-west-1a,us-west-1b"
   state_bucket = "mr-dev.terraform"
   dynamodb_table = "mr-dev-terraform-lock"
-  describe_instances_policy = <<EOF
+  base_policy = <<EOF
 {
 
     "Version": "2012-10-17",

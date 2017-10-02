@@ -8,11 +8,11 @@ terragrunt = {
   }
 
   dependencies {
-    paths = ["../vpc", "../keys"]
+    paths = ["../vpc", "../base"]
   }
 }
 
-bastion_ami = "ami-ece1d18c"
+bastion_ami = "ami-01d9e961"
 bastion_instance_type = "m3.medium"
 min_bastion_servers = 1
 max_bastion_servers = 1

@@ -5,7 +5,7 @@ provider "aws" { region = "${var.shared["region"]}", version = "~> 0.1" }
 data "aws_availability_zones" "all" {}
 
 data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
-data "terraform_remote_state" "keys" { backend = "s3", config = { key = "keys/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bastion/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
 resource "aws_security_group" "hab" {
@@ -61,26 +61,21 @@ resource "aws_iam_role" "hab" {
   assume_role_policy = "${var.shared["ec2_role_policy"]}"
 }
 
+resource "aws_iam_role_policy_attachment" "bastion-base-policy" {
+  role = "${aws_iam_role.hab.name}"
+  policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
+}
+
 resource "aws_iam_instance_profile" "hab" {
   name = "${var.shared["env"]}-hab"
   role = "${aws_iam_role.hab.id}"
-}
-
-resource "aws_iam_policy" "hab-describe-instances" {
-  name = "${var.shared["env"]}-hab-describe-instances"
-  policy = "${var.shared["describe_instances_policy"]}"
-}
-
-resource "aws_iam_role_policy_attachment" "hab-attach-describe-instances" {
-  role = "${aws_iam_role.hab.name}"
-  policy_arn = "${aws_iam_policy.hab-describe-instances.arn}"
 }
 
 resource "aws_launch_configuration" "hab" {
   image_id = "${var.hab_ami}"
   instance_type = "${var.hab_instance_type}"
   security_groups = ["${aws_security_group.hab.id}"]
-  key_name = "${data.terraform_remote_state.keys.mr_ssh_key_id}"
+  key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.hab.id}"
   associate_public_ip_address = false
   lifecycle { create_before_destroy = true }

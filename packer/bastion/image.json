@@ -26,12 +26,17 @@
     "ami_name": "bastion-{{timestamp}}"
   }],
   "provisioners": [
+    { "type": "file", "source": "../shared/files/set_host_type_prompt.sh", "destination": "set_host_type_prompt.sh" },
     {
       "type": "shell",
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
       "inline": [
         "apt-get update",
-        "apt-get install -y unattended-upgrades"
+        "apt-get install -y unattended-upgrades",
+        "mv set_host_type_prompt.sh /usr/bin",
+        "chmod +x /usr/bin/set_host_type_prompt.sh",
+        "echo \". /usr/bin/set_host_type_prompt.sh\" >> /home/ubuntu/.bashrc",
+        "echo \". /usr/bin/set_host_type_prompt.sh\" >> /root/.bashrc"
       ]
     }
   ]
