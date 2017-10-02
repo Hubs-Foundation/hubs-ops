@@ -146,7 +146,8 @@ resource "aws_launch_configuration" "ret" {
   lifecycle { create_before_destroy = true }
   user_data = <<EOF
 #!/usr/bin/env bash
-sudo /usr/bin/hab svc start mozillareality/janus-gateway
+while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
+sudo /usr/bin/hab svc start mozillareality/janus-gateway --strategy rolling
 EOF
 }
 

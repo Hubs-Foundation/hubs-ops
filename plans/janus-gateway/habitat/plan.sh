@@ -11,7 +11,7 @@ pkg_upstream_url="https://janus.conf.meetecho.com/"
 pkg_bin_dirs=(bin)
 pkg_include_dirs=(include)
 pkg_lib_dirs=(lib)
-pkg_svc_run="janus --config=${pkg_svc_config_path}/janus.cfg"
+pkg_svc_run="janus --config=${pkg_svc_config_path}/janus.cfg --configs-folder=${pkg_svc_config_path}"
 pkg_build_deps=(
   core/automake
   core/autoconf
