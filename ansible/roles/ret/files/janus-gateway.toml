@@ -1,0 +1,5 @@
+[transports]
+
+disabled = [
+  "libjanus_pfunix.so"
+]

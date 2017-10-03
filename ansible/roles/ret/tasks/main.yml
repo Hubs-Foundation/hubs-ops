@@ -1,0 +1,38 @@
+---
+
+- block:
+  - name: Create work directory
+    tempfile:
+      state: directory
+      suffix: deploy
+    register: work_dir
+
+  - name: Write Janus config file
+    copy:
+      src: janus-gateway.toml
+      dest: "{{ work_dir.path }}/janus-gateway.toml"
+
+  - name: Write DTLS key
+    copy:
+      src: dtls.key
+      dest: "{{ work_dir.path }}/dtls.key"
+
+  - name: Write DTLS pem
+    copy:
+      src: dtls.pem
+      dest: "{{ work_dir.path }}/dtls.pem"
+
+  - name: Deploy Janus configs
+    shell: "cat {{ work_dir.path }}/janus-gateway.toml | hab config apply --org mozillareality --ring mr janus-gateway.default $(date +%s)"
+
+  - name: Deploy DTLS key
+    shell: "hab file upload --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.key"
+
+  - name: Deploy DTLS pem
+    shell: "hab file upload --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.pem"
+
+  always:
+  - name: Remove work directory
+    file:
+      path: "{{ work_dir.path }}"
+      state: absent
