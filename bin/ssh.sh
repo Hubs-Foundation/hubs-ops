@@ -2,7 +2,7 @@
 
 if [[ -z "$1" ]]; then
   echo -e "
-Usage: ssh_into.sh <host-type> [environment]
+Usage: ssh.sh <host-type> [environment]
 
 Opens a SSH connection via the bastion to a random host of type <host-type> within specified environment.
 

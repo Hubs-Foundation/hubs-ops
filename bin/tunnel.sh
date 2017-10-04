@@ -2,7 +2,7 @@
 
 if [[ -z "$1" || -z "$2" ]]; then
   echo -e "
-Usage: ssh_tunnel.sh <host-type> <from-port> [to-port] [environment]
+Usage: tunnel.sh <host-type> <from-port> [to-port] [environment]
 
 Opens a SSH tunnel via the bastion to a random host of type <host-type> between two ports.
 
