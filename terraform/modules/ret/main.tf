@@ -87,6 +87,15 @@ resource "aws_security_group" "ret" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # WebRTC RTP egress
+  egress {
+    from_port = "0"
+    to_port = "65535"
+    protocol = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Reticulum HTTP
   ingress {
     from_port = "${var.ret_http_port}"
     to_port = "${var.ret_http_port}"
@@ -94,9 +103,26 @@ resource "aws_security_group" "ret" {
     security_groups = ["${aws_security_group.ret-alb.id}"]
   }
 
+  # Janus Websockets
   ingress {
-    from_port = "${var.ret_webrtc_port}"
-    to_port = "${var.ret_webrtc_port}"
+    from_port = "${var.janus_ws_port}"
+    to_port = "${var.janus_ws_port}"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+ 
+  # Janus Admin via bastion
+  ingress {
+    from_port = "${var.janus_admin_port}"
+    to_port = "${var.janus_admin_port}"
+    protocol = "tcp"
+    security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
+  }
+
+  # Janus RTP
+  ingress {
+    from_port = "${var.janus_rtp_port_from}"
+    to_port = "${var.janus_rtp_port_to}"
     protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }

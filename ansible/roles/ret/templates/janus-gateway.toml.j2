@@ -1,0 +1,28 @@
+[general]
+server_name = "reticulum"
+admin_secret = "{{ janus_admin_secret }}"
+
+[media]
+rtp_port_range = "20000-60000"
+
+[nat]
+ice_ignore_list = "eth0:0"
+nat_1_1_mapping = "EC2_PUBLIC_IP"
+
+[transports]
+disabled = [
+  "libjanus_pfunix.so"
+]
+
+[transports.websockets]
+ws = "yes"
+ws_port = 6000
+ws_interface = "eth0:0"
+ws_ip = "EC2_PUBLIC_IP"
+
+[transports.http]
+http = "no"
+admin_http = "yes"
+admin_port = 7000
+admin_ip = "EC2_PRIVATE_IP"
+allow_origin = "http://127.0.0.1"

@@ -12,9 +12,12 @@ terragrunt = {
   }
 }
 
-ret_ami = "ami-20c1f140"
+ret_ami = "ami-408ebe20"
 ret_instance_type = "m3.medium"
 ret_http_port = 4000
-ret_webrtc_port = 5000
+janus_ws_port = 6000 
+janus_admin_port = 7000
+janus_rtp_port_from = 20000
+janus_rtp_port_to = 60000
 min_ret_servers = 1
 max_ret_servers = 1

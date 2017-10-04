@@ -32,8 +32,7 @@
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
       "inline": [
         "apt-get update",
-        "apt-get install -y unattended-upgrades",
-        "apt install -y awscli jq",
+        "apt install -y unattended-upgrades python awscli jq",
         "mv set_host_type_prompt.sh /usr/bin",
         "chmod +x /usr/bin/set_host_type_prompt.sh",
         "echo \". /usr/bin/set_host_type_prompt.sh\" >> /home/ubuntu/.bashrc",

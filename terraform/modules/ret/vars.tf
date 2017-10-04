@@ -11,9 +11,24 @@ variable "ret_http_port" {
   default = 4000
 }
 
-variable "ret_webrtc_port" {
-  description = "Reticulum WebRTC service listener port"
-  default = 5000
+variable "janus_ws_port" {
+  description = "Janus signalling Websockets port"
+  default = 6000
+}
+
+variable "janus_admin_port" {
+  description = "Janus HTTP admin port"
+  default = 7000
+}
+
+variable "janus_rtp_port_from" {
+  description = "Janus RTP port from"
+  default = 20000
+}
+
+variable "janus_rtp_port_to" {
+  description = "Janus RTP port to"
+  default = 60000
 }
 
 variable "min_ret_servers" {
