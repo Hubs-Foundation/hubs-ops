@@ -173,7 +173,7 @@ resource "aws_launch_configuration" "ret" {
   user_data = <<EOF
 #!/usr/bin/env bash
 while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
-sudo /usr/bin/hab svc start mozillareality/janus-gateway --strategy rolling
+sudo /usr/bin/hab start mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 
