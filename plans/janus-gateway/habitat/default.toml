@@ -1,6 +1,10 @@
+# If running on EC2, insert the string EC2_PUBLIC_IP in order to inline the public
+# IP address of your instance at config update time. Useful for nat_1_1_mapping setting.
+
 # DTLS certificate is expected to be uploaded to service as "dtls.pem" and
 # "dtls.key" via "hab file upload"
 [general]
+
 server_name = "Janus"
 iface = "0.0.0.0"
 
@@ -29,6 +33,7 @@ ice_lite = "false"
 ice_tcp = "false"
 
 # Include to enable public address if 1:1 NAT (see janus.cfg)
+# Include the string "EC2_PUBLIC_IP" here to insert the public IP of the machine.
 # nat_1_1_mapping = "1.2.3.4"
 
 # Include to enable stun server
