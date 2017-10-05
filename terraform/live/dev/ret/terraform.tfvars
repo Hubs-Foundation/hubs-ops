@@ -8,7 +8,7 @@ terragrunt = {
   }
 
   dependencies {
-    paths = ["../vpc", "../base", "../bastion", "../hab"]
+    paths = ["../vpc", "../base", "../bastion", "../hab", "../ret-db"]
   }
 }
 

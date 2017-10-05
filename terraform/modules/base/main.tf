@@ -14,3 +14,9 @@ resource "aws_iam_policy" "base-policy" {
   name = "${var.shared["env"]}-base-policy"
   policy = "${var.shared["base_policy"]}"
 }
+
+# DB monitoring policy
+resource "aws_iam_policy" "db-monitoring-policy" {
+  name = "${var.shared["env"]}-db-monitoring-policy"
+  policy = "${var.shared["db_monitoring_policy"]}"
+}
