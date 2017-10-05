@@ -34,10 +34,13 @@ do
   attempt_generate_hostname
 done
 
-echo "Setting hostname to ${NEW_HOSTNAME} and registering ${PUBLIC_IP}"
+echo "Setting hostname to ${NEW_HOSTNAME}"
 
 ROUTE53_RECORD="{ \"ChangeBatch\": { \"Changes\": [ { \"Action\": \"UPSERT\", \"ResourceRecordSet\": { \"Name\": \"${NEW_HOSTNAME}.${HOSTED_ZONE_NAME}.\", \"Type\": \"A\", \"TTL\": 900, \"ResourceRecords\": [ { \"Value\": \"$PUBLIC_IP\" } ] } } ] } }"
 
-aws route53 change-resource-record-sets --hosted-zone-id "$HOSTED_ZONE_ID" --cli-input-json "${ROUTE53_RECORD}"
+if [[ ! $PUBLIC_IP == *"404"* ]] ; then
+  aws route53 change-resource-record-sets --hosted-zone-id "$HOSTED_ZONE_ID" --cli-input-json "${ROUTE53_RECORD}"
+fi
+
 aws ec2 create-tags --region $REGION --resources "${INSTANCE_ID}" --tags "Key=Name,Value=${NEW_HOSTNAME}"
 sudo hostname "$NEW_HOSTNAME.$HOSTED_ZONE_NAME"
