@@ -117,7 +117,6 @@ resource "aws_autoscaling_group" "hab" {
   max_size = "${var.max_hab_servers}"
 
   lifecycle { create_before_destroy = true }
-  tag { key = "Name", value = "${var.shared["env"]}-hab", propagate_at_launch = false }
   tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }
   tag { key = "host-type", value = "${var.shared["env"]}-hab", propagate_at_launch = true }
   tag { key = "hab-ring", value = "${var.shared["env"]}", propagate_at_launch = true }
