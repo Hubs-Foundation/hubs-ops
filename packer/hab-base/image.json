@@ -26,15 +26,29 @@
     "ami_name": "hab-base-{{timestamp}}"
   }],
   "provisioners": [
+    { "type": "file", "source": "../shared/files/hostname-adjectives", "destination": "hostname-adjectives" },
+    { "type": "file", "source": "../shared/files/hostname-nouns", "destination": "hostname-nouns" },
+    { "type": "file", "source": "../shared/files/set_hostname.sh", "destination": "set_hostname.sh" },
     { "type": "file", "source": "../shared/files/set_host_type_prompt.sh", "destination": "set_host_type_prompt.sh" },
+    { "type": "file", "source": "../shared/files/set-hostname.service", "destination": "set-hostname.service" },
     {
       "type": "shell",
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
       "inline": [
         "apt-get update",
         "apt install -y unattended-upgrades python awscli jq",
+        "mv hostname-nouns /usr/share/dict",
+        "mv hostname-adjectives /usr/share/dict",
         "mv set_host_type_prompt.sh /usr/bin",
+        "mv set_hostname.sh /usr/bin",
+        "mv set-hostname.service /etc/systemd/system/default.target.wants",
+        "chown root:root /etc/systemd/system/default.target.wants/set-hostname.service",
+        "chown root:root /usr/share/dict/hostname-nouns",
+        "chown root:root /usr/share/dict/hostname-adjectives",
+        "chown root:root /usr/bin/set_hostname.sh",
+        "chown root:root /usr/bin/set_host_type_prompt.sh",
         "chmod +x /usr/bin/set_host_type_prompt.sh",
+        "chmod +x /usr/bin/set_hostname.sh",
         "echo \". /usr/bin/set_host_type_prompt.sh\" >> /home/ubuntu/.bashrc",
         "echo \". /usr/bin/set_host_type_prompt.sh\" >> /root/.bashrc"
       ]
