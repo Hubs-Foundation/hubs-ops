@@ -76,7 +76,7 @@ do_build() {
   pushd ../janus-retproxy
 
   # Need to pass the library paths directly into rustc
-  RUSTFLAGS="-C link-arg=-Wl,-L,${LD_LIBRARY_PATH//:/ -C link-arg=-Wl,-L,}" cargo build
+  RUSTFLAGS="-C link-arg=-Wl,-L,${LD_LIBRARY_PATH//:/ -C link-arg=-Wl,-L,}" cargo build --release
   popd
 
   sh autogen.sh
@@ -89,6 +89,6 @@ do_build() {
 do_install() {
   do_default_install
 
-  cp ../janus-retproxy/target/debug/libjanus_retproxy.so "${pkg_prefix}/lib/janus/plugins"
+  cp ../janus-retproxy/target/release/libjanus_retproxy.so "${pkg_prefix}/lib/janus/plugins"
   mkdir -p "${pkg_prefix}/lib/janus/events"
 }
