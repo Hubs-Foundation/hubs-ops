@@ -20,6 +20,9 @@ pkg_build_deps=(
   core/which
   core/libtool
   core/m4
+  core/rust
+  core/cacerts
+  core/git
   mozillareality/gnutls
   mozillareality/gengetopt
 )
@@ -40,23 +43,43 @@ pkg_deps=(
   # https://github.com/habitat-sh/habitat/issues/3303
   core/zlib
   core/glibc
+  core/gcc-libs
   mozillareality/libtasn1
   mozillareality/pcre
   mozillareality/nettle
 )
 
+do_download() {
+  export GIT_SSL_CAINFO="$(pkg_path_for core/cacerts)/ssl/certs/cacert.pem"
+  pushd /hab/cache/src
+  rm -rf janus-retproxy
+  git clone https://github.com/mquander/janus-retproxy
+  pushd janus-retproxy
+  git checkout master
+  popd
+  popd
+
+  do_default_download
+}
+
 do_build() {
   libtoolize
   
-  # This is a hack, setting ACLOCAL flags etc didn't seem to work
-  cp "$(pkg_path_for core/pkg-config)/share/aclocal/pkg.m4" "$(pkg_path_for core/automake)/share/aclocal/"
-
-  sh autogen.sh
-
   # Another hack, need to include LD_LIBRARY_PATH due to configure
   # causing capability checks to fail due to dynamic linker
   # https://github.com/habitat-sh/habitat/issues/3303
   export LD_LIBRARY_PATH=$LD_RUN_PATH
+
+  # This is a hack, setting ACLOCAL flags etc didn't seem to work
+  cp "$(pkg_path_for core/pkg-config)/share/aclocal/pkg.m4" "$(pkg_path_for core/automake)/share/aclocal/"
+
+  pushd ../janus-retproxy
+
+  # Need to pass the library paths directly into rustc
+  RUSTFLAGS="-C link-arg=-Wl,-L,${LD_LIBRARY_PATH//:/ -C link-arg=-Wl,-L,}" cargo build --release
+  popd
+
+  sh autogen.sh
 
   sh configure --prefix="$pkg_prefix"
 
@@ -65,5 +88,7 @@ do_build() {
 
 do_install() {
   do_default_install
-  mkdir -p "${pkg_path}/lib/janus/events"
+
+  cp ../janus-retproxy/target/release/libjanus_retproxy.so "${pkg_prefix}/lib/janus/plugins"
+  mkdir -p "${pkg_prefix}/lib/janus/events"
 }
