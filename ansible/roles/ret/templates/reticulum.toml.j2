@@ -1,0 +1,26 @@
+[phx]
+port = 4000
+secret_key = "{{ phoenix_secret_key }}"
+
+[guardian]
+secret_key = "{{ guardian_secret_key }}"
+
+[habitat]
+ip = "EC2_PRIVATE_IP"
+http_port = 9631
+
+[erlang]
+node_cookie = "{{ erlang_node_cookie }}"
+
+[oauth_google]
+client_id = "{{ oauth_google_client_id }}"
+client_secret = "{{ oauth_google_client_secret }}"
+
+[db]
+username = "postgres"
+password = "{{ ret_db_password }}"
+hostname = "dev-ret-db005beb007aae9835bcadd109a4.cl5aavhmi0x6.us-west-1.rds.amazonaws.com"
+database = "ret_production"
+pool_size = 16
+
+foo = Application.get_env(:ret, RetWeb.Endpoint)[:pubsub]
