@@ -23,13 +23,13 @@
       dest: "{{ work_dir.path }}/dtls.pem"
 
   - name: Deploy Janus configs
-    shell: "cat {{ work_dir.path }}/janus-gateway.toml | hab config apply --org mozillareality --ring mr janus-gateway.default $(date +%s)"
+    shell: "cat {{ work_dir.path }}/janus-gateway.toml | hab config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s)"
 
   - name: Deploy DTLS key
-    shell: "hab file upload --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.key"
+    shell: "hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.key"
 
   - name: Deploy DTLS pem
-    shell: "hab file upload --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.pem"
+    shell: "hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.pem"
 
   always:
   - name: Remove work directory
