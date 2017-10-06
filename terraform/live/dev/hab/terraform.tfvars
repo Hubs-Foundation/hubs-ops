@@ -12,7 +12,7 @@ terragrunt = {
   }
 }
 
-hab_ami = "ami-96487bf6"
+hab_ami = "ami-36271456"
 hab_instance_type = "m3.medium"
 min_hab_servers = 1
 max_hab_servers = 1
