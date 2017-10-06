@@ -29,6 +29,15 @@ resource "aws_security_group" "ret-alb" {
   }
 }
 
+resource "aws_security_group_rule" "ret-alb-egress" {
+  type = "egress"
+  from_port = "${var.ret_http_port}"
+  to_port = "${var.ret_http_port}"
+  protocol = "tcp"
+  security_group_id = "${aws_security_group.ret-alb.id}"
+  source_security_group_id = "${aws_security_group.ret.id}"
+}
+
 resource "aws_alb" "ret-alb" {
   name = "${var.shared["env"]}-ret-alb"
   security_groups = ["${aws_security_group.ret-alb.id}"]
