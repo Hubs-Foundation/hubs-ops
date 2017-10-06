@@ -44,7 +44,7 @@ resource "aws_alb_target_group" "ret-alb-group-http" {
   protocol = "HTTP"
 
   health_check {
-    path = "/health_check"
+    path = "/"
   }
 }
 
@@ -56,7 +56,7 @@ resource "aws_alb_target_group" "ret-alb-group-http" {
 
 resource "aws_alb_listener" "ret-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-alb.arn}"
-  port = 443
+  port = 80
   protocol = "HTTP"
 
   # TODO
@@ -180,6 +180,7 @@ sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 
 sudo /usr/bin/hab start mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab start mozillareality/reticulum --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 
