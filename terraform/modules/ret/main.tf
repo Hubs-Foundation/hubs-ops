@@ -175,6 +175,10 @@ resource "aws_launch_configuration" "ret" {
   user_data = <<EOF
 #!/usr/bin/env bash
 while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
+# Forward port 8080 to 80, 8443 to 443 for janus websockets
+sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
+sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
+
 sudo /usr/bin/hab start mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }

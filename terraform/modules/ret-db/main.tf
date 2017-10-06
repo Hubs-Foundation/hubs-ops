@@ -43,9 +43,40 @@ resource "aws_iam_role" "ret-db-monitoring" {
   assume_role_policy = "${var.shared["ec2_role_policy"]}"
 }
 
-resource "aws_iam_role_policy_attachment" "ret-db-monitoring-policy" {
+resource "aws_iam_role_policy" "ret-db-monitoring-policy" {
   role = "${aws_iam_role.ret-db-monitoring.name}"
-  policy_arn = "${data.terraform_remote_state.base.db_monitoring_policy_arn}"
+  name = "${var.shared["env"]}-ret-db-monitoring-policy"
+  policy = <<EOF
+{
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Sid": "EnableCreationAndManagementOfRDSCloudwatchLogGroups",
+              "Effect": "Allow",
+              "Action": [
+                  "logs:CreateLogGroup",
+                  "logs:PutRetentionPolicy"
+              ],
+              "Resource": [
+                  "arn:aws:logs:*:*:log-group:RDS*"
+              ]
+          },
+          {
+              "Sid": "EnableCreationAndManagementOfRDSCloudwatchLogStreams",
+              "Effect": "Allow",
+              "Action": [
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents",
+                  "logs:DescribeLogStreams",
+                  "logs:GetLogEvents"
+              ],
+              "Resource": [
+                  "arn:aws:logs:*:*:log-group:RDS*:log-stream:*"
+              ]
+          }
+      ]
+  }
+  EOF
 }
 
 resource "aws_db_parameter_group" "ret-db-parameter-group" {
@@ -65,8 +96,10 @@ resource "aws_db_instance" "ret-db" {
   identifier_prefix = "${var.shared["env"]}-ret-db"
   instance_class = "${var.instance_class}"
   maintenance_window = "Sun:08:30-Sun:09:30"
-  monitoring_interval = 30
-  monitoring_role_arn = "${aws_iam_role.ret-db-monitoring.arn}"
+  # TODO, this wasn't working yet, AWS complains about:
+  # Instance: InvalidParameterValue: IAM role ARN value is invalid or does not include the required permissions for: ENHANCED_MONITORING
+  # monitoring_interval = 30
+  # monitoring_role_arn = "${aws_iam_role.ret-db-monitoring.arn}"
   multi_az = true
   name = "ret_production"
   parameter_group_name = "${aws_db_parameter_group.ret-db-parameter-group.name}"
