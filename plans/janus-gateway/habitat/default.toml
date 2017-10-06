@@ -8,8 +8,8 @@
 server_name = "Janus"
 iface = "0.0.0.0"
 
-api_secret = "api_secret"
-admin_secret = "admin_secret"
+# api_secret = "api_secret"
+# admin_secret = "admin_secret"
 
 debug_level = 4
 token_auth = "no"
