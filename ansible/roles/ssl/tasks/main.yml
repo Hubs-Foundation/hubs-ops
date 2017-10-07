@@ -1,0 +1,66 @@
+---
+
+- block:
+  - name: Generate reticulum.io challenge
+    letsencrypt:
+      acme_directory: https://acme-v01.api.letsencrypt.org/directory
+      account_key: tmp/letsencrypt.pem
+      csr: tmp/reticulum.io.csr
+      dest: tmp/reticulum.io.crt
+      challenge: dns-01
+    register: reticulum_challenge
+
+  - name: Add DNS TXT for reticulum.io challenge
+    route53: >
+      command=create
+      zone=reticulum.io
+      record={{ reticulum_challenge['challenge_data']['reticulum.io']['dns-01']['resource'] }}.reticulum.io
+      type=TXT
+      ttl=7200
+      value=""{{ reticulum_challenge['challenge_data']['reticulum.io']['dns-01']['resource_value'] }}""
+
+  - name: Wait for DNS update
+    pause: 
+      seconds: 30
+
+  - name: Generate reticulum.io cert
+    letsencrypt:
+      acme_directory: https://acme-v01.api.letsencrypt.org/directory
+      account_key: tmp/letsencrypt.pem
+      csr: tmp/reticulum.io.csr
+      dest: tmp/reticulum.io.crt
+      challenge: dns-01
+      data: "{{ reticulum_challenge }}"
+
+  - name: Register reticulum.io cert with AWS
+    iam_cert:
+      name: reticulum.io
+      state: present
+      cert: tmp/reticulum.io.crt
+      cert_chain: roles/ssl/files/letsencrypt-chain.crt
+      key: tmp/reticulum.io.pem
+    register: reticulum_aws
+
+  - name: Show info
+    debug:
+      msg: "{{ reticulum_aws }}"
+
+  always:
+  - name: Look up DNS TXT record to delete
+    route53: >
+      command=get
+      zone=reticulum.io
+      record={{ reticulum_challenge['challenge_data']['reticulum.io']['dns-01']['resource'] }}.reticulum.io
+      type=TXT
+    register: rec
+    when: reticulum_challenge
+
+  - name: Delete DNS TXT record
+    route53:
+      command: delete
+      zone: reticulum.io
+      record: "{{ rec.set.record }}"
+      ttl: "{{ rec.set.ttl }}"
+      type: "{{ rec.set.type }}"
+      value: "{{ rec.set.value }}"
+    when: reticulum_challenge

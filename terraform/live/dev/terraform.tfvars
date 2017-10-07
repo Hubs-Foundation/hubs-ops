@@ -20,6 +20,10 @@ terragrunt = {
       dynamodb_table = "mr-dev-terraform-lock"
     }
   }
+
+  include {
+    path = "${find_in_parent_folders()}"
+  }
 }
 
 shared = {
