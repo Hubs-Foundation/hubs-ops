@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+# Helper script that will check ec2 metadata for a peer in the same habitat
+# ring based on tags, and echo "--peer IP" if peers present, empty string otherwise. 
+#
+# This script is meant to be run as an additional argument to hab sup run
+
+INSTANCE_ID=$(curl -s "http://169.254.169.254/latest/meta-data/instance-id")
+REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed 's/[a-z]$//')
+PRIVATE_IP=$(curl -s "http://169.254.169.254/latest/meta-data/local-ipv4")
+
+EC2_INFO=""
+HAB_RING=""
+ENV=""
+
+# There is a race condition on EC2 metadata, it can be not ready yet or have no tags yet.
+while [[ -z "$EC2_INFO" || -z "$HAB_RING" || -z "$ENV" ]] ; do
+  EC2_INFO=$(aws ec2 --region us-west-1 describe-instances)
+
+  # Get the ring name
+  HAB_RING=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$INSTANCE_ID\") | .Tags | .[] | select(.Key == \"hab-ring\") | .Value ")
+
+  # Get the environment name
+  ENV=$(echo "$EC2_INFO" |  jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$INSTANCE_ID\") | .Tags | .[] | select(.Key == \"env\") | .Value ")
+done
+
+# Prefer a node of type "hab" for this environment
+HAB_PEER=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENV}-hab\"))) | .[] | select(.State | .Code == 16) | .PrivateIpAddress" | grep -v $PRIVATE_IP | shuf | head -n1)
+
+# Otherwise pick a peer from the same ring
+RING_PEER=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"hab-ring\"] == \"$HAB_RING\"))) | .[] | select(.State | .Code == 16) | .PrivateIpAddress" | grep -v $PRIVATE_IP | shuf | head -n1)
+
+PEER=$HAB_PEER
+
+[[ -z "$PEER" ]] && PEER=$RING_PEER
+[[ ! -z "$PEER" ]] && echo "--peer $PEER"

@@ -1,0 +1,62 @@
+---
+
+- block:
+  - name: Create work directory
+    tempfile:
+      state: directory
+      suffix: deploy
+    register: work_dir
+
+  - name: Write Janus config file
+    template:
+      src: janus-gateway.toml.j2
+      dest: "{{ work_dir.path }}/janus-gateway.toml"
+
+  - name: Write Reticulum config file
+    template:
+      src: reticulum.toml.j2
+      dest: "{{ work_dir.path }}/reticulum.toml"
+
+  - name: Write DTLS key
+    copy:
+      src: dtls.key
+      dest: "{{ work_dir.path }}/dtls.key"
+
+  - name: Write DTLS cert
+    copy:
+      src: dtls.pem
+      dest: "{{ work_dir.path }}/dtls.pem"
+
+  - name: Write WSS key
+    copy:
+      src: reticulum.io.pem
+      dest: "{{ work_dir.path }}/wss.key"
+
+  - name: Write WSS cert
+    copy:
+      src: reticulum.io.crt
+      dest: "{{ work_dir.path }}/wss.pem"
+
+  - name: Deploy Janus configs
+    shell: "cat {{ work_dir.path }}/janus-gateway.toml | hab config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s)"
+
+  - name: Deploy Reticulum configs
+    shell: "cat {{ work_dir.path }}/reticulum.toml | hab config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr reticulum.default $(date +%s)"
+
+  - name: Deploy DTLS key
+    shell: "hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.key"
+
+  - name: Deploy DTLS pem
+    shell: "hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.pem"
+
+  - name: Deploy WSS key
+    shell: "hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.key"
+
+  - name: Deploy WSS pem
+    shell: "hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.pem"
+
+  always:
+  - name: Remove work directory
+    file:
+      path: "{{ work_dir.path }}"
+      state: absent

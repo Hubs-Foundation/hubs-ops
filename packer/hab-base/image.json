@@ -1,0 +1,85 @@
+{
+  "variables": {
+    "aws_access_key": "",
+    "aws_secret_key": ""
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "region": "us-west-1",
+    "associate_public_ip_address": true,
+    "iam_instance_profile": "dev-packer",
+    "subnet_id": "subnet-abacbdf3",
+    "security_group_id": "sg-37a2c751",
+    "source_ami_filter": {
+      "filters": {
+      "virtualization-type": "hvm",
+      "name": "ubuntu/images/*ubuntu-xenial-16.04-amd64-server-*",
+      "root-device-type": "ebs"
+      },
+      "owners": ["099720109477"],
+      "most_recent": true
+    },
+    "instance_type": "m3.medium",
+    "ssh_username": "ubuntu",
+    "ami_name": "hab-base-{{timestamp}}"
+  }],
+  "provisioners": [
+    { "type": "file", "source": "../shared/files/hostname-adjectives", "destination": "hostname-adjectives" },
+    { "type": "file", "source": "../shared/files/hostname-nouns", "destination": "hostname-nouns" },
+    { "type": "file", "source": "../shared/files/set_hostname.sh", "destination": "set_hostname.sh" },
+    { "type": "file", "source": "../shared/files/set_host_type_prompt.sh", "destination": "set_host_type_prompt.sh" },
+    { "type": "file", "source": "../shared/files/set-hostname.service", "destination": "set-hostname.service" },
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
+      "inline": [
+        "apt-get update",
+        "apt install -y unattended-upgrades python awscli jq",
+        "mv hostname-nouns /usr/share/dict",
+        "mv hostname-adjectives /usr/share/dict",
+        "mv set_host_type_prompt.sh /usr/bin",
+        "mv set_hostname.sh /usr/bin",
+        "mv set-hostname.service /etc/systemd/system/default.target.wants",
+        "chown root:root /etc/systemd/system/default.target.wants/set-hostname.service",
+        "chown root:root /usr/share/dict/hostname-nouns",
+        "chown root:root /usr/share/dict/hostname-adjectives",
+        "chown root:root /usr/bin/set_hostname.sh",
+        "chown root:root /usr/bin/set_host_type_prompt.sh",
+        "chmod +x /usr/bin/set_host_type_prompt.sh",
+        "chmod +x /usr/bin/set_hostname.sh",
+        "echo \". /usr/bin/set_host_type_prompt.sh\" >> /home/ubuntu/.bashrc",
+        "echo \". /usr/bin/set_host_type_prompt.sh\" >> /root/.bashrc"
+      ]
+    },
+    { "type": "file", "source": "files/hab.service", "destination": "hab.service" },
+    { "type": "file", "source": "files/hab-discover-peer", "destination": "hab-discover-peer" },
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
+      "inline": [
+        "curl -L \"https://api.bintray.com/content/habitat/stable/linux/x86_64/hab-%24latest-x86_64-linux.tar.gz?bt_package=hab-x86_64-linux\" | tar xvz",
+        "find . -name 'hab' -exec mv {} /usr/bin \\;",
+        "chmod +x /usr/bin/hab",
+        "mv hab.service /etc/systemd/system/default.target.wants",
+        "chown root:root /etc/systemd/system/default.target.wants/hab.service",
+        "mv hab-discover-peer /usr/bin",
+        "chown root:root /usr/bin/hab-discover-peer",
+        "chmod +x /usr/bin/hab-discover-peer",
+        "mkdir -p /hab/cache",
+        "useradd hab"
+      ]
+    },
+    { "type": "file", "source": "keys", "destination": "." },
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
+      "inline": [
+        "mv keys /hab/cache",
+        "chown -R root:root /hab/cache/keys",
+        "chmod -R 0600 /hab/cache/keys"
+      ]
+    }
+  ]
+}
