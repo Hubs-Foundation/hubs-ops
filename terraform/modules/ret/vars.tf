@@ -10,8 +10,8 @@ variable "ret_http_port" {
   description = "Reticulum HTTP service listener port"
 }
 
-variable "janus_ws_port" {
-  description = "Janus signalling Websockets port"
+variable "janus_wss_port" {
+  description = "Janus signalling secure Websockets port"
 }
 
 variable "janus_admin_port" {

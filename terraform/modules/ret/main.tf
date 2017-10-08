@@ -13,9 +13,9 @@ data "aws_route53_zone" "reticulum-zone" {
   name = "reticulum.io."
 }
 
-data "aws_iam_server_certificate" "reticulum-ssl" {
-  name_prefix = "reticulum.io"
-  latest = true
+data "aws_acm_certificate" "ret-alb-listener-cert" {
+  domain = "*.reticulum.io"
+  statuses = ["ISSUED"]
 }
 
 resource "aws_security_group" "ret-alb" {
@@ -83,7 +83,8 @@ resource "aws_alb_listener" "ret-alb-listener" {
 
   protocol = "HTTPS"
   ssl_policy = "ELBSecurityPolicy-2015-05"
-  certificate_arn = "${data.aws_iam_server_certificate.reticulum-ssl.arn}"
+
+  certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert.arn}"
   
   default_action {
     target_group_arn = "${aws_alb_target_group.ret-alb-group-http.arn}"
@@ -127,8 +128,8 @@ resource "aws_security_group" "ret" {
 
   # Janus Websockets
   ingress {
-    from_port = "${var.janus_ws_port}"
-    to_port = "${var.janus_ws_port}"
+    from_port = "${var.janus_wss_port}"
+    to_port = "${var.janus_wss_port}"
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

@@ -16,10 +16,13 @@ disabled = [
 ]
 
 [transports.websockets]
-ws = "yes"
+ws = "no"
+admin_ws = "no"
+admin_wss = "no"
+wss = "yes"
 
-# This port is forwarded to port 80 via iptables, see terraform config for ASG
-ws_port = 8080
+# This port is forwarded to port 443 via iptables, see terraform config for ASG
+wss_port = 8443
 
 [transports.http]
 http = "no"
