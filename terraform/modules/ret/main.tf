@@ -168,10 +168,50 @@ resource "aws_security_group" "ret" {
     security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
   }
 
-  # OTP
+  # epmd
   ingress {
-    from_port = "9100"
-    to_port = "9200"
+    from_port = "4369"
+    to_port = "4369"
+    protocol = "tcp"
+    self = true
+  }
+
+  # epmd-udp
+  ingress {
+    from_port = "4369"
+    to_port = "4369"
+    protocol = "udp"
+    self = true
+  }
+
+  # erlang
+  ingress {
+    from_port = "9000"
+    to_port = "9100"
+    protocol = "tcp"
+    self = true
+  }
+
+  # epmd
+  egress {
+    from_port = "4369"
+    to_port = "4369"
+    protocol = "tcp"
+    self = true
+  }
+
+  # epmd-udp
+  egress {
+    from_port = "4369"
+    to_port = "4369"
+    protocol = "udp"
+    self = true
+  }
+
+  # erlang
+  egress {
+    from_port = "9000"
+    to_port = "9100"
     protocol = "tcp"
     self = true
   }
