@@ -1,6 +1,5 @@
 # Provides shared, base resources
 
-variable "global" { type = "map" }
 variable "shared" { type = "map" }
 terraform { backend "s3" {} }
 provider "aws" { region = "${var.shared["region"]}", version = "~> 0.1" }

@@ -1,4 +1,3 @@
-variable "global" { type = "map" }
 variable "shared" { type = "map" }
 terraform { backend "s3" {} }
 provider "aws" { region = "${var.shared["region"]}", version = "~> 0.1" }
@@ -9,6 +8,15 @@ data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/te
 data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bastion/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "hab" { backend = "s3", config = { key = "hab/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "ret-db" { backend = "s3", config = { key = "ret-db/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+
+data "aws_route53_zone" "reticulum-zone" {
+  name = "reticulum.io."
+}
+
+data "aws_iam_server_certificate" "reticulum-ssl" {
+  name_prefix = "reticulum.io"
+  latest = true
+}
 
 resource "aws_security_group" "ret-alb" {
   name = "${var.shared["env"]}-ret-alb"
@@ -46,6 +54,18 @@ resource "aws_alb" "ret-alb" {
   lifecycle { create_before_destroy = true }
 }
 
+resource "aws_route53_record" "ret-alb-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_alb.ret-alb.dns_name}"
+    zone_id = "${aws_alb.ret-alb.zone_id}"
+    evaluate_target_health = true
+  }
+}
+
 resource "aws_alb_target_group" "ret-alb-group-http" {
   name = "${var.shared["env"]}-ret-alb-group-http"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
@@ -57,21 +77,13 @@ resource "aws_alb_target_group" "ret-alb-group-http" {
   }
 }
 
-# TODO
-#data "aws_acm_certificate" "ret-alb-listener-cert" {
-#  domain = "reticulum.mozilla.com"
-#  statuses = ["ISSUED"]
-#}
-
 resource "aws_alb_listener" "ret-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-alb.arn}"
-  port = 80
-  protocol = "HTTP"
+  port = 443
 
-  # TODO
-  # protocol = "HTTPS"
-  # ssl_policy = "ELBSecurityPolicy-2015-05"
-  # certificate_arn = "${aws_acm_certificate.ret-alb.listener-cert.arn}"
+  protocol = "HTTPS"
+  ssl_policy = "ELBSecurityPolicy-2015-05"
+  certificate_arn = "${data.aws_iam_server_certificate.reticulum-ssl.arn}"
   
   default_action {
     target_group_arn = "${aws_alb_target_group.ret-alb-group-http.arn}"
