@@ -1,6 +1,6 @@
 terragrunt = {
   terraform {
-    source = "git::git@github.com:mozilla/mr-ops.git?ref=feature/terraform-ret//terraform/modules/ret"
+    source = "git::git@github.com:mozilla/mr-ops.git//terraform/modules/ret"
   }
 
   include {
@@ -12,7 +12,6 @@ terragrunt = {
   }
 }
 
-ret_ami = "ami-36271456"
 ret_instance_type = "m3.medium"
 ret_http_port = 4000
 janus_wss_port = 443

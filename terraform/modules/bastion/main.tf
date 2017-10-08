@@ -6,6 +6,17 @@ data "aws_availability_zones" "all" {}
 data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
+data "aws_ami" "bastion-ami" {
+  most_recent = true
+  owners = ["self"]
+
+  filter {
+    name = "name"
+    values = ["bastion-*"]
+  }
+}
+
+
 resource "aws_security_group" "bastion" {
   name = "${var.shared["env"]}-bastion"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
@@ -38,7 +49,7 @@ resource "aws_iam_instance_profile" "bastion" {
 }
 
 resource "aws_launch_configuration" "bastion" {
-  image_id = "${var.bastion_ami}"
+  image_id = "${data.aws_ami.bastion-ami.id}"
   instance_type = "${var.bastion_instance_type}"
   security_groups = ["${aws_security_group.bastion.id}"]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"

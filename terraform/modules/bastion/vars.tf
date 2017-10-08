@@ -1,7 +1,3 @@
-variable "bastion_ami" {
-  description = "Bastion server AMI"
-}
-
 variable "bastion_instance_type" {
   description = "Bastion server instance type"
 }

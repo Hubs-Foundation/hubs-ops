@@ -7,6 +7,16 @@ data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terr
 data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bastion/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
+data "aws_ami" "hab-base-ami" {
+  most_recent = true
+  owners = ["self"]
+
+  filter {
+    name = "name"
+    values = ["hab-base-*"]
+  }
+}
+
 resource "aws_security_group" "hab" {
   name = "${var.shared["env"]}-hab"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
@@ -97,7 +107,7 @@ resource "aws_iam_instance_profile" "hab" {
 }
 
 resource "aws_launch_configuration" "hab" {
-  image_id = "${var.hab_ami}"
+  image_id = "${data.aws_ami.hab-base-ami.id}"
   instance_type = "${var.hab_instance_type}"
   security_groups = ["${aws_security_group.hab.id}", "${aws_security_group.hab-ring.id}"]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"

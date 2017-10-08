@@ -1,6 +1,6 @@
 terragrunt = {
   terraform {
-    source = "git::git@github.com:mozilla/mr-ops.git?ref=feature/terraform-ret//terraform/modules/base"
+    source = "git::git@github.com:mozilla/mr-ops.git//terraform/modules/base"
   }
 
   include {

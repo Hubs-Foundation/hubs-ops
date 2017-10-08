@@ -1,7 +1,3 @@
-variable "ret_ami" {
-  description = "Reticulum server AMI"
-}
-
 variable "ret_instance_type" {
   description = "Reticulum server instance type"
 }

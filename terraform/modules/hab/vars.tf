@@ -1,7 +1,3 @@
-variable "hab_ami" {
-  description = "hab server AMI"
-}
-
 variable "hab_instance_type" {
   description = "hab server instance type"
 }

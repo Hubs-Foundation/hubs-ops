@@ -18,6 +18,16 @@ data "aws_acm_certificate" "ret-alb-listener-cert" {
   statuses = ["ISSUED"]
 }
 
+data "aws_ami" "hab-base-ami" {
+  most_recent = true
+  owners = ["self"]
+
+  filter {
+    name = "name"
+    values = ["hab-base-*"]
+  }
+}
+
 resource "aws_security_group" "ret-alb" {
   name = "${var.shared["env"]}-ret-alb"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
@@ -183,7 +193,7 @@ resource "aws_iam_instance_profile" "ret" {
 }
 
 resource "aws_launch_configuration" "ret" {
-  image_id = "${var.ret_ami}"
+  image_id = "${data.aws_ami.hab-base-ami.id}"
   instance_type = "${var.ret_instance_type}"
   security_groups = [
     "${aws_security_group.ret.id}",
