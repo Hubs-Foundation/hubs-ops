@@ -68,7 +68,7 @@ do_download() {
   pushd $HAB_CACHE_SRC_PATH
 
   git-get meetecho/janus-gateway f72f223b3852ff76bc77b33d5c27d951d506563d
-  git-get mozilla/janus-plugin-sfu
+  git-get mquander/janus-plugin-sfu
 
   popd
 }
@@ -92,7 +92,7 @@ do_build() {
   make
 
   popd
-  pushd $HAB_CACHE_SRC_PATH/mozilla/janus-plugin-sfu
+  pushd $HAB_CACHE_SRC_PATH/mquander/janus-plugin-sfu
 
   # Need to pass the library paths directly into rustc
   RUSTFLAGS="-C link-arg=-Wl,-L,${LD_LIBRARY_PATH//:/ -C link-arg=-Wl,-L,}" cargo build --release
@@ -104,7 +104,7 @@ do_install() {
 
   do_default_install
 
-  cp $HAB_CACHE_SRC_PATH/mozilla/janus-plugin-sfu/target/release/libjanus_plugin_sfu.so "${pkg_prefix}/lib/janus/plugins"
+  cp $HAB_CACHE_SRC_PATH/mquander/janus-plugin-sfu/target/release/libjanus_plugin_sfu.so "${pkg_prefix}/lib/janus/plugins"
   mkdir -p "${pkg_prefix}/lib/janus/events"
 
   popd
