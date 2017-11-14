@@ -18,9 +18,14 @@ do_build() {
   mkdir build
   cd build
 
+  # see https://github.com/meetecho/janus-gateway/issues/732 re: LWS_MAX_SMP
+
   cmake \
     -DCMAKE_INSTALL_PREFIX:PATH=${pkg_prefix} \
     -DZLIB_ROOT=$(pkg_path_for core/zlib) \
+    -DLWS_MAX_SMP=1 \
+    -DLWS_WITHOUT_TESTAPPS=ON \
+    -DCMAKE_C_FLAGS="-fpic" \
     -DOPENSSL_ROOT_DIR=$(pkg_path_for core/openssl) ..
 
   make
