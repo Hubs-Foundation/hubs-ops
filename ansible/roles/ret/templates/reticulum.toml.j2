@@ -16,6 +16,10 @@ node_cookie = "{{ erlang_node_cookie }}"
 client_id = "{{ oauth_google_client_id }}"
 client_secret = "{{ oauth_google_client_secret }}"
 
+[basic_auth]
+username = "{{ basic_auth_username }}"
+password = "{{ basic_auth_password }}"
+
 [db]
 username = "postgres"
 password = "{{ ret_db_password }}"
