@@ -1,6 +1,9 @@
 ---
 
 - block:
+  - name: Install moz hab-butterfly (needed until https://github.com/habitat-sh/habitat/issues/4066 is closed)
+    shell: "hab pkg install mozillareality/hab-butterfly"
+
   - name: Create work directory
     tempfile:
       state: directory
@@ -44,16 +47,16 @@
     shell: "cat {{ work_dir.path }}/reticulum.toml | hab config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr reticulum.default $(date +%s)"
 
   - name: Deploy DTLS key
-    shell: "hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.key"
+    shell: "HAB_BUTTERFLY_BINARY=/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.key"
 
   - name: Deploy DTLS pem
-    shell: "hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.pem"
+    shell: "HAB_BUTTERFLY_BINARY=/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.pem"
 
   - name: Deploy WSS key
-    shell: "hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.key"
+    shell: "HAB_BUTTERFLY_BINARY=/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.key"
 
   - name: Deploy WSS pem
-    shell: "hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.pem"
+    shell: "HAB_BUTTERFLY_BINARY=/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.pem"
 
   always:
   - name: Remove work directory
