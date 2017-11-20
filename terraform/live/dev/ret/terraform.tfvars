@@ -18,5 +18,5 @@ janus_wss_port = 443
 janus_admin_port = 7000
 janus_rtp_port_from = 20000
 janus_rtp_port_to = 60000
-min_ret_servers = 2
-max_ret_servers = 2
+min_ret_servers = 1
+max_ret_servers = 1
