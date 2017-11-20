@@ -21,7 +21,7 @@ attempt_generate_hostname() {
   NOUN=$(cat /usr/share/dict/hostname-nouns | shuf | head -n1)
 
   NEW_HOSTNAME="${ADJECTIVE}-${NOUN}"
-  DNS_IP=$(dig $NEW_HOSTNAME A +short)
+  DNS_IP=$(dig $NEW_HOSTNAME.$HOSTED_ZONE_NAME A +short)
 
   if [[ ! -z "$DNS_IP" ]] ; then
     EXISTING_IP=$(aws ec2 --region $REGION describe-instances | grep $DNS_IP)
