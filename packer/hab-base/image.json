@@ -36,7 +36,7 @@
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
       "inline": [
         "apt-get update",
-        "apt install -y unattended-upgrades python awscli jq",
+        "apt install -y unattended-upgrades python2.7 awscli jq",
         "mv hostname-nouns /usr/share/dict",
         "mv hostname-adjectives /usr/share/dict",
         "mv set_host_type_prompt.sh /usr/bin",
