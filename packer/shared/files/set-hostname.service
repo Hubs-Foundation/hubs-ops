@@ -5,4 +5,4 @@ Description=Set Hostname and DNS
 ExecStart=/bin/bash /usr/bin/set_hostname.sh
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
