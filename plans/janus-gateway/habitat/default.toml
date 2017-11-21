@@ -7,6 +7,8 @@
 
 server_name = "Janus"
 iface = "0.0.0.0"
+log_to_syslog = "true"
+# log_to_file = "janus.log"
 
 # api_secret = "api_secret"
 # admin_secret = "admin_secret"
