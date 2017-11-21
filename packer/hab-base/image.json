@@ -26,6 +26,7 @@
     "ami_name": "hab-base-{{timestamp}}"
   }],
   "provisioners": [
+    { "type": "file", "source": "../shared/files/papertrail-bundle.pem", "destination": "papertrail-bundle.pem" },
     { "type": "file", "source": "../shared/files/hostname-adjectives", "destination": "hostname-adjectives" },
     { "type": "file", "source": "../shared/files/hostname-nouns", "destination": "hostname-nouns" },
     { "type": "file", "source": "../shared/files/set_hostname.sh", "destination": "set_hostname.sh" },
@@ -36,7 +37,10 @@
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
       "inline": [
         "apt-get update",
+        "apt-get update",
+        "apt-get update",
         "apt-get install -y unattended-upgrades python3 awscli jq",
+        "mv papertrail-bundle.pem /etc",
         "mv hostname-nouns /usr/share/dict",
         "mv hostname-adjectives /usr/share/dict",
         "mv set_host_type_prompt.sh /usr/bin",
@@ -73,14 +77,16 @@
         "useradd hab"
       ]
     },
-    { "type": "file", "source": "keys", "destination": "." },
+    { "type": "file", "source": "secrets", "destination": "." },
     {
       "type": "shell",
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
       "inline": [
-        "mv keys /hab/cache",
+        "mv secrets/hab-keys /hab/cache/keys",
         "chown -R root:root /hab/cache/keys",
-        "chmod -R 0600 /hab/cache/keys"
+        "chmod -R 0600 /hab/cache/keys",
+        "mv secrets/etc/rsyslog.d/* /etc/rsyslog.d",
+        "chown -R root:root /etc/rsyslog.d"
       ]
     }
   ]
