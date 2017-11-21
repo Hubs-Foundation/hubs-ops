@@ -43,6 +43,14 @@ resource "aws_security_group" "hab" {
     cidr_blocks = ["169.46.82.160/27"]
   }
 
+  # NTP
+  egress {
+    from_port = "123"
+    to_port = "123"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # SSH
   ingress {
     from_port = "22"
