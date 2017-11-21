@@ -47,3 +47,4 @@ aws route53 change-resource-record-sets --hosted-zone-id "$HOSTED_ZONE_ID" --cli
 
 aws ec2 create-tags --region $REGION --resources "${INSTANCE_ID}" --tags "Key=Name,Value=${NEW_HOSTNAME}"
 sudo hostname "$NEW_HOSTNAME.$HOSTED_ZONE_NAME"
+sudo service rsyslog restart

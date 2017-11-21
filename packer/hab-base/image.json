@@ -39,7 +39,7 @@
         "apt-get update",
         "apt-get update",
         "apt-get update",
-        "apt-get install -y unattended-upgrades python3 awscli jq",
+        "apt-get install -y unattended-upgrades python3 awscli jq rsyslog-gnutls",
         "update-alternatives --install /usr/bin/python python /usr/bin/python3 1",
         "mv papertrail-bundle.pem /etc",
         "mv hostname-nouns /usr/share/dict",
@@ -87,7 +87,7 @@
         "chown -R root:root /hab/cache/keys",
         "chmod -R 0600 /hab/cache/keys",
         "mv secrets/etc/rsyslog.d/* /etc/rsyslog.d",
-        "chown -R root:root /etc/rsyslog.d"
+        "chown -R root:root /etc/rsyslog.d/*"
       ]
     }
   ]
