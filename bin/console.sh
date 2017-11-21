@@ -19,23 +19,16 @@ ENVIRONMENT=$2
 REGION="us-west-1"
 
 EC2_INFO=$(aws ec2 --region $REGION describe-instances)
-BASTION_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-bastion\"))) | .[] | select(.State | .Code == 16) | .PublicIpAddress" | shuf | head -n1)
+
+BASTION_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-bastion\"))) | .[] | select(.State | .Name == \"running\") | .PublicIpAddress" | shuf | head -n1)
 
 if [[ $HOST_TYPE_OR_NAME == *"-"* ]] ; then
   # it's a hostname
-  TARGET_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"Name\"] == \"${HOST_TYPE_OR_NAME}\"))) | .[] | select(.State | .Code == 16) | .PrivateIpAddress" | shuf | head -n1)
+  TARGET_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"Name\"] == \"${HOST_TYPE_OR_NAME}\"))) | .[] | select(.State | .Name == \"running\") | .PrivateIpAddress" | shuf | head -n1)
 else
   # it's a host type
-  TARGET_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-${HOST_TYPE_OR_NAME}\"))) | .[] | select(.State | .Code == 16) | .PrivateIpAddress" | shuf | head -n1)
+  TARGET_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-${HOST_TYPE_OR_NAME}\"))) | .[] | select(.State | .Name == \"running\") | .PrivateIpAddress" | shuf | head -n1)
 fi
 
-ssh -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa -t "ubuntu@${TARGET_IP}" -t <<END
-export NODE_NAME=\$(echo \$HOSTNAME | sed "s/\([^.]*\)\(.*\)$/\1-local\2/")
-export RELEASE_MUTABLE_DIR=\$HOME
-export NODE_COOKIE=\$(curl -s "http://\$NODE_NAME:9631/services" | jq -r ".[] | select(.service_group == \"reticulum.default@mozillareality\") | .cfg | .erlang | .node_cookie")
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export REPLACE_OS_VARS=true
-clear
-\$(hab pkg path mozillareality/reticulum)/bin/ret remote_console
-END
+scp -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa bin/console_stub.sh "ubuntu@${TARGET_IP}:$DEST" > /dev/null
+ssh -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa -t "ubuntu@${TARGET_IP}" './console_stub.sh'
