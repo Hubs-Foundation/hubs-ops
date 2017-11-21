@@ -12,7 +12,7 @@ terragrunt = {
   }
 }
 
-ret_instance_type = "m3.medium"
+ret_instance_type = "m3.xlarge"
 ret_http_port = 4000
 janus_wss_port = 443
 janus_admin_port = 7000
