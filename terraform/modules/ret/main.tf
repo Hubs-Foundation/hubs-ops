@@ -83,7 +83,7 @@ resource "aws_alb_target_group" "ret-alb-group-http" {
   protocol = "HTTP"
 
   health_check {
-    path = "/"
+    path = "/health"
   }
 }
 
