@@ -30,5 +30,6 @@ else
   TARGET_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-${HOST_TYPE_OR_NAME}\"))) | .[] | select(.State | .Name == \"running\") | .PrivateIpAddress" | shuf | head -n1)
 fi
 
-scp -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa bin/console_stub.sh "ubuntu@${TARGET_IP}:$DEST" > /dev/null
-ssh -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa -t "ubuntu@${TARGET_IP}" './console_stub.sh'
+SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+scp -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa $SCRIPTPATH/remote_console.sh "ubuntu@${TARGET_IP}:~" > /dev/null
+ssh -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa -t "ubuntu@${TARGET_IP}" './remote_console.sh'
