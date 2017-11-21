@@ -29,4 +29,13 @@ else
   TARGET_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-${HOST_TYPE_OR_NAME}\"))) | .[] | select(.State | .Code == 16) | .PrivateIpAddress" | shuf | head -n1)
 fi
 
-ssh -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa -t "ubuntu@${TARGET_IP}" -- /bin/bash -ic 'NODE_NAME=$(echo $HOSTNAME | sed "s/\([^.]*\)\(.*\)$/\1-local\2/") && RELEASE_MUTABLE_DIR=$HOME NODE_COOKIE=$(curl -s "http://$NODE_NAME:9631/services" | jq -r ".[] | select(.service_group == \"reticulum.default@mozillareality\") | .cfg | .erlang | .node_cookie") LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 REPLACE_OS_VARS=true $(hab pkg path mozillareality/reticulum)/bin/ret remote_console'
+ssh -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa -t "ubuntu@${TARGET_IP}" -t <<END
+export NODE_NAME=\$(echo \$HOSTNAME | sed "s/\([^.]*\)\(.*\)$/\1-local\2/")
+export RELEASE_MUTABLE_DIR=\$HOME
+export NODE_COOKIE=\$(curl -s "http://\$NODE_NAME:9631/services" | jq -r ".[] | select(.service_group == \"reticulum.default@mozillareality\") | .cfg | .erlang | .node_cookie")
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export REPLACE_OS_VARS=true
+clear
+\$(hab pkg path mozillareality/reticulum)/bin/ret remote_console
+END
