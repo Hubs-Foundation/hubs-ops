@@ -35,6 +35,14 @@ resource "aws_security_group" "hab" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Papertrail
+  egress {
+    from_port = "28666"
+    to_port = "28666"
+    protocol = "tcp"
+    cidr_blocks = ["169.46.82.160/27"]
+  }
+
   # SSH
   ingress {
     from_port = "22"

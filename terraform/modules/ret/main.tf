@@ -215,6 +215,14 @@ resource "aws_security_group" "ret" {
     protocol = "tcp"
     self = true
   }
+
+  # Papertrail
+  egress {
+    from_port = "28666"
+    to_port = "28666"
+    protocol = "tcp"
+    cidr_blocks = ["169.46.82.160/27"]
+  }
 }
 
 resource "aws_iam_role" "ret" {
