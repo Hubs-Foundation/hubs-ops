@@ -12,6 +12,7 @@ terragrunt = {
   }
 }
 
+ret_domain = "reticulum.io"
 ret_instance_type = "m3.xlarge"
 ret_http_port = 4000
 janus_wss_port = 443
