@@ -301,7 +301,7 @@ resource "aws_cloudfront_distribution" "ret-assets" {
 
   origin {
     origin_id = "reticulum-${var.shared["env"]}-assets"
-    domain_name = "${aws_alb.ret-alb.dns_name}"
+    domain_name = "${var.shared["env"]}.${var.ret_domain}"
 
     custom_origin_config {
       http_port = 80
