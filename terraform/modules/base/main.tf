@@ -15,3 +15,12 @@ resource "aws_iam_policy" "base-policy" {
   policy = "${var.shared["base_policy"]}"
 }
 
+resource "random_id" "bucket-identifier" {
+  byte_length = 8
+}
+
+# Logs bucket
+resource "aws_s3_bucket" "logs-bucket" {
+  bucket = "logs.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "private"
+}
