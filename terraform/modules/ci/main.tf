@@ -123,9 +123,11 @@ resource "aws_launch_configuration" "ci" {
 #!/usr/bin/env bash
 while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
 
-# Jenkins needs to run hab studio as sudo
-sudo /usr/bin/hab pkg install core/hab-studio --binlink
-sudo echo "hab ALL=(ALL) NOPASSWD: /bin/hab-studio" >> /etc/sudoers
+# Jenkins needs to run hab docker studio as sudo
+sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-docker-studio
+sudo echo 'hab studio -D $@' >> /usr/bin/hab-docker-studio
+sudo chmod +x /usr/bin/hab-docker-studio
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-docker-studio" >> /etc/sudoers
 
 sudo apt-get install -y docker.io
 sudo /usr/bin/hab start mozillareality/jenkins-war --strategy at-once --url https://bldr.habitat.sh --channel stable
