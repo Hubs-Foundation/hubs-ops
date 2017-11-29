@@ -331,7 +331,7 @@ resource "aws_cloudfront_distribution" "ret-assets" {
     target_origin_id = "reticulum-${var.shared["env"]}-assets"
    
     forwarded_values {
-      query_string = false
+      query_string = true
       cookies { forward = "none" }
     }
 
