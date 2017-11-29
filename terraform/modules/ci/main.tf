@@ -127,6 +127,7 @@ while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
 sudo /usr/bin/hab pkg install core/hab-studio --binlink
 sudo echo "hab ALL=(ALL) NOPASSWD: /bin/hab-studio" >> /etc/sudoers
 
+sudo apt-get install -y docker.io
 sudo /usr/bin/hab start mozillareality/jenkins-war --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
