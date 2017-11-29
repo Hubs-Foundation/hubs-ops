@@ -24,3 +24,30 @@ resource "aws_s3_bucket" "logs-bucket" {
   bucket = "logs.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
   acl = "private"
 }
+
+# Backups bucket
+resource "aws_s3_bucket" "backups-bucket" {
+  bucket = "backups.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "private"
+
+  lifecycle_rule {
+    id = "jenkins-backups"
+    enabled = true
+    prefix = "ci/jenkins-backups/*"
+
+    transition {
+      days = 7
+      storage_class = "GLACIER"
+    }
+
+    expiration {
+      days = 90
+    }
+  }
+}
+
+# Builds bucket (public read)
+resource "aws_s3_bucket" "builds-bucket" {
+  bucket = "builds.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+}

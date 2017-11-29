@@ -71,6 +71,38 @@ resource "aws_iam_role_policy_attachment" "ci-base-policy" {
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
 
+resource "aws_iam_role_policy_attachment" "ci-backup-s3-policy" {
+  role = "${aws_iam_role.ci.name}"
+  policy_arn = "${aws_iam_policy.ci-backup-s3-policy.arn}"
+}
+
+resource "aws_iam_policy" "ci-backup-s3-policy" {
+  name = "${var.shared["env"]}-ci-backup-s3-policy"
+  policy = <<EOF
+{
+
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+          "Effect": "Allow",
+          "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.backups_bucket_id}/ci/*"
+      },
+      {
+          "Effect": "Allow",
+          "Action": "s3:PutObject",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.backups_bucket_id}/ci/*"
+      },
+      {
+          "Effect": "Allow",
+          "Action": "s3:ListBucket",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.backups_bucket_id}"
+      }
+    ]
+  }
+EOF
+}
+
 resource "aws_iam_instance_profile" "ci" {
   name = "${var.shared["env"]}-ci"
   role = "${aws_iam_role.ci.id}"

@@ -9,3 +9,11 @@ output "mr_ssh_key_id" {
 output "logs_bucket_id" {
   value ="${aws_s3_bucket.logs-bucket.id}"
 }
+
+output "backups_bucket_id" {
+  value ="${aws_s3_bucket.backups-bucket.id}"
+}
+
+output "builds_bucket_id" {
+  value ="${aws_s3_bucket.builds-bucket.id}"
+}
