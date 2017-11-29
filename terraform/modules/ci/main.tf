@@ -36,6 +36,13 @@ resource "aws_security_group" "ci" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  egress {
+    from_port = "53"
+    to_port = "53"
+    protocol = "udp"
+    cidr_blocks = ["8.8.8.8/32", "4.4.4.4/32"]
+  }
+
   # NTP
   egress {
     from_port = "123"
