@@ -15,3 +15,4 @@ terragrunt = {
 ci_instance_type = "c4.large"
 min_ci_servers = 1
 max_ci_servers = 1
+ret_domain = "reticulum.io"

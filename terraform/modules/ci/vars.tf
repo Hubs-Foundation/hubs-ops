@@ -9,3 +9,7 @@ variable "min_ci_servers" {
 variable "max_ci_servers" {
   description = "Maximum number of ci servers to run"
 }
+
+variable "ret_domain" {
+  description = "Domain name being used for reticulum server (ex reticulum.io)"
+}

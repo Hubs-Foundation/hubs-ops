@@ -17,3 +17,11 @@ output "backups_bucket_id" {
 output "builds_bucket_id" {
   value ="${aws_s3_bucket.builds-bucket.id}"
 }
+
+output "cloudfront_http_security_group_id" {
+  value ="${aws_security_group.cloudfront-http.id}"
+}
+
+output "cloudfront_https_security_group_id" {
+  value ="${aws_security_group.cloudfront-https.id}"
+}

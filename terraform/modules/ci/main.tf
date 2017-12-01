@@ -1,12 +1,23 @@
 variable "shared" { type = "map" }
 terraform { backend "s3" {} }
 provider "aws" { region = "${var.shared["region"]}", version = "~> 0.1" }
+provider "aws" { alias = "east", region = "us-east-1", version = "~> 0.1" }
 data "aws_availability_zones" "all" {}
 
 data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bastion/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "hab" { backend = "s3", config = { key = "hab/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+
+data "aws_route53_zone" "reticulum-zone" {
+  name = "${var.ret_domain}."
+}
+
+data "aws_acm_certificate" "ret-wildcard-cert-east" {
+  provider = "aws.east"
+  domain = "*.${var.ret_domain}"
+  statuses = ["ISSUED"]
+}
 
 data "aws_ami" "hab-base-ami" {
   most_recent = true
@@ -65,6 +76,14 @@ resource "aws_security_group" "ci" {
     to_port = "22"
     protocol = "tcp"
     security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
+  }
+
+  # Webhook + Job hook ALB
+  ingress {
+    from_port = "8080"
+    to_port = "8080"
+    protocol = "tcp"
+    security_groups = ["${aws_security_group.ci-alb.id}"]
   }
 }
 
@@ -151,8 +170,129 @@ resource "aws_autoscaling_group" "ci" {
   min_size = "${var.min_ci_servers}"
   max_size = "${var.max_ci_servers}"
 
+  target_group_arns = ["${aws_alb_target_group.ci-alb-group-http.arn}"]
+
   lifecycle { create_before_destroy = true }
   tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }
   tag { key = "host-type", value = "${var.shared["env"]}-ci", propagate_at_launch = true }
   tag { key = "hab-ring", value = "${var.shared["env"]}", propagate_at_launch = true }
+}
+
+resource "aws_security_group" "ci-alb" {
+  name = "${var.shared["env"]}-ci-alb"
+  vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
+}
+
+resource "aws_security_group_rule" "ret-ci-egress" {
+  type = "egress"
+  from_port = "8080"
+  to_port = "8080"
+  protocol = "tcp"
+  security_group_id = "${aws_security_group.ci-alb.id}"
+  source_security_group_id = "${aws_security_group.ci.id}"
+}
+
+resource "aws_alb" "ci-alb" {
+  name = "${var.shared["env"]}-ci-alb"
+  internal = false
+
+  security_groups = [
+    "${aws_security_group.ci-alb.id}",
+    "${data.terraform_remote_state.base.cloudfront_http_security_group_id}",
+    "${data.terraform_remote_state.base.cloudfront_https_security_group_id}"
+  ]
+
+  subnets = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
+  
+  lifecycle { create_before_destroy = true }
+}
+
+resource "aws_alb_target_group" "ci-alb-group-http" {
+  name = "${var.shared["env"]}-ci-alb-group-http"
+  vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
+  port = "8080"
+  protocol = "HTTP"
+
+  health_check {
+    path = "/"
+    matcher = "200,403"
+  }
+}
+
+resource "aws_alb_listener" "ci-alb-listener" {
+  load_balancer_arn = "${aws_alb.ci-alb.arn}"
+  port = 80
+
+  protocol = "HTTP"
+
+  default_action {
+    target_group_arn = "${aws_alb_target_group.ci-alb-group-http.arn}"
+    type = "forward"
+  }
+}
+
+resource "aws_cloudfront_distribution" "ci-external" {
+  enabled = true
+
+  origin {
+    origin_id = "reticulum-${var.shared["env"]}-ci"
+    domain_name = "${aws_alb.ci-alb.dns_name}"
+
+    custom_origin_config {
+      http_port = 80
+      https_port = 443
+      origin_ssl_protocols = ["SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"]
+      origin_protocol_policy = "https-only"
+    }
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  logging_config {
+    bucket = "${data.terraform_remote_state.base.logs_bucket_id}.s3.amazonaws.com"
+    prefix = "cloudfront/ci-external"
+    include_cookies = false
+  }
+
+  aliases = ["ci-${var.shared["env"]}.${var.ret_domain}"]
+
+  default_cache_behavior {
+    allowed_methods = ["HEAD", "DELETE", "POST", "GET", "OPTIONS", "PUT", "PATCH"]
+    cached_methods = ["HEAD", "GET"]
+    target_origin_id = "reticulum-${var.shared["env"]}-ci"
+   
+    forwarded_values {
+      query_string = true
+      cookies { forward = "all" }
+    }
+
+    viewer_protocol_policy = "https-only"
+    min_ttl = 0
+    default_ttl = 3600
+    max_ttl = 3600
+  }
+
+  price_class = "PriceClass_All"
+  
+  viewer_certificate {
+    acm_certificate_arn = "${data.aws_acm_certificate.ret-wildcard-cert-east.arn}"
+    ssl_support_method = "sni-only"
+    minimum_protocol_version = "TLSv1"
+  }
+}
+
+resource "aws_route53_record" "ci-external-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "ci-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_cloudfront_distribution.ci-external.domain_name}"
+    zone_id = "${aws_cloudfront_distribution.ci-external.hosted_zone_id}"
+    evaluate_target_health = false
+  }
 }
