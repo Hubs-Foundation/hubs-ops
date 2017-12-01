@@ -13,6 +13,10 @@ data "aws_route53_zone" "reticulum-zone" {
   name = "${var.ret_domain}."
 }
 
+data "aws_acm_certificate" "ret-wildcard-cert" {
+  domain = "*.${var.ret_domain}"
+  statuses = ["ISSUED"]
+}
 data "aws_acm_certificate" "ret-wildcard-cert-east" {
   provider = "aws.east"
   domain = "*.${var.ret_domain}"
@@ -221,9 +225,12 @@ resource "aws_alb_target_group" "ci-alb-group-http" {
 
 resource "aws_alb_listener" "ci-alb-listener" {
   load_balancer_arn = "${aws_alb.ci-alb.arn}"
-  port = 80
+  port = 443
 
-  protocol = "HTTP"
+  protocol = "HTTPS"
+  ssl_policy = "ELBSecurityPolicy-2015-05"
+
+  certificate_arn = "${data.aws_acm_certificate.ret-wildcard-cert.arn}"
 
   default_action {
     target_group_arn = "${aws_alb_target_group.ci-alb-group-http.arn}"
@@ -236,7 +243,7 @@ resource "aws_cloudfront_distribution" "ci-external" {
 
   origin {
     origin_id = "reticulum-${var.shared["env"]}-ci"
-    domain_name = "${aws_alb.ci-alb.dns_name}"
+    domain_name = "ci-origin-${var.shared["env"]}.${var.ret_domain}"
 
     custom_origin_config {
       http_port = 80
@@ -293,6 +300,18 @@ resource "aws_route53_record" "ci-external-dns" {
   alias {
     name = "${aws_cloudfront_distribution.ci-external.domain_name}"
     zone_id = "${aws_cloudfront_distribution.ci-external.hosted_zone_id}"
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "ci-external-origin-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "ci-origin-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_alb.ci-alb.dns_name}"
+    zone_id = "${aws_alb.ci-alb.zone_id}"
     evaluate_target_health = false
   }
 }
