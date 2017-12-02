@@ -154,11 +154,22 @@ resource "aws_launch_configuration" "ci" {
 #!/usr/bin/env bash
 while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
 
-# Jenkins needs to run hab docker studio as sudo
+# Jenkins needs to run hab docker studio as sudo, and read key via hab-pkg-upload/promote
 sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-docker-studio
 sudo echo 'hab studio -D $@' >> /usr/bin/hab-docker-studio
 sudo chmod +x /usr/bin/hab-docker-studio
+
+sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-pkg-upload
+sudo echo 'hab pkg upload -z $(cat /hab/cache/keys/mozillareality-github.token) $1' >> /usr/bin/hab-pkg-upload
+sudo chmod +x /usr/bin/hab-pkg-upload
+
+sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-pkg-promote
+sudo echo 'hab pkg promote -z $(cat /hab/cache/keys/mozillareality-github.token) $1 $2' >> /usr/bin/hab-pkg-promote
+sudo chmod +x /usr/bin/hab-pkg-promote
+
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-docker-studio" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-upload" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-promote" >> /etc/sudoers
 
 sudo apt-get install -y docker.io
 sudo /usr/bin/hab start mozillareality/jenkins-war --strategy at-once --url https://bldr.habitat.sh --channel stable
