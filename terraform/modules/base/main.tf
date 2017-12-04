@@ -138,3 +138,8 @@ resource "aws_sns_topic_subscription" "cloudfront-sg-update" {
   protocol  = "lambda"
   endpoint  = "${aws_lambda_function.cloudfront-sg-update.arn}"
 }
+
+resource "aws_kms_key" "lambda-kms-key" {
+  provider = "aws.east"
+  description = "Key for AWS Lambda secrets"
+}

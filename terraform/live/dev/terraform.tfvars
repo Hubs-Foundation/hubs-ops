@@ -24,6 +24,7 @@ terragrunt = {
 
 shared = {
   region = "us-west-1"
+  account_id = "329567179436"
   env = "dev"
   azs = "us-west-1a,us-west-1b"
   state_bucket = "mr-dev.terraform"
