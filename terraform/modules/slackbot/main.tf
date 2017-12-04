@@ -1,3 +1,7 @@
+# Note: you will need to update the Lambda script with your own domain name
+# and add encrypted `slackToken` and `jenkinsToken` environment variables via
+# AWS console.
+
 variable "shared" { type = "map" }
 terraform { backend "s3" {} }
 provider "aws" { region = "${var.shared["region"]}", version = "~> 0.1" }
@@ -76,10 +80,6 @@ resource "aws_api_gateway_deployment" "mr-ops-command-deploy-prod" {
   rest_api_id = "${aws_api_gateway_rest_api.mr-ops-command-api.id}"
   stage_name = "prod"
 }
-
-# Note: you will need to update the Lambda script with your own domain name
-# and add encrypted `slackToken` and `jenkinsToken` environment variables via
-# AWS console.
 
 resource "aws_lambda_function" "mr-ops-command-slackbot" {
   provider = "aws.east"
