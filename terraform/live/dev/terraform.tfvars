@@ -24,6 +24,7 @@ terragrunt = {
 
 shared = {
   region = "us-west-1"
+  account_id = "558986605633"
   env = "dev"
   azs = "us-west-1a,us-west-1b"
   state_bucket = "mr-dev.terraform"
@@ -60,6 +61,22 @@ shared = {
         "Action": "sts:AssumeRole",
         "Principal": {
           "Service": "ec2.amazonaws.com"
+        },
+        "Effect": "Allow",
+        "Sid": ""
+      }
+    ]
+  }
+  EOF
+  lambda_role_policy = <<EOF
+{
+
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": "sts:AssumeRole",
+        "Principal": {
+          "Service": "lambda.amazonaws.com"
         },
         "Effect": "Allow",
         "Sid": ""
