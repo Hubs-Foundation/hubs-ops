@@ -16,6 +16,7 @@ ret_domain = "reticulum.io"
 ret_instance_type = "m3.xlarge"
 ret_http_port = 4000
 janus_wss_port = 443
+janus_https_port = 8443
 janus_admin_port = 7000
 janus_rtp_port_from = 20000
 janus_rtp_port_to = 60000

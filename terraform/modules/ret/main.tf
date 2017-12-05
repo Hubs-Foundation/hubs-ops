@@ -143,6 +143,14 @@ resource "aws_security_group" "ret" {
     security_groups = ["${aws_security_group.ret-alb.id}"]
   }
 
+  # Janus HTTPS
+  ingress {
+    from_port = "${var.janus_https_port}"
+    to_port = "${var.janus_https_port}"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # Janus Websockets
   ingress {
     from_port = "${var.janus_wss_port}"
