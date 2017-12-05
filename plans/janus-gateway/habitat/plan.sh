@@ -67,14 +67,14 @@ do_download() {
   
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get meetecho/janus-gateway abe0d16b54517c4331002de9e0c7a1b270ef8f80
+  git-get mquander/janus-gateway 4c63be817e785e134857c08e6278e7cdb0fe167c
   git-get mquander/janus-plugin-sfu
 
   popd
 }
 
 do_build() {
-  pushd $HAB_CACHE_SRC_PATH/meetecho/janus-gateway
+  pushd $HAB_CACHE_SRC_PATH/mquander/janus-gateway
 
   libtoolize
   
@@ -100,7 +100,7 @@ do_build() {
 }
 
 do_install() {
-  pushd $HAB_CACHE_SRC_PATH/meetecho/janus-gateway
+  pushd $HAB_CACHE_SRC_PATH/mquander/janus-gateway
 
   do_default_install
 
