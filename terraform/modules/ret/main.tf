@@ -267,6 +267,7 @@ resource "aws_launch_configuration" "ret" {
   iam_instance_profile = "${aws_iam_instance_profile.ret.id}"
   associate_public_ip_address = true
   lifecycle { create_before_destroy = true }
+  root_block_device { volume_size = 128 }
   user_data = <<EOF
 #!/usr/bin/env bash
 while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
