@@ -381,7 +381,7 @@ resource "aws_alb" "ret-smoke-alb" {
 
 resource "aws_route53_record" "ret-smoke-alb-dns" {
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
-  name = "${var.shared["env"]}-smoke.${data.aws_route53_zone.reticulum-zone.name}"
+  name = "smoke-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
   type = "A"
 
   alias {
@@ -516,7 +516,7 @@ resource "aws_cloudfront_distribution" "ret-assets-smoke" {
 
 resource "aws_route53_record" "ret-assets-smoke-dns" {
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
-  name = "assets-smoke-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  name = "smoke-assets-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
   type = "A"
 
   alias {
