@@ -64,10 +64,10 @@ git-get () {
 
 do_download() {
   export GIT_SSL_CAINFO="$(pkg_path_for core/cacerts)/ssl/certs/cacert.pem"
-  
+
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get mquander/janus-gateway 4c63be817e785e134857c08e6278e7cdb0fe167c
+  git-get mquander/janus-gateway d95bdc3121c7f397d6ea546c6224e8282766344a
   git-get mquander/janus-plugin-sfu
 
   popd
@@ -77,7 +77,7 @@ do_build() {
   pushd $HAB_CACHE_SRC_PATH/mquander/janus-gateway
 
   libtoolize
-  
+
   # Another hack, need to include LD_LIBRARY_PATH due to configure
   # causing capability checks to fail due to dynamic linker
   # https://github.com/habitat-sh/habitat/issues/3303
