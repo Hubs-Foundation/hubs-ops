@@ -6,7 +6,6 @@ data "aws_availability_zones" "all" {}
 data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bastion/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
-data "terraform_remote_state" "ret" { backend = "s3", config = { key = "ret/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
 data "aws_ami" "squawk-ami" {
   most_recent = true
@@ -23,20 +22,6 @@ resource "aws_security_group" "squawk" {
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
 
   egress {
-    from_port = "0"
-    to_port = "65535"
-    protocol = "tcp"
-    security_groups = ["${data.terraform_remote_state.ret.ret_security_group_id}"]
-  }
-
-  egress {
-    from_port = "0"
-    to_port = "65535"
-    protocol = "udp"
-    security_groups = ["${data.terraform_remote_state.ret.ret_security_group_id}"]
-  }
-
-  egress {
     from_port = "80"
     to_port = "80"
     protocol = "tcp"
@@ -47,6 +32,14 @@ resource "aws_security_group" "squawk" {
     from_port = "443"
     to_port = "443"
     protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Janus WebRTC
+  egress {
+    from_port = "20000"
+    to_port = "40000"
+    protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -72,14 +65,6 @@ resource "aws_security_group" "squawk" {
     to_port = "22"
     protocol = "tcp"
     security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
-  }
-
-  # WebRTC
-  ingress {
-    from_port = "0"
-    to_port = "65535"
-    protocol = "udp"
-    security_groups = ["${data.terraform_remote_state.ret.ret_security_group_id}"]
   }
 }
 
