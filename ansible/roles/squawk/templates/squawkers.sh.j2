@@ -25,7 +25,7 @@ npm install
 while true; do
   for i in `seq 1 $NUM_SQUAWKERS`;
     do
-      node ./squawkers-cli.js --room smoke --janus wss://smoke-janus-dev.reticulum.io &
+      node ./squawkers-cli.js --room 1 --janus wss://smoke-dev-janus.reticulum.io &
       sleep $SPAWN_DELAY
     done    
   	
