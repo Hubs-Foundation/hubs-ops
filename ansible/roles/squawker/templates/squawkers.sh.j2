@@ -1,0 +1,40 @@
+# Runs the bots for the smoke test.
+
+NUM_SQUAWKERS={{ num_squawkers }}
+CYCLE_TIME={{ cycle_time }}
+SPAWN_DELAY={{ spawn_delay }}
+
+if [ -e "squawkers.pid" ] && kill $(cat squawkers.pid) ; then
+  echo "Already running, shutting down."
+  sleep 5
+fi
+
+killall -9 node
+killall -9 chrome
+
+sleep 5
+echo "Spawning squawkers..."
+
+echo $$ > squawkers.pid
+
+pushd janus-plugin-sfu/client
+
+npm update
+npm install
+
+while true; do
+  for i in `seq 1 $NUM_SQUAWKERS`;
+    do
+      node ./squawkers-cli.js --room smoke --janus wss://smoke-janus-dev.reticulum.io &
+      sleep $SPAWN_DELAY
+    done    
+  	
+  sleep $CYCLE_TIME
+  killall -9 node
+  	
+  sleep 1
+  killall -9 chrome
+  	
+  sleep 2
+done
+

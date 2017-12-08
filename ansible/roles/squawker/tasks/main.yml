@@ -1,0 +1,14 @@
+---
+
+- name: Write squawker run script
+  template:
+    src: squawkers.sh.j2
+    dest: "/home/ubuntu/squawkers.sh"
+
+- name: Checkout squawkers
+  git:
+    repo: https://github.com/mozilla/janus-plugin-sfu.git
+    dest: janus-plugin-sfu
+
+- name: Run squawker script
+  shell: nohup bash squawkers.sh >> squawkers.log 2>&1 &
