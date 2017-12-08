@@ -465,7 +465,7 @@ resource "aws_cloudfront_distribution" "ret-assets-smoke" {
 
   origin {
     origin_id = "reticulum-${var.shared["env"]}-assets-smoke"
-    domain_name = "${var.shared["env"]}-smoke.${var.ret_domain}"
+    domain_name = "smoke-${var.shared["env"]}.${var.ret_domain}"
 
     custom_origin_config {
       http_port = 80
