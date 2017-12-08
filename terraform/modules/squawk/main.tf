@@ -37,8 +37,8 @@ resource "aws_security_group" "squawk" {
 
   # Janus WebRTC
   egress {
-    from_port = "20000"
-    to_port = "40000"
+    from_port = "0"
+    to_port = "65535"
     protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
