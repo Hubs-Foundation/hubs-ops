@@ -487,7 +487,7 @@ resource "aws_cloudfront_distribution" "ret-assets-smoke" {
     include_cookies = false
   }
 
-  aliases = ["assets-smoke-${var.shared["env"]}.${var.ret_domain}"]
+  aliases = ["smoke-assets-${var.shared["env"]}.${var.ret_domain}"]
 
   default_cache_behavior {
     allowed_methods = ["GET", "HEAD", "OPTIONS"]
