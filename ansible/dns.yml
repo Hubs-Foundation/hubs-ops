@@ -1,0 +1,25 @@
+---
+
+- hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: "Set Janus CNAME for {{ env }}-janus.{{ zone }} to {{ janus_host_name }}.{{ zone }}"
+      route53:
+        command: create
+        overwrite: true
+        zone: "{{ zone }}"
+        record: "{{ env }}-janus.{{ zone }}"
+        type: CNAME
+        value: "{{ janus_host_name }}.{{ zone }}"
+        ttl: 30
+
+    - name: "Set Janus CNAME for smoke-{{ env }}-janus.{{ zone }} to {{ janus_smoke_host_name }}.{{ zone }}"
+      route53:
+        command: create
+        overwrite: true
+        zone: "{{ zone }}"
+        record: "smoke-{{ env }}-janus.{{ zone }}"
+        type: CNAME
+        value: "{{ janus_smoke_host_name }}.{{ zone }}"
+        ttl: 30

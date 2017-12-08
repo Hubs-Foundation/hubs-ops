@@ -2,7 +2,7 @@
 
 if [[ -z "$1" ]]; then
   echo -e "
-Usage: ssh_to.sh <hostname> <src-path> <dest-path> [environment]
+Usage: scp_to.sh <hostname> <src-path> <dest-path> [environment]
 
 Copys a file from local src-path to remote dest-path for hostname in environment.
 

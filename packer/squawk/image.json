@@ -3,6 +3,7 @@
     "aws_access_key": "",
     "aws_secret_key": ""
   },
+
   "builders": [{
     "type": "amazon-ebs",
     "access_key": "{{user `aws_access_key`}}",
@@ -15,7 +16,7 @@
     "source_ami_filter": {
       "filters": {
       "virtualization-type": "hvm",
-      "name": "ubuntu/images/*ubuntu-artful-17.10-amd64-server-*",
+      "name": "ubuntu/images/*ubuntu-xenial-16.04-amd64-server-*",
       "root-device-type": "ebs"
       },
       "owners": ["099720109477"],
@@ -23,10 +24,9 @@
     },
     "instance_type": "m3.medium",
     "ssh_username": "ubuntu",
-    "ami_name": "hab-base-{{timestamp}}"
+    "ami_name": "squawk-{{timestamp}}"
   }],
   "provisioners": [
-    { "type": "file", "source": "../shared/files/papertrail-bundle.pem", "destination": "papertrail-bundle.pem" },
     { "type": "file", "source": "../shared/files/hostname-adjectives", "destination": "hostname-adjectives" },
     { "type": "file", "source": "../shared/files/hostname-nouns", "destination": "hostname-nouns" },
     { "type": "file", "source": "../shared/files/set_hostname.sh", "destination": "set_hostname.sh" },
@@ -36,10 +36,11 @@
       "type": "shell",
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
       "inline": [
+        "curl -sL https://deb.nodesource.com/setup_9.x | sudo -E bash -",
         "apt-get update",
         "apt-get install -y unattended-upgrades python3 awscli jq rsyslog-gnutls",
+	"apt-get install -yq gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget git nodejs",
         "update-alternatives --install /usr/bin/python python /usr/bin/python3 1",
-        "mv papertrail-bundle.pem /etc",
         "mv hostname-nouns /usr/share/dict",
         "mv hostname-adjectives /usr/share/dict",
         "mv set_host_type_prompt.sh /usr/bin",
@@ -55,37 +56,6 @@
         "chmod +x /usr/bin/set_hostname.sh",
         "echo \". /usr/bin/set_host_type_prompt.sh\" >> /home/ubuntu/.bashrc",
         "echo \". /usr/bin/set_host_type_prompt.sh\" >> /root/.bashrc"
-      ]
-    },
-    { "type": "file", "source": "files/hab.service", "destination": "hab.service" },
-    { "type": "file", "source": "files/hab-discover-peer", "destination": "hab-discover-peer" },
-    {
-      "type": "shell",
-      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
-      "inline": [
-        "curl -L \"https://api.bintray.com/content/habitat/stable/linux/x86_64/hab-%24latest-x86_64-linux.tar.gz?bt_package=hab-x86_64-linux\" | tar xvz",
-        "find . -name 'hab' -exec mv {} /usr/bin \\;",
-        "chmod +x /usr/bin/hab",
-        "mv hab.service /lib/systemd/system",
-        "chown root:root /lib/systemd/system/hab.service",
-        "systemctl enable hab",
-        "mv hab-discover-peer /usr/bin",
-        "chown root:root /usr/bin/hab-discover-peer",
-        "chmod +x /usr/bin/hab-discover-peer",
-        "mkdir -p /hab/cache",
-        "useradd hab"
-      ]
-    },
-    { "type": "file", "source": "secrets", "destination": "." },
-    {
-      "type": "shell",
-      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
-      "inline": [
-        "mv secrets/hab-keys /hab/cache/keys",
-        "chown -R root:root /hab/cache/keys",
-        "chmod -R 0600 /hab/cache/keys",
-        "mv secrets/etc/rsyslog.d/* /etc/rsyslog.d",
-        "chown -R root:root /etc/rsyslog.d/*"
       ]
     }
   ]
