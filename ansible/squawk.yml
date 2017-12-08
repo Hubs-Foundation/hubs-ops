@@ -4,4 +4,4 @@
   gather_facts: false
   sudo: false
   roles:
-  - role: squawker
+  - role: squawk
