@@ -67,7 +67,7 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get mquander/janus-gateway c63c2b181a54463399d8c6bd079e669adb5cc06b
+  git-get mquander/janus-gateway 5d8b57bd489f76d652b8905394027ef68caaf516
   git-get mquander/janus-plugin-sfu
 
   popd
