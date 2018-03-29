@@ -89,7 +89,7 @@ do_build() {
   cp "$(pkg_path_for core/pkg-config)/share/aclocal/pkg.m4" "$(pkg_path_for core/automake)/share/aclocal/"
 
   sh autogen.sh
-  sh configure --prefix="$pkg_prefix"
+  sh configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
 
   make
 
