@@ -2,7 +2,7 @@ pkg_name=janus-gateway
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 
-pkg_version="0.2.5"
+pkg_version="0.3.1"
 pkg_license=('GPLv3')
 pkg_description="Janus is an open source, general purpose, WebRTC gateway"
 pkg_upstream_url="https://janus.conf.meetecho.com/"
@@ -29,6 +29,7 @@ pkg_deps=(
   core/openssl
   core/glib
   core/util-linux
+  core/sqlite
   mozillareality/jansson
   mozillareality/libsrtp
   mozillareality/usrsctp
@@ -67,8 +68,9 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get mquander/janus-gateway 5d8b57bd489f76d652b8905394027ef68caaf516
-  git-get mquander/janus-plugin-sfu
+  git-get mquander/janus-gateway 9609abe301a44916ef65448b29d38b58ee28e5fb
+  git-get mozilla/janus-plugin-sfu
+  git-get mozilla/janus-eventhandler-sqlite
 
   popd
 }
@@ -92,7 +94,12 @@ do_build() {
   make
 
   popd
-  pushd $HAB_CACHE_SRC_PATH/mquander/janus-plugin-sfu
+  pushd $HAB_CACHE_SRC_PATH/mozilla/janus-plugin-sfu
+
+  # Need to pass the library paths directly into rustc
+  RUSTFLAGS="-C link-arg=-Wl,-L,${LD_LIBRARY_PATH//:/ -C link-arg=-Wl,-L,}" cargo build --release
+  popd
+  pushd $HAB_CACHE_SRC_PATH/mozilla/janus-eventhandler-sqlite
 
   # Need to pass the library paths directly into rustc
   RUSTFLAGS="-C link-arg=-Wl,-L,${LD_LIBRARY_PATH//:/ -C link-arg=-Wl,-L,}" cargo build --release
@@ -104,8 +111,10 @@ do_install() {
 
   do_default_install
 
-  cp $HAB_CACHE_SRC_PATH/mquander/janus-plugin-sfu/target/release/libjanus_plugin_sfu.so "${pkg_prefix}/lib/janus/plugins"
+  mkdir -p "${pkg_prefix}/lib/janus/plugins"
+  cp $HAB_CACHE_SRC_PATH/mozilla/janus-plugin-sfu/target/release/libjanus_plugin_sfu.so "${pkg_prefix}/lib/janus/plugins"
   mkdir -p "${pkg_prefix}/lib/janus/events"
+  cp $HAB_CACHE_SRC_PATH/mozilla/janus-eventhandler-sqlite/target/release/libjanus_eventhandler_sqlite.so "${pkg_prefix}/lib/janus/events"
 
   popd
 }
