@@ -18,6 +18,14 @@ output "builds_bucket_id" {
   value ="${aws_s3_bucket.builds-bucket.id}"
 }
 
+output "asset_bundles_bucket_id" {
+  value ="${aws_s3_bucket.asset-bundles-bucket.id}"
+}
+
+output "asset_bundles_bucket_domain_name" {
+  value ="${aws_s3_bucket.asset-bundles-bucket.bucket_domain_name}"
+}
+
 output "cloudfront_http_security_group_id" {
   value ="${aws_security_group.cloudfront-http.id}"
 }

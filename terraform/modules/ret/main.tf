@@ -526,3 +526,62 @@ resource "aws_route53_record" "ret-assets-smoke-dns" {
   }
 }
 
+resource "aws_cloudfront_distribution" "ret-asset-bundles" {
+  enabled = true
+
+  origin {
+    origin_id = "reticulum-${var.shared["env"]}-asset-bundles"
+    domain_name = "${data.terraform_remote_state.base.asset_bundles_bucket_domain_name}"
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  logging_config {
+    bucket = "${data.terraform_remote_state.base.logs_bucket_id}.s3.amazonaws.com"
+    prefix = "cloudfront/ret-asset-bundles"
+    include_cookies = false
+  }
+
+  aliases = ["asset-bundles-${var.shared["env"]}.${var.ret_domain}"]
+
+  default_cache_behavior {
+    allowed_methods = ["GET", "HEAD", "OPTIONS"]
+    cached_methods = ["GET", "HEAD"]
+    target_origin_id = "reticulum-${var.shared["env"]}-asset-bundles"
+   
+    forwarded_values {
+      query_string = true
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "https-only"
+    min_ttl = 0
+    default_ttl = 3600
+    max_ttl = 3600
+  }
+
+  price_class = "PriceClass_All"
+  
+  viewer_certificate {
+    acm_certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert-east.arn}"
+    ssl_support_method = "sni-only"
+    minimum_protocol_version = "TLSv1"
+  }
+}
+
+resource "aws_route53_record" "ret-assets-bundles-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "asset-bundles-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_cloudfront_distribution.ret-asset-bundles.domain_name}"
+    zone_id = "${aws_cloudfront_distribution.ret-asset-bundles.hosted_zone_id}"
+    evaluate_target_health = false
+  }
+}
+

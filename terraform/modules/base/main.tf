@@ -55,6 +55,12 @@ resource "aws_s3_bucket" "builds-bucket" {
   acl = "public-read"
 }
 
+# Asset bundles bucket (public read)
+resource "aws_s3_bucket" "asset-bundles-bucket" {
+  bucket = "asset-bundles.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+}
+
 resource "aws_security_group" "cloudfront-http" {
   name = "${var.shared["env"]}-cloudfront-http"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
