@@ -1,5 +1,10 @@
 ---
 
-num_squawkers: 1
+num_squawker_processes: 1
+num_squawkers_per_process: 2
 cycle_time: 600
 spawn_delay: 10
+# janus room id for hub 0q2xsroz
+smoke_room: 1554476250164196
+audio_url: https://ucarecdn.com/3b8bbf6a-c18e-4662-a4a2-99749802cbdc/
+data_url: https://ucarecdn.com/1c202eb0-2903-4065-9b67-298350eb2400/
