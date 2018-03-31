@@ -163,7 +163,7 @@ admin_wss = "no"
 #admin_ws_acl = "127.,192.168.0."
 
 [events]
-broadcast = "no"
+broadcast = "yes"
 stats_period = 5
 
 # List of disabled events
