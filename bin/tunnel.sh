@@ -32,4 +32,5 @@ else
   TARGET_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-${HOST_TYPE_OR_NAME}\"))) | .[] | select(.State | .Name == \"running\") | .PrivateIpAddress" | shuf | head -n1)
 fi
 
+echo "ssh -i ~/.ssh/mozilla_mr_id_rsa -L \"$TO:$TARGET_IP:$FROM\" \"ubuntu@$BASTION_IP\""
 ssh -i ~/.ssh/mozilla_mr_id_rsa -L "$TO:$TARGET_IP:$FROM" "ubuntu@$BASTION_IP"
