@@ -37,15 +37,27 @@ done
 
 echo "Setting hostname to ${NEW_HOSTNAME}"
 
-if [[ ! $PUBLIC_IP == *"404"* ]] ; then
-  ROUTE53_PUBLIC_RECORD="{ \"ChangeBatch\": { \"Changes\": [ { \"Action\": \"UPSERT\", \"ResourceRecordSet\": { \"Name\": \"${NEW_HOSTNAME}.${HOSTED_ZONE_NAME}.\", \"Type\": \"A\", \"TTL\": 900, \"ResourceRecords\": [ { \"Value\": \"$PUBLIC_IP\" } ] } } ] } }"
-  aws route53 change-resource-record-sets --hosted-zone-id "$HOSTED_ZONE_ID" --cli-input-json "${ROUTE53_PUBLIC_RECORD}"
-fi
-
-ROUTE53_PRIVATE_RECORD="{ \"ChangeBatch\": { \"Changes\": [ { \"Action\": \"UPSERT\", \"ResourceRecordSet\": { \"Name\": \"${NEW_HOSTNAME}-local.${HOSTED_ZONE_NAME}.\", \"Type\": \"A\", \"TTL\": 900, \"ResourceRecords\": [ { \"Value\": \"$PRIVATE_IP\" } ] } } ] } }"
-aws route53 change-resource-record-sets --hosted-zone-id "$HOSTED_ZONE_ID" --cli-input-json "${ROUTE53_PRIVATE_RECORD}"
-
-aws ec2 create-tags --region $REGION --resources "${INSTANCE_ID}" --tags "Key=Name,Value=${NEW_HOSTNAME}"
 sudo hostname "$NEW_HOSTNAME.$HOSTED_ZONE_NAME"
 sudo service rsyslog restart
 sudo echo $(hostname) > /var/run/generated_hostname
+
+ROUTE53_PRIVATE_RECORD="{ \"ChangeBatch\": { \"Changes\": [ { \"Action\": \"UPSERT\", \"ResourceRecordSet\": { \"Name\": \"${NEW_HOSTNAME}-local.${HOSTED_ZONE_NAME}.\", \"Type\": \"A\", \"TTL\": 900, \"ResourceRecords\": [ { \"Value\": \"$PRIVATE_IP\" } ] } } ] } }"
+
+# AWS role can take time to be applied, keep running AWS commands until success.
+if [[ ! $PUBLIC_IP == *"404"* ]] ; then
+  ROUTE53_PUBLIC_RECORD="{ \"ChangeBatch\": { \"Changes\": [ { \"Action\": \"UPSERT\", \"ResourceRecordSet\": { \"Name\": \"${NEW_HOSTNAME}.${HOSTED_ZONE_NAME}.\", \"Type\": \"A\", \"TTL\": 900, \"ResourceRecords\": [ { \"Value\": \"$PUBLIC_IP\" } ] } } ] } }"
+  until aws route53 change-resource-record-sets --hosted-zone-id "$HOSTED_ZONE_ID" --cli-input-json "${ROUTE53_PUBLIC_RECORD}"
+  do
+    echo "Retrying DNS update"
+  done
+fi
+
+until aws route53 change-resource-record-sets --hosted-zone-id "$HOSTED_ZONE_ID" --cli-input-json "${ROUTE53_PRIVATE_RECORD}"
+do
+  echo "Retrying tag update"
+done
+
+until aws ec2 create-tags --region $REGION --resources "${INSTANCE_ID}" --tags "Key=Name,Value=${NEW_HOSTNAME}"
+do
+  echo "Retrying tag update"
+done
