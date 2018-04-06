@@ -3,7 +3,8 @@
 NUM_SQUAWKER_PROCESSES={{ num_squawker_processes }}
 NUM_SQUAWKERS_PER_PROCESS={{ num_squawkers_per_process }}
 CYCLE_TIME={{ cycle_time }}
-SPAWN_DELAY={{ spawn_delay }}
+PROCESS_SPAWN_DELAY={{ process_spawn_delay }}
+JANUS_SERVER={{ janus_server }}
 SMOKE_ROOM={{ smoke_room }}
 AUDIO_URL={{ audio_url }}
 DATA_URL={{ data_url }}
@@ -29,11 +30,13 @@ npm install
 while true; do
   for i in `seq 1 $NUM_SQUAWKER_PROCESSES`;
     do
-      node ./squawkers-cli.js --num $NUM_SQUAWKERS_PER_PROCESS --room $SMOKE_ROOM \
-        --janus wss://dev-janus.reticulum.io \
+      node ./squawkers-cli.js \
+        --num $NUM_SQUAWKERS_PER_PROCESS \
+        --room $SMOKE_ROOM \
+        --janus $JANUS_SERVER \
         --audio \
         --data &
-      sleep $SPAWN_DELAY
+      sleep $PROCESS_SPAWN_DELAY
     done    
   	
   sleep $CYCLE_TIME
