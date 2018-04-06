@@ -1,6 +1,8 @@
 [phx]
 port = 4000
 secret_key = "{{ phoenix_secret_key }}"
+url_host = "{{ phoenix_url_host }}"
+static_url_host = "{{ phoenix_static_url_host }}"
 
 [guardian]
 secret_key = "{{ guardian_secret_key }}"
@@ -23,6 +25,6 @@ password = "{{ basic_auth_password }}"
 [db]
 username = "postgres"
 password = "{{ ret_db_password }}"
-hostname = "dev-ret-db005beb007aae9835bcadd109a4.cl5aavhmi0x6.us-west-1.rds.amazonaws.com"
+hostname = "{{ ret_db_hostname }}"
 database = "ret_production"
 pool_size = 16
