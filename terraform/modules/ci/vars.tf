@@ -13,3 +13,7 @@ variable "max_ci_servers" {
 variable "ret_domain" {
   description = "Domain name being used for reticulum server (ex reticulum.io)"
 }
+
+variable "enabled" {
+  description = "Should create this module"
+}

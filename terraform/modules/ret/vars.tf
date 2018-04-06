@@ -37,3 +37,11 @@ variable "max_ret_servers" {
 variable "ret_domain" {
   description = "Domain name being used for reticulum server (ex reticulum.io)"
 }
+
+variable "janus_restart_strategy" {
+  description = "Habitat restart strategy for Janus"
+}
+
+variable "reticulum_restart_strategy" {
+  description = "Habitat restart strategy for Reticulum"
+}

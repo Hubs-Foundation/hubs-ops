@@ -1,3 +1,7 @@
+variable "enabled" {
+  description = "Should create resources in this module"
+}
+
 variable "squawk_instance_type" {
   description = "Squawker server instance type"
 }

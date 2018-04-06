@@ -19,6 +19,8 @@ data "aws_ami" "squawk-ami" {
 
 resource "aws_security_group" "squawk" {
   name = "${var.shared["env"]}-squawk"
+  count = "${var.enabled}"
+
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
 
   egress {
@@ -70,20 +72,27 @@ resource "aws_security_group" "squawk" {
 
 resource "aws_iam_role" "squawk" {
   name = "${var.shared["env"]}-squawk"
+  count = "${var.enabled}"
+
   assume_role_policy = "${var.shared["ec2_role_policy"]}"
 }
 
 resource "aws_iam_role_policy_attachment" "squawk-base-policy" {
+  count = "${var.enabled}"
+
   role = "${aws_iam_role.squawk.name}"
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
 
 resource "aws_iam_instance_profile" "squawk" {
   name = "${var.shared["env"]}-squawk"
+  count = "${var.enabled}"
+
   role = "${aws_iam_role.squawk.id}"
 }
 
 resource "aws_launch_configuration" "squawk" {
+  count = "${var.enabled}"
   image_id = "${data.aws_ami.squawk-ami.id}"
   instance_type = "${var.squawk_instance_type}"
   security_groups = ["${aws_security_group.squawk.id}"]
@@ -95,6 +104,8 @@ resource "aws_launch_configuration" "squawk" {
 
 resource "aws_autoscaling_group" "squawk" {
   name = "${var.shared["env"]}-squawk"
+  count = "${var.enabled}"
+
   launch_configuration = "${aws_launch_configuration.squawk.id}"
   availability_zones = ["${data.aws_availability_zones.all.names}"]
   vpc_zone_identifier = ["${data.terraform_remote_state.vpc.private_subnet_ids}"]
