@@ -1,6 +1,6 @@
 terragrunt = {
   terraform {
-    source = "git::git@github.com:mozilla/mr-ops.git//terraform/modules/slackbot"
+    source = "git::git@github.com:mozilla/mr-ops.git//terraform/modules/hab"
   }
 
   include {
@@ -12,4 +12,6 @@ terragrunt = {
   }
 }
 
-enabled = true
+hab_instance_type = "m3.medium"
+min_hab_servers = 1
+max_hab_servers = 1

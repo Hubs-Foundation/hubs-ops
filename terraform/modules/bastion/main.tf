@@ -43,6 +43,11 @@ resource "aws_iam_role" "bastion" {
   assume_role_policy = "${var.shared["ec2_role_policy"]}"
 }
 
+resource "aws_iam_role_policy_attachment" "bastion-base-policy" {
+  role = "${aws_iam_role.bastion.name}"
+  policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
+}
+
 resource "aws_iam_instance_profile" "bastion" {
   name = "${var.shared["env"]}-bastion"
   role = "${aws_iam_role.bastion.id}"

@@ -130,7 +130,7 @@ EOF
 resource "aws_lambda_function" "cloudfront-sg-update" {
   provider = "aws.east"
   filename         = "cloudfront-sg-update.zip"
-  function_name    = "cloudfront-sg-update"
+  function_name    = "${var.shared["env"]}-cloudfront-sg-update"
   role             = "${aws_iam_role.cloudfront-sg-update-lambda-iam-role.arn}"
   handler          = "main.lambda_handler"
   source_code_hash = "${base64sha256(file("cloudfront-sg-update.zip"))}"

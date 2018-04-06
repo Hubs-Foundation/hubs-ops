@@ -12,8 +12,8 @@ terragrunt = {
   }
 }
 
-enabled = true
+enabled = false
 ci_instance_type = "c4.2xlarge"
-min_ci_servers = 1
-max_ci_servers = 1
+min_ci_servers = 0
+max_ci_servers = 0
 ret_domain = "reticulum.io"

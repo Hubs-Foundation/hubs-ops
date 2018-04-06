@@ -34,8 +34,8 @@ while true; do
         --num $NUM_SQUAWKERS_PER_PROCESS \
         --room $SMOKE_ROOM \
         --janus $JANUS_SERVER \
-        --audio \
-        --data &
+        --audio $AUDIO_URL \
+        --data $DATA_URL &
       sleep $PROCESS_SPAWN_DELAY
     done    
   	

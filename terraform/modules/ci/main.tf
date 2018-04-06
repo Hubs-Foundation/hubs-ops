@@ -35,6 +35,7 @@ data "aws_ami" "hab-base-ami" {
 
 resource "aws_security_group" "ci" {
   name = "${var.shared["env"]}-ci"
+
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
 
   egress {
@@ -93,21 +94,29 @@ resource "aws_security_group" "ci" {
 
 resource "aws_iam_role" "ci" {
   name = "${var.shared["env"]}-ci"
+  count = "${var.enabled}"
+
   assume_role_policy = "${var.shared["ec2_role_policy"]}"
 }
 
 resource "aws_iam_role_policy_attachment" "ci-base-policy" {
   role = "${aws_iam_role.ci.name}"
+  count = "${var.enabled}"
+
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
 
 resource "aws_iam_role_policy_attachment" "ci-backup-s3-policy" {
   role = "${aws_iam_role.ci.name}"
+  count = "${var.enabled}"
+
   policy_arn = "${aws_iam_policy.ci-backup-s3-policy.arn}"
 }
 
 resource "aws_iam_policy" "ci-backup-s3-policy" {
   name = "${var.shared["env"]}-ci-backup-s3-policy"
+  count = "${var.enabled}"
+
   policy = <<EOF
 {
 
@@ -135,10 +144,14 @@ EOF
 
 resource "aws_iam_instance_profile" "ci" {
   name = "${var.shared["env"]}-ci"
+  count = "${var.enabled}"
+
   role = "${aws_iam_role.ci.id}"
 }
 
 resource "aws_launch_configuration" "ci" {
+  count = "${var.enabled}"
+
   image_id = "${data.aws_ami.hab-base-ami.id}"
   instance_type = "${var.ci_instance_type}"
   security_groups = [
@@ -178,6 +191,8 @@ EOF
 
 resource "aws_autoscaling_group" "ci" {
   name = "${var.shared["env"]}-ci"
+  count = "${var.enabled}"
+
   launch_configuration = "${aws_launch_configuration.ci.id}"
   availability_zones = ["${data.aws_availability_zones.all.names}"]
   vpc_zone_identifier = ["${data.terraform_remote_state.vpc.private_subnet_ids}"]
@@ -195,10 +210,13 @@ resource "aws_autoscaling_group" "ci" {
 
 resource "aws_security_group" "ci-alb" {
   name = "${var.shared["env"]}-ci-alb"
+
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
 }
 
 resource "aws_security_group_rule" "ret-ci-egress" {
+  count = "${var.enabled}"
+
   type = "egress"
   from_port = "8080"
   to_port = "8080"
@@ -209,6 +227,8 @@ resource "aws_security_group_rule" "ret-ci-egress" {
 
 resource "aws_alb" "ci-alb" {
   name = "${var.shared["env"]}-ci-alb"
+  count = "${var.enabled}"
+
   internal = false
 
   security_groups = [
@@ -224,6 +244,8 @@ resource "aws_alb" "ci-alb" {
 
 resource "aws_alb_target_group" "ci-alb-group-http" {
   name = "${var.shared["env"]}-ci-alb-group-http"
+  count = "${var.enabled}"
+
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
   port = "8080"
   protocol = "HTTP"
@@ -235,6 +257,8 @@ resource "aws_alb_target_group" "ci-alb-group-http" {
 }
 
 resource "aws_alb_listener" "ci-alb-listener" {
+  count = "${var.enabled}"
+
   load_balancer_arn = "${aws_alb.ci-alb.arn}"
   port = 443
 
@@ -250,6 +274,8 @@ resource "aws_alb_listener" "ci-alb-listener" {
 }
 
 resource "aws_cloudfront_distribution" "ci-external" {
+  count = "${var.enabled}"
+
   enabled = true
 
   origin {
@@ -304,6 +330,8 @@ resource "aws_cloudfront_distribution" "ci-external" {
 }
 
 resource "aws_route53_record" "ci-external-dns" {
+  count = "${var.enabled}"
+
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
   name = "ci-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
   type = "A"
@@ -316,6 +344,8 @@ resource "aws_route53_record" "ci-external-dns" {
 }
 
 resource "aws_route53_record" "ci-external-origin-dns" {
+  count = "${var.enabled}"
+
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
   name = "ci-origin-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
   type = "A"

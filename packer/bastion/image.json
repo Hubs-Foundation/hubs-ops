@@ -26,15 +26,31 @@
     "ami_name": "bastion-{{timestamp}}"
   }],
   "provisioners": [
+    { "type": "file", "source": "../shared/files/hostname-adjectives", "destination": "hostname-adjectives" },
+    { "type": "file", "source": "../shared/files/hostname-nouns", "destination": "hostname-nouns" },
+    { "type": "file", "source": "../shared/files/set_hostname.sh", "destination": "set_hostname.sh" },
     { "type": "file", "source": "../shared/files/set_host_type_prompt.sh", "destination": "set_host_type_prompt.sh" },
+    { "type": "file", "source": "../shared/files/set-hostname.service", "destination": "set-hostname.service" },
     {
       "type": "shell",
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
       "inline": [
         "apt-get update",
-        "apt install -y unattended-upgrades python",
+        "apt-get install -y unattended-upgrades python3 awscli jq rsyslog-gnutls",
+        "update-alternatives --install /usr/bin/python python /usr/bin/python3 1",
+        "mv hostname-nouns /usr/share/dict",
+        "mv hostname-adjectives /usr/share/dict",
         "mv set_host_type_prompt.sh /usr/bin",
+        "mv set_hostname.sh /usr/bin",
+        "mv set-hostname.service /lib/systemd/system",
+        "chown root:root /lib/systemd/system/set-hostname.service",
+        "systemctl enable set-hostname",
+        "chown root:root /usr/share/dict/hostname-nouns",
+        "chown root:root /usr/share/dict/hostname-adjectives",
+        "chown root:root /usr/bin/set_hostname.sh",
+        "chown root:root /usr/bin/set_host_type_prompt.sh",
         "chmod +x /usr/bin/set_host_type_prompt.sh",
+        "chmod +x /usr/bin/set_hostname.sh",
         "echo \". /usr/bin/set_host_type_prompt.sh\" >> /home/ubuntu/.bashrc",
         "echo \". /usr/bin/set_host_type_prompt.sh\" >> /root/.bashrc"
       ]

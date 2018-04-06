@@ -12,7 +12,7 @@ terragrunt = {
   }
 }
 
-enabled = true
+enabled = false
 squawk_instance_type = "c4.xlarge"
-min_squawk_servers = 1
-max_squawk_servers = 1
+min_squawk_servers = 0
+max_squawk_servers = 0

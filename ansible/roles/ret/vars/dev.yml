@@ -1,0 +1,5 @@
+---
+
+ret_db_hostname: "dev-ret-db005beb007aae9835bcadd109a4.cl5aavhmi0x6.us-west-1.rds.amazonaws.com"
+phoenix_url_host: "dev.reticulum.io"
+phoenix_static_url_host: "assets-dev.reticulum.io"
