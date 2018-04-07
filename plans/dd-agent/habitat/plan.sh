@@ -6,7 +6,7 @@ pkg_version="0.1.0"
 pkg_description="The Datadog Agent"
 pkg_license=("BSD-3-Clause")
 pkg_upstream_url="https://github.com/datadog/dd-agent"
-pkg_build_deps=(core/curl core/sed core/tar core/gcc core/postgresql95)
+pkg_build_deps=(core/curl core/sed core/tar core/gcc core/postgresql95 core/go core/git)
 pkg_deps=(core/python2 core/libffi core/busybox-static core/openssl core/sysstat)
 pkg_dirname="datadog-agent"
 pkg_bin_dirs=(dd-agent/bin)
@@ -24,6 +24,14 @@ do_build() {
 
 do_install() {
   mkdir -p "$DD_HOME"
+
+  export GOPATH="$PLAN_CONTEXT/go"
+  mkdir -p "$GOPATH"
+
+  go get github.com/DataDog/gohai
+  cp "$GOPATH/bin/gohai" "$DD_HOME/bin"
+  rm -rf "$GOPATH"
+
   env PATH="$(pkg_path_for core/tar)/bin:$PATH" sh -c "$(curl -L https://raw.githubusercontent.com/DataDog/dd-agent/master/packaging/datadog-agent/source/setup_agent.sh)"
   fix_interpreter "$DD_HOME/bin/agent" core/busybox-static bin/env
   rm -fr "$DD_HOME/logs"
