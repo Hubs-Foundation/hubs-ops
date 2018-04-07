@@ -43,7 +43,7 @@
         "apt-get update",
         "apt-get update",
         "apt-get upgrade -y",
-        "apt-get install -y unattended-upgrades python3 awscli jq rsyslog-gnutls sysstat",
+        "apt-get install -y unattended-upgrades python3 awscli jq rsyslog-gnutls sysstat iostat",
         "update-alternatives --install /usr/bin/python python /usr/bin/python3 1",
         "mv coredump.conf /etc/systemd",
         "mv sysctl.core.conf /etc/sysctl.d/core.conf",
