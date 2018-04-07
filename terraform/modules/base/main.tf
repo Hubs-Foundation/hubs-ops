@@ -59,6 +59,14 @@ resource "aws_s3_bucket" "builds-bucket" {
 resource "aws_s3_bucket" "asset-bundles-bucket" {
   bucket = "asset-bundles.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
   acl = "public-read"
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers = ["ETag"]
+    max_age_seconds = 31536000
+  }
 }
 
 resource "aws_security_group" "cloudfront-http" {
