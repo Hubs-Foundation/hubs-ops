@@ -440,7 +440,7 @@ sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 
 sudo /usr/bin/hab start mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel unstable
 sudo /usr/bin/hab start mozillareality/reticulum --strategy at-once --url https://bldr.habitat.sh --channel unstable
-sudo /usr/bin/hab start core/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
+sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
 EOF
 }
 
