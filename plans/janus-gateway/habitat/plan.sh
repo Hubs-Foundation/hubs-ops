@@ -68,7 +68,7 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get meetecho/janus-gateway
+  git-get meetecho/janus-gateway 56752c5374f4f7f97d9b5c801104f5c7be1c91bc
   git-get mozilla/janus-plugin-sfu
   git-get mozilla/janus-eventhandler-sqlite
 
