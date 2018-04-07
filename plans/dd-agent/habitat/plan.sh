@@ -27,8 +27,9 @@ do_install() {
   env PATH="$(pkg_path_for core/tar)/bin:$PATH" sh -c "$(curl -L https://raw.githubusercontent.com/DataDog/dd-agent/master/packaging/datadog-agent/source/setup_agent.sh)"
   fix_interpreter "$DD_HOME/bin/agent" core/busybox-static bin/env
   rm -fr "$DD_HOME/logs"
+  ln -s "$pkg_svc_var_path" "$DD_HOME/logs"
   mkdir -p "$pkg_prefix/config"
-  mv "$PLAN_CONTEXT/config/datadog.conf" "$pkg_prefix/config"
+  cp "$PLAN_CONTEXT/config/datadog.conf" "$pkg_prefix/config"
   ln -s "$pkg_svc_config_path/datadog.conf" "$DD_HOME/agent/datadog.conf"
 }
 
