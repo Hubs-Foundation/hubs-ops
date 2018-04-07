@@ -76,7 +76,7 @@ do_download() {
 }
 
 do_build() {
-  pushd $HAB_CACHE_SRC_PATH/mquander/janus-gateway
+  pushd $HAB_CACHE_SRC_PATH/meetecho/janus-gateway
 
   libtoolize
 
@@ -107,7 +107,7 @@ do_build() {
 }
 
 do_install() {
-  pushd $HAB_CACHE_SRC_PATH/mquander/janus-gateway
+  pushd $HAB_CACHE_SRC_PATH/meetecho/janus-gateway
 
   do_default_install
 
