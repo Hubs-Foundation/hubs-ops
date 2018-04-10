@@ -24,6 +24,11 @@
       src: reticulum.toml.j2
       dest: "{{ work_dir.path }}/reticulum.toml"
 
+  - name: Write DD agent config file
+    template:
+      src: dd-agent.toml.j2
+      dest: "{{ work_dir.path }}/dd-agent.toml"
+
   - name: Write DTLS key
     copy:
       src: dtls.key
@@ -44,21 +49,14 @@
       src: reticulum.io.crt
       dest: "{{ work_dir.path }}/wss.pem"
 
-  - name: Write HTTPS key
-    copy:
-      src: reticulum.io.pem
-      dest: "{{ work_dir.path }}/https.key"
-
-  - name: Write HTTPS cert
-    copy:
-      src: reticulum.io.crt
-      dest: "{{ work_dir.path }}/https.pem"
-
   - name: Deploy Janus configs
     shell: "cat {{ work_dir.path }}/janus-gateway.toml | hab config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s)"
 
   - name: Deploy Reticulum configs
     shell: "cat {{ work_dir.path }}/reticulum.toml | hab config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr reticulum.default $(date +%s)"
+
+  - name: Deploy Datadog Agent configs
+    shell: "cat {{ work_dir.path }}/dd-agent.toml | hab config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr dd-agent.default $(date +%s)"
 
   - name: Deploy DTLS key
     shell: "HAB_BUTTERFLY_BINARY=/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.key"

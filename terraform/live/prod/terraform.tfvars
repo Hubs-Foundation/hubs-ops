@@ -46,6 +46,11 @@ shared = {
       },
       {
           "Effect": "Allow",
+          "Action": "ec2:DescribeTags",
+          "Resource": "*"
+      },
+      {
+          "Effect": "Allow",
           "Action": "route53:ChangeResourceRecordSets",
           "Resource": "arn:aws:route53:::hostedzone/Z26OTGLBBCAHK4"
       }

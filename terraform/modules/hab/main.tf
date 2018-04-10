@@ -137,6 +137,12 @@ resource "aws_launch_configuration" "hab" {
   iam_instance_profile = "${aws_iam_instance_profile.hab.id}"
   associate_public_ip_address = false
   lifecycle { create_before_destroy = true }
+
+  user_data = <<EOF
+#!/usr/bin/env bash
+while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
+sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
+EOF
 }
 
 resource "aws_autoscaling_group" "hab" {

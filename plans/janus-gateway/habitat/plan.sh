@@ -68,7 +68,7 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get mquander/janus-gateway 9609abe301a44916ef65448b29d38b58ee28e5fb
+  git-get meetecho/janus-gateway 56752c5374f4f7f97d9b5c801104f5c7be1c91bc
   git-get mozilla/janus-plugin-sfu
   git-get mozilla/janus-eventhandler-sqlite
 
@@ -76,7 +76,7 @@ do_download() {
 }
 
 do_build() {
-  pushd $HAB_CACHE_SRC_PATH/mquander/janus-gateway
+  pushd $HAB_CACHE_SRC_PATH/meetecho/janus-gateway
 
   libtoolize
 
@@ -107,7 +107,7 @@ do_build() {
 }
 
 do_install() {
-  pushd $HAB_CACHE_SRC_PATH/mquander/janus-gateway
+  pushd $HAB_CACHE_SRC_PATH/meetecho/janus-gateway
 
   do_default_install
 

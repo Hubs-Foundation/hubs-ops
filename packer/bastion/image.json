@@ -36,8 +36,12 @@
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
       "inline": [
         "apt-get update",
+        "apt-get update",
+        "apt-get update",
+        "apt-get upgrade -y",
         "apt-get install -y unattended-upgrades python3 awscli jq rsyslog-gnutls",
         "update-alternatives --install /usr/bin/python python /usr/bin/python3 1",
+        "perl -p -i -e 's/preserve_hostname: false/preserve_hostname: true/g' /etc/cloud/cloud.cfg",
         "mv hostname-nouns /usr/share/dict",
         "mv hostname-adjectives /usr/share/dict",
         "mv set_host_type_prompt.sh /usr/bin",

@@ -38,8 +38,8 @@ done
 echo "Setting hostname to ${NEW_HOSTNAME}"
 
 sudo hostname "$NEW_HOSTNAME.$HOSTED_ZONE_NAME"
+sudo "$NEW_HOSTNAME.$HOSTED_ZONE_NAME" > /var/run/generated_hostname
 sudo service rsyslog restart
-sudo echo $(hostname) > /var/run/generated_hostname
 
 ROUTE53_PRIVATE_RECORD="{ \"ChangeBatch\": { \"Changes\": [ { \"Action\": \"UPSERT\", \"ResourceRecordSet\": { \"Name\": \"${NEW_HOSTNAME}-local.${HOSTED_ZONE_NAME}.\", \"Type\": \"A\", \"TTL\": 900, \"ResourceRecords\": [ { \"Value\": \"$PRIVATE_IP\" } ] } } ] } }"
 
@@ -61,3 +61,7 @@ until aws ec2 create-tags --region $REGION --resources "${INSTANCE_ID}" --tags "
 do
   echo "Retrying tag update"
 done
+
+# HACK, sometimes AWS node startup overrides host name
+sleep 5
+sudo hostname "$NEW_HOSTNAME.$HOSTED_ZONE_NAME"
