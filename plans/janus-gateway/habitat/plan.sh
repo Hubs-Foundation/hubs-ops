@@ -70,7 +70,6 @@ do_download() {
 
   git-get meetecho/janus-gateway 56752c5374f4f7f97d9b5c801104f5c7be1c91bc
   git-get mozilla/janus-plugin-sfu
-  git-get mozilla/janus-eventhandler-sqlite
 
   popd
 }
@@ -99,11 +98,6 @@ do_build() {
   # Need to pass the library paths directly into rustc
   RUSTFLAGS="-C link-arg=-Wl,-L,${LD_LIBRARY_PATH//:/ -C link-arg=-Wl,-L,}" cargo build --release
   popd
-  pushd $HAB_CACHE_SRC_PATH/mozilla/janus-eventhandler-sqlite
-
-  # Need to pass the library paths directly into rustc
-  RUSTFLAGS="-C link-arg=-Wl,-L,${LD_LIBRARY_PATH//:/ -C link-arg=-Wl,-L,}" cargo build --release
-  popd
 }
 
 do_install() {
@@ -113,8 +107,6 @@ do_install() {
 
   mkdir -p "${pkg_prefix}/lib/janus/plugins"
   cp $HAB_CACHE_SRC_PATH/mozilla/janus-plugin-sfu/target/release/libjanus_plugin_sfu.so "${pkg_prefix}/lib/janus/plugins"
-  mkdir -p "${pkg_prefix}/lib/janus/events"
-  cp $HAB_CACHE_SRC_PATH/mozilla/janus-eventhandler-sqlite/target/release/libjanus_eventhandler_sqlite.so "${pkg_prefix}/lib/janus/events"
 
   popd
 }
