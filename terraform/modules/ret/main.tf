@@ -88,9 +88,14 @@ resource "aws_alb_target_group" "ret-alb-group-http" {
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
   port = "${var.ret_http_port}"
   protocol = "HTTP"
+  deregistration_delay = 0
 
   health_check {
     path = "/health"
+    healthy_threshold = 2
+    unhealthy_threshold = 2
+    interval = 10
+    timeout = 5
   }
 }
 
@@ -436,9 +441,14 @@ resource "aws_alb_target_group" "ret-smoke-alb-group-http" {
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
   port = "${var.ret_http_port}"
   protocol = "HTTP"
+  deregistration_delay = 0
 
   health_check {
     path = "/health"
+    healthy_threshold = 2
+    unhealthy_threshold = 2
+    interval = 10
+    timeout = 5
   }
 }
 
