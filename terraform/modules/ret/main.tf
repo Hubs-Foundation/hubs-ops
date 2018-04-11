@@ -336,7 +336,7 @@ resource "aws_route53_record" "ret-assets-dns" {
 resource "aws_alb" "ret-smoke-alb" {
   name = "${var.shared["env"]}-ret-smoke-alb"
   security_groups = ["${aws_security_group.ret-alb.id}"]
-  subnets = ["${data.terraform_remote_state.vpc.private_subnet_ids}"]
+  subnets = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
   
   lifecycle { create_before_destroy = true }
 }
