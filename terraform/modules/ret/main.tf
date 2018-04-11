@@ -140,38 +140,6 @@ resource "aws_security_group" "ret" {
     security_groups = ["${aws_security_group.ret-alb.id}"]
   }
 
-  # Janus HTTPS
-  ingress {
-    from_port = "${var.janus_https_port}"
-    to_port = "${var.janus_https_port}"
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Janus Websockets
-  ingress {
-    from_port = "${var.janus_wss_port}"
-    to_port = "${var.janus_wss_port}"
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
- 
-  # Janus Admin via bastion
-  ingress {
-    from_port = "${var.janus_admin_port}"
-    to_port = "${var.janus_admin_port}"
-    protocol = "tcp"
-    security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
-  }
-
-  # Janus RTP
-  ingress {
-    from_port = "${var.janus_rtp_port_from}"
-    to_port = "${var.janus_rtp_port_to}"
-    protocol = "udp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   # SSH
   ingress {
     from_port = "22"
@@ -202,38 +170,6 @@ resource "aws_security_group" "ret" {
     to_port = "9100"
     protocol = "tcp"
     self = true
-  }
-
-  # epmd
-  egress {
-    from_port = "4369"
-    to_port = "4369"
-    protocol = "tcp"
-    self = true
-  }
-
-  # epmd-udp
-  egress {
-    from_port = "4369"
-    to_port = "4369"
-    protocol = "udp"
-    self = true
-  }
-
-  # erlang
-  egress {
-    from_port = "9000"
-    to_port = "9100"
-    protocol = "tcp"
-    self = true
-  }
-
-  # Papertrail
-  egress {
-    from_port = "28666"
-    to_port = "28666"
-    protocol = "tcp"
-    cidr_blocks = ["169.46.82.160/27"]
   }
 
   # NTP
@@ -309,17 +245,12 @@ resource "aws_launch_configuration" "ret" {
   ]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.ret.id}"
-  associate_public_ip_address = true
+  associate_public_ip_address = false
   lifecycle { create_before_destroy = true }
   root_block_device { volume_size = 128 }
   user_data = <<EOF
 #!/usr/bin/env bash
 while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
-# Forward port 8080 to 80, 8443 to 443 for janus websockets
-sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
-sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
-
-sudo /usr/bin/hab start mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel stable
 sudo /usr/bin/hab start mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel stable
 sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
 EOF
@@ -329,7 +260,7 @@ resource "aws_autoscaling_group" "ret" {
   name = "${var.shared["env"]}-ret"
   launch_configuration = "${aws_launch_configuration.ret.id}"
   availability_zones = ["${data.aws_availability_zones.all.names}"]
-  vpc_zone_identifier = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
+  vpc_zone_identifier = ["${data.terraform_remote_state.vpc.private_subnet_ids}"]
 
   min_size = "${var.min_ret_servers}"
   max_size = "${var.max_ret_servers}"
@@ -361,12 +292,6 @@ resource "aws_cloudfront_distribution" "ret-assets" {
     geo_restriction {
       restriction_type = "none"
     }
-  }
-
-  logging_config {
-    bucket = "${data.terraform_remote_state.base.logs_bucket_id}.s3.amazonaws.com"
-    prefix = "cloudfront/ret-assets"
-    include_cookies = false
   }
 
   aliases = ["assets-${var.shared["env"]}.${var.ret_domain}"]
@@ -411,7 +336,7 @@ resource "aws_route53_record" "ret-assets-dns" {
 resource "aws_alb" "ret-smoke-alb" {
   name = "${var.shared["env"]}-ret-smoke-alb"
   security_groups = ["${aws_security_group.ret-alb.id}"]
-  subnets = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
+  subnets = ["${data.terraform_remote_state.vpc.private_subnet_ids}"]
   
   lifecycle { create_before_destroy = true }
 }
@@ -469,17 +394,12 @@ resource "aws_launch_configuration" "ret-smoke" {
   ]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.ret.id}"
-  associate_public_ip_address = true
+  associate_public_ip_address = false
   lifecycle { create_before_destroy = true }
   root_block_device { volume_size = 128 }
   user_data = <<EOF
 #!/usr/bin/env bash
 while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
-# Forward port 8080 to 80, 8443 to 443 for janus websockets
-sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
-sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
-
-sudo /usr/bin/hab start mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel unstable
 sudo /usr/bin/hab start mozillareality/reticulum --strategy at-once --url https://bldr.habitat.sh --channel unstable
 sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
 EOF
@@ -522,12 +442,6 @@ resource "aws_cloudfront_distribution" "ret-assets-smoke" {
     geo_restriction {
       restriction_type = "none"
     }
-  }
-
-  logging_config {
-    bucket = "${data.terraform_remote_state.base.logs_bucket_id}.s3.amazonaws.com"
-    prefix = "cloudfront/ret-assets-smoke"
-    include_cookies = false
   }
 
   aliases = ["smoke-assets-${var.shared["env"]}.${var.ret_domain}"]
@@ -581,12 +495,6 @@ resource "aws_cloudfront_distribution" "ret-asset-bundles" {
     geo_restriction {
       restriction_type = "none"
     }
-  }
-
-  logging_config {
-    bucket = "${data.terraform_remote_state.base.logs_bucket_id}.s3.amazonaws.com"
-    prefix = "cloudfront/ret-asset-bundles"
-    include_cookies = false
   }
 
   aliases = ["asset-bundles-${var.shared["env"]}.${var.ret_domain}"]
