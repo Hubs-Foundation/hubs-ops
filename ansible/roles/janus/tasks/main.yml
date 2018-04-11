@@ -15,9 +15,9 @@
     register: work_dir
 
   - name: Write Janus config file
-    - template:
-    -   src: janus-gateway.toml.j2
-    -   dest: "{{ work_dir.path }}/janus-gateway.toml"
+    template:
+      src: janus-gateway.toml.j2
+      dest: "{{ work_dir.path }}/janus-gateway.toml"
 
   - name: Write DD agent config file
     template:
