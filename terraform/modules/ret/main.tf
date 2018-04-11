@@ -257,6 +257,45 @@ resource "aws_iam_role_policy_attachment" "bastion-base-policy" {
   role = "${aws_iam_role.ret.name}"
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
+                           
+resource "aws_iam_policy" "ret-alb-register-policy" {
+  name = "${var.shared["env"]}-ret-alb-register-policy"
+
+  # Apparently these cannot be bound to resource ARNs.
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:RegisterTargets"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:DescribeTargetHealth"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:DeregisterTargets"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "ret-alb-register-policy" {
+  role = "${aws_iam_role.ret.name}"
+  policy_arn = "${aws_iam_policy.ret-alb-register-policy.arn}"
+}
 
 resource "aws_iam_instance_profile" "ret" {
   name = "${var.shared["env"]}-ret"

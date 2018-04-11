@@ -28,3 +28,7 @@ password = "{{ ret_db_password }}"
 hostname = "{{ ret_db_hostname }}"
 database = "ret_production"
 pool_size = 16
+
+[aws]
+alb_target_group_arn = "{{ alb_target_group_arn }}"
+smoke_alb_target_group_arn = "{{ smoke_alb_target_group_arn }}"
