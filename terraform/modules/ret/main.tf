@@ -409,7 +409,7 @@ resource "aws_autoscaling_group" "ret-smoke" {
   name = "${var.shared["env"]}-ret-smoke"
   launch_configuration = "${aws_launch_configuration.ret-smoke.id}"
   availability_zones = ["${data.aws_availability_zones.all.names}"]
-  vpc_zone_identifier = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
+  vpc_zone_identifier = ["${data.terraform_remote_state.vpc.private_subnet_ids}"]
 
   min_size = "1"
   max_size = "1"
