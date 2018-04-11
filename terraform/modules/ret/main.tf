@@ -132,14 +132,6 @@ resource "aws_security_group" "ret" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # WebRTC RTP egress
-  egress {
-    from_port = "0"
-    to_port = "65535"
-    protocol = "udp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   # Reticulum HTTP
   ingress {
     from_port = "${var.ret_http_port}"

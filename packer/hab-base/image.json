@@ -26,7 +26,6 @@
     "ami_name": "hab-base-{{timestamp}}"
   }],
   "provisioners": [
-    { "type": "file", "source": "../shared/files/papertrail-bundle.pem", "destination": "papertrail-bundle.pem" },
     { "type": "file", "source": "../shared/files/hostname-adjectives", "destination": "hostname-adjectives" },
     { "type": "file", "source": "../shared/files/hostname-nouns", "destination": "hostname-nouns" },
     { "type": "file", "source": "../shared/files/set_hostname.sh", "destination": "set_hostname.sh" },
@@ -45,7 +44,7 @@
         "apt-get update",
         "apt-get update",
         "apt-get upgrade -y",
-        "apt-get install -y unattended-upgrades python3 awscli jq rsyslog-gnutls sysstat",
+        "apt-get install -y unattended-upgrades python3 awscli jq sysstat",
         "update-alternatives --install /usr/bin/python python /usr/bin/python3 1",
         "mv coredump.conf /etc/systemd",
         "mv sysctl.core.conf /etc/sysctl.d/core.conf",
@@ -57,7 +56,6 @@
         "echo 'DefaultLimitNOFILE=infinity' >> /etc/systemd/system.conf",
         "echo 'DefaultLimitMEMLOCK=infinity' >> /etc/systemd/system.conf",
         "perl -p -i -e 's/preserve_hostname: false/preserve_hostname: true/g' /etc/cloud/cloud.cfg",
-        "mv papertrail-bundle.pem /etc",
         "mv hostname-nouns /usr/share/dict",
         "mv hostname-adjectives /usr/share/dict",
         "mv set_host_type_prompt.sh /usr/bin",
@@ -101,9 +99,7 @@
       "inline": [
         "mv secrets/hab-keys /hab/cache/keys",
         "chown -R root:root /hab/cache/keys",
-        "chmod -R 0600 /hab/cache/keys",
-        "mv secrets/etc/rsyslog.d/* /etc/rsyslog.d",
-        "chown -R root:root /etc/rsyslog.d/*"
+        "chmod -R 0600 /hab/cache/keys"
       ]
     }
   ]
