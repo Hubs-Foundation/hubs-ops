@@ -72,6 +72,9 @@ disabled = [
   "libjanus_videoroom.so"
 ]
 
+[plugins.sfu]
+max_room_size = 12
+
 [plugins.audiobridge]
 # TODO
 
