@@ -30,7 +30,7 @@ function processEvent(event, callback) {
     } else {
         const pkg = commandText.split(" ")[2].trim();
         const url = `https:\/\/ci-dev.reticulum.io/buildByToken/buildWithParameters?job=hab-promote&PACKAGE=${pkg}&CHANNEL=stable&token=${jtoken}&SOURCE=${user}`;
-        https.get(url, (res) => { callback(null, null); });
+        https.get(url, (res) => { callback(null, "Promotion started. See #mr-push."); });
     }
 }
 
