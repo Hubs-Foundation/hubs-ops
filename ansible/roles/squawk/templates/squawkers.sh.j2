@@ -1,8 +1,13 @@
 # Runs the bots for the smoke test.
 
-NUM_SQUAWKERS={{ num_squawkers }}
+NUM_SQUAWKER_PROCESSES={{ num_squawker_processes }}
+NUM_SQUAWKERS_PER_PROCESS={{ num_squawkers_per_process }}
 CYCLE_TIME={{ cycle_time }}
-SPAWN_DELAY={{ spawn_delay }}
+PROCESS_SPAWN_DELAY={{ process_spawn_delay }}
+JANUS_SERVER={{ janus_server }}
+SMOKE_ROOM={{ smoke_room }}
+AUDIO_URL={{ audio_url }}
+DATA_URL={{ data_url }}
 
 if [ -e "squawkers.pid" ] && kill $(cat squawkers.pid) ; then
   echo "Already running, shutting down."
@@ -23,10 +28,15 @@ npm update
 npm install
 
 while true; do
-  for i in `seq 1 $NUM_SQUAWKERS`;
+  for i in `seq 1 $NUM_SQUAWKER_PROCESSES`;
     do
-      node ./squawkers-cli.js --room 842060733835397 --janus wss://prod-janus.reticulum.io &
-      sleep $SPAWN_DELAY
+      node ./squawkers-cli.js \
+        --num $NUM_SQUAWKERS_PER_PROCESS \
+        --room $SMOKE_ROOM \
+        --janus $JANUS_SERVER \
+        --audio $AUDIO_URL \
+        --data $DATA_URL &
+      sleep $PROCESS_SPAWN_DELAY
     done    
   	
   sleep $CYCLE_TIME
@@ -37,4 +47,3 @@ while true; do
   	
   sleep 2
 done
-
