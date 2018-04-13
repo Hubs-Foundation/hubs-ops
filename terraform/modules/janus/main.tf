@@ -128,7 +128,7 @@ while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
 sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 
-sudo /usr/bin/hab start mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab start mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
 EOF
 }

@@ -26,6 +26,10 @@ variable "janus_rtp_port_to" {
   description = "Janus RTP port to"
 }
 
+variable "janus_channel" {
+  description = "Distribution channel for janus on non-smoke servers"
+}
+
 variable "janus_restart_strategy" {
   description = "Habitat restart strategy for Janus"
 }
