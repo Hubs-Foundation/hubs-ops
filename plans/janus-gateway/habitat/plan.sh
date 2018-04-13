@@ -106,6 +106,7 @@ do_install() {
   do_default_install
 
   mkdir -p "${pkg_prefix}/lib/janus/plugins"
+  mkdir -p "${pkg_prefix}/lib/janus/events"
   cp $HAB_CACHE_SRC_PATH/mozilla/janus-plugin-sfu/target/release/libjanus_plugin_sfu.so "${pkg_prefix}/lib/janus/plugins"
 
   popd
