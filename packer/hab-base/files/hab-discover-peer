@@ -25,10 +25,10 @@ while [[ -z "$EC2_INFO" || -z "$HAB_RING" || -z "$ENV" ]] ; do
 done
 
 # Prefer a node of type "hab" for this environment
-HAB_PEER=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENV}-hab\"))) | .[] | select(.State | .Code == 16) | .PrivateIpAddress" | grep -v $PRIVATE_IP | shuf | head -n1)
+HAB_PEER=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId != \"$INSTANCE_ID\") | select(any(.Tags | from_entries ; .[\"host-type\"] == \"${ENV}-hab\")) | select(.State | .Name == \"running\") | .PrivateIpAddress" | grep -v $PRIVATE_IP | shuf | head -n1)
 
 # Otherwise pick a peer from the same ring
-RING_PEER=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.Tags | from_entries ; .[\"hab-ring\"] == \"$HAB_RING\"))) | .[] | select(.State | .Code == 16) | .PrivateIpAddress" | grep -v $PRIVATE_IP | shuf | head -n1)
+RING_PEER=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId != \"$INSTANCE_ID\") | select(any(.Tags | from_entries ; .[\"hab-ring\"] == \"$HAB_RING\")) | select(.State | .Name == \"running\") | .PrivateIpAddress" | grep -v $PRIVATE_IP | shuf | head -n1)
 
 PEER=$HAB_PEER
 
