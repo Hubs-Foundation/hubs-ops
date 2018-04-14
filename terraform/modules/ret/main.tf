@@ -412,6 +412,10 @@ while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
 sudo mkdir -p /hab/user/reticulum/config
 
 sudo cat > /hab/user/reticulum/config/user.toml << EOTOML
+[phx]
+url_host_prefix = "smoke-"
+static_url_host_prefix = "smoke-"
+
 [habitat]
 ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
