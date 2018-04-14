@@ -80,7 +80,7 @@ resource "aws_iam_role_policy" "ret-db-monitoring-policy" {
 
 resource "aws_db_parameter_group" "ret-db-parameter-group" {
   name = "${var.shared["env"]}-ret-db-parameter-group"
-  family = "postgres9.6"
+  family = "postgres10"
 }
 
 resource "aws_db_instance" "ret-db" {
@@ -90,7 +90,7 @@ resource "aws_db_instance" "ret-db" {
   backup_window = "09:30-10:00"
   db_subnet_group_name = "${aws_db_subnet_group.ret-db-subnet-group.id}"
   engine = "postgres"
-  engine_version = "9.6"
+  engine_version = "10.3"
   final_snapshot_identifier = "${var.shared["env"]}-ret-db-final"
   identifier_prefix = "${var.shared["env"]}-ret-db"
   instance_class = "${var.instance_class}"
