@@ -251,8 +251,14 @@ resource "aws_launch_configuration" "ret" {
   user_data = <<EOF
 #!/usr/bin/env bash
 while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
-sudo mkdir -p /hab/user/reticulum/config ; echo "[habitat]" > /hab/user/reticulum/config/user.toml
-sudo echo "ip = \"$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)\"" >> /hab/user/reticulum/config/user.toml
+
+sudo mkdir -p /hab/user/reticulum/config
+
+sudo cat > /hab/user/reticulum/config/user.toml << EOTOML
+[habitat]
+ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+EOTOML
+
 sudo /usr/bin/hab start mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.reticulum_channel}
 sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
 EOF
@@ -402,8 +408,14 @@ resource "aws_launch_configuration" "ret-smoke" {
   user_data = <<EOF
 #!/usr/bin/env bash
 while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
-sudo mkdir -p /hab/user/reticulum/config ; echo "[habitat]" > /hab/user/reticulum/config/user.toml
-sudo echo "ip = \"$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)\"" >> /hab/user/reticulum/config/user.toml
+
+sudo mkdir -p /hab/user/reticulum/config
+
+sudo cat > /hab/user/reticulum/config/user.toml << EOTOML
+[habitat]
+ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+EOTOML
+
 sudo /usr/bin/hab start mozillareality/reticulum --strategy at-once --url https://bldr.habitat.sh --channel unstable
 sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
 EOF

@@ -128,8 +128,16 @@ while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
 sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 
-sudo mkdir -p /hab/user/janus-gateway/config ; echo "[nat]" > /hab/user/janus-gateway/config/user.toml
-sudo echo "nat_1_1_mapping = \"$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)\"" >> /hab/user/janus-gateway/config/user.toml
+sudo mkdir -p /hab/user/janus-gateway/config
+
+sudo cat > /hab/user/janus-gateway/config/user.toml << EOTOML
+[nat]
+nat_1_1_mapping = "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
+
+[transports.http]
+admin_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+EOTOML
+
 sudo /usr/bin/hab start mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
 EOF
@@ -169,8 +177,16 @@ while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
 sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 
-sudo mkdir -p /hab/user/janus-gateway/config ; echo "[nat]" > /hab/user/janus-gateway/config/user.toml
-sudo echo "nat_1_1_mapping = \"$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)\"" >> /hab/user/janus-gateway/config/user.toml
+sudo mkdir -p /hab/user/janus-gateway/config
+
+sudo cat > /hab/user/janus-gateway/config/user.toml << EOTOML
+[nat]
+nat_1_1_mapping = "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
+
+[transports.http]
+admin_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+EOTOML
+
 sudo /usr/bin/hab start mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel unstable
 sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
 EOF
