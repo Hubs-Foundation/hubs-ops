@@ -23,4 +23,4 @@ janus_rtp_port_to = 60000
 min_ret_servers = 3
 max_ret_servers = 3
 reticulum_restart_strategy = "rolling"
-reticulum_channel = "unstable"
+reticulum_channel = "stable"
