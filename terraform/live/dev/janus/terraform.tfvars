@@ -19,5 +19,5 @@ janus_https_port = 8443
 janus_admin_port = 7000
 janus_rtp_port_from = 20000
 janus_rtp_port_to = 60000
-janus_channel = "unstable"
+janus_channel = "stable"
 janus_restart_strategy = "at-once"
