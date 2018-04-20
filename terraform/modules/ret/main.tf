@@ -99,7 +99,7 @@ resource "aws_alb_target_group" "ret-alb-group-http" {
   }
 }
 
-resource "aws_alb_listener" "ret-alb-listener" {
+resource "aws_alb_listener" "ret-ssl-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-alb.arn}"
   port = 443
 
@@ -108,6 +108,18 @@ resource "aws_alb_listener" "ret-alb-listener" {
 
   certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert.arn}"
   
+  default_action {
+    target_group_arn = "${aws_alb_target_group.ret-alb-group-http.arn}"
+    type = "forward"
+  }
+}
+
+resource "aws_alb_listener" "ret-clear-alb-listener" {
+  load_balancer_arn = "${aws_alb.ret-alb.arn}"
+  port = 80
+
+  protocol = "HTTP"
+
   default_action {
     target_group_arn = "${aws_alb_target_group.ret-alb-group-http.arn}"
     type = "forward"
@@ -377,7 +389,7 @@ resource "aws_alb_target_group" "ret-smoke-alb-group-http" {
   }
 }
 
-resource "aws_alb_listener" "ret-smoke-alb-listener" {
+resource "aws_alb_listener" "ret-smoke-ssl-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-smoke-alb.arn}"
   port = 443
 
@@ -385,6 +397,18 @@ resource "aws_alb_listener" "ret-smoke-alb-listener" {
   ssl_policy = "ELBSecurityPolicy-2015-05"
 
   certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert.arn}"
+  
+  default_action {
+    target_group_arn = "${aws_alb_target_group.ret-smoke-alb-group-http.arn}"
+    type = "forward"
+  }
+}
+
+resource "aws_alb_listener" "ret-smoke-clear-alb-listener" {
+  load_balancer_arn = "${aws_alb.ret-smoke-alb.arn}"
+  port = 80
+
+  protocol = "HTTP"
   
   default_action {
     target_group_arn = "${aws_alb_target_group.ret-smoke-alb-group-http.arn}"
@@ -412,6 +436,10 @@ while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
 sudo mkdir -p /hab/user/reticulum/config
 
 sudo cat > /hab/user/reticulum/config/user.toml << EOTOML
+[phx]
+url_host_prefix = "smoke-"
+static_url_host_prefix = "smoke-"
+
 [habitat]
 ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
