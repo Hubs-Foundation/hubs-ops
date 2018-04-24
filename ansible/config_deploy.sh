@@ -9,6 +9,7 @@ Performs a config deploy to the Habitat cluster to update configurations for the
   exit 1
 fi
 
+# TODO this should get a lot smarter -- if you are on a branch, disallow. If you have working changes, warn the user and require a flag.
 git pull origin master
 
 HOST_TYPE=$1
