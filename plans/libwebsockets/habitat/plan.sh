@@ -2,9 +2,9 @@ pkg_name=libwebsockets
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 
-pkg_version="2.3.0"
-pkg_source="https://github.com/warmcat/libwebsockets/archive/v2.3.0.tar.gz"
-pkg_shasum="f08a8233ca1837640b72b1790cce741ce4b0feaaa6b408fe28a303cbf0408fa1"
+pkg_version="2.4.2"
+pkg_source="https://github.com/warmcat/libwebsockets/archive/v2.4.2.tar.gz"
+pkg_shasum="73012d7fcf428dedccc816e83a63a01462e27819d5537b8e0d0c7264bfacfad6"
 pkg_license=('LGPL-2.1')
 pkg_build_deps=(core/make core/gcc core/cmake core/openssl core/git)
 pkg_deps=(core/zlib)
