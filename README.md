@@ -1,6 +1,6 @@
-# Mozilla Mixed Reality Ops
+# Hubs by Mozilla Ops
 
-This repo contains all the necessary scripts and tools for working with the Mixed Reality services operations.
+This repo contains all the necessary scripts and tools for standing up infrastructure for Hubs by Mozilla.
 
 `ansible` - Contains scripts for performing configuration deploys to the live Habitat ring, and other runbooks.
 
