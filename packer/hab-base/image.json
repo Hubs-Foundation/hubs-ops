@@ -86,7 +86,7 @@
         "mv hab.service /lib/systemd/system",
         "mv ret-alb-remove.service /lib/systemd/system",
         "chown root:root /lib/systemd/system/hab.service",
-        "chown root:root /lib/systemd/system/ret-alb-service.service",
+        "chown root:root /lib/systemd/system/ret-alb-remove.service",
         "systemctl enable hab",
         "mv hab-discover-peer /usr/bin",
         "chown root:root /usr/bin/hab-discover-peer",
