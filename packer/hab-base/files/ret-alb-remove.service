@@ -1,0 +1,10 @@
+[Unit]
+Description=Reticulum ALB Removal that runs init hook to remove from ALB until Habitat has pre-kill hook to do so
+
+[Service]
+ExecStart=/bin/bash -c "journalctl -u hab -f | awk '/^[^ ]+ [0-9][0-9] [0-9][0-9]:[0-9][0-9]:[0-9][0-9] [^ ]+ bash\\[[0-9]+\\]: reticulum.default@mozillareality\\([A-Z]+\\): [0-9][0-9]:[0-9][0-9]:[0-9][0-9]\\.[0-9]?[0-9]?[0-9]? \\[info\\] SIGTERM received - shutting down$/ { system (\"cat /hab/svc/reticulum/hooks/init | grep -v escript | bash -\") }'"
+Restart=always
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

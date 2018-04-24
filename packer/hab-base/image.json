@@ -74,6 +74,7 @@
       ]
     },
     { "type": "file", "source": "files/hab.service", "destination": "hab.service" },
+    { "type": "file", "source": "files/ret-alb-remove.service", "destination": "ret-alb-remove.service" },
     { "type": "file", "source": "files/hab-discover-peer", "destination": "hab-discover-peer" },
     {
       "type": "shell",
@@ -83,7 +84,9 @@
         "find . -name 'hab' -exec mv {} /usr/bin \\;",
         "chmod +x /usr/bin/hab",
         "mv hab.service /lib/systemd/system",
+        "mv ret-alb-service.service /lib/systemd/system",
         "chown root:root /lib/systemd/system/hab.service",
+        "chown root:root /lib/systemd/system/ret-alb-service.service",
         "systemctl enable hab",
         "mv hab-discover-peer /usr/bin",
         "chown root:root /usr/bin/hab-discover-peer",
