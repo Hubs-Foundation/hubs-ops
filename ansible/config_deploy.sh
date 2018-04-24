@@ -9,6 +9,8 @@ Performs a config deploy to the Habitat cluster to update configurations for the
   exit 1
 fi
 
+git pull origin master
+
 HOST_TYPE=$1
 ENVIRONMENT=$2
 
