@@ -24,3 +24,5 @@ min_ret_servers = 3
 max_ret_servers = 3
 reticulum_channel = "stable"
 reticulum_restart_strategy = "at-once"
+public_domain_enabled = true
+public_domain = "hubs.social"

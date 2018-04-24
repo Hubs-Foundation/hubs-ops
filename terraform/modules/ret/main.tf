@@ -1,7 +1,7 @@
 variable "shared" { type = "map" }
 terraform { backend "s3" {} }
-provider "aws" { region = "${var.shared["region"]}", version = "~> 0.1" }
-provider "aws" { alias = "east", region = "us-east-1", version = "~> 0.1" }
+provider "aws" { region = "${var.shared["region"]}", version = "~> 1.15" }
+provider "aws" { alias = "east", region = "us-east-1", version = "~> 1.15" }
 data "aws_availability_zones" "all" {}
 
 data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
@@ -14,8 +14,17 @@ data "aws_route53_zone" "reticulum-zone" {
   name = "${var.ret_domain}."
 }
 
+data "aws_route53_zone" "public-zone" {
+  name = "${var.public_domain}."
+}
+
 data "aws_acm_certificate" "ret-alb-listener-cert" {
   domain = "*.${var.ret_domain}"
+  statuses = ["ISSUED"]
+}
+
+data "aws_acm_certificate" "ret-alb-listener-public-cert" {
+  domain = "${var.public_domain}"
   statuses = ["ISSUED"]
 }
 
@@ -83,6 +92,19 @@ resource "aws_route53_record" "ret-alb-dns" {
   }
 }
 
+resource "aws_route53_record" "ret-public-alb-dns" {
+  count = "${var.public_domain_enabled}"
+  zone_id = "${data.aws_route53_zone.public-zone.zone_id}"
+  name = "${data.aws_route53_zone.public-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_alb.ret-alb.dns_name}"
+    zone_id = "${aws_alb.ret-alb.zone_id}"
+    evaluate_target_health = true
+  }
+}
+
 resource "aws_alb_target_group" "ret-alb-group-http" {
   name = "${var.shared["env"]}-ret-alb-group-http"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
@@ -112,6 +134,12 @@ resource "aws_alb_listener" "ret-ssl-alb-listener" {
     target_group_arn = "${aws_alb_target_group.ret-alb-group-http.arn}"
     type = "forward"
   }
+}
+
+resource "aws_lb_listener_certificate" "ret-ssl-public-alb-listener-cert" {
+  count = "${var.public_domain_enabled}"
+  listener_arn = "${aws_alb_listener.ret-ssl-alb-listener.arn}"
+  certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-public-cert.arn}"
 }
 
 resource "aws_alb_listener" "ret-clear-alb-listener" {

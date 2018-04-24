@@ -25,3 +25,11 @@ variable "reticulum_channel" {
 variable "reticulum_restart_strategy" {
   description = "Habitat restart strategy for Reticulum"
 }
+
+variable "public_domain_enabled" {
+  description = "Should bind to public domain (typically prod only)"
+}
+
+variable "public_domain" {
+  description = "Domain to use for public access (ex yoursite.com)"
+}
