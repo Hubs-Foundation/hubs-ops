@@ -14,10 +14,6 @@ data "aws_route53_zone" "reticulum-zone" {
   name = "${var.ret_domain}."
 }
 
-data "aws_route53_zone" "public-zone" {
-  name = "${var.public_domain}."
-}
-
 data "aws_acm_certificate" "ret-alb-listener-cert" {
   domain = "*.${var.ret_domain}"
   statuses = ["ISSUED"]
@@ -83,19 +79,6 @@ resource "aws_alb" "ret-alb" {
 resource "aws_route53_record" "ret-alb-dns" {
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
   name = "${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
-  type = "A"
-
-  alias {
-    name = "${aws_alb.ret-alb.dns_name}"
-    zone_id = "${aws_alb.ret-alb.zone_id}"
-    evaluate_target_health = true
-  }
-}
-
-resource "aws_route53_record" "ret-public-alb-dns" {
-  count = "${var.public_domain_enabled}"
-  zone_id = "${data.aws_route53_zone.public-zone.zone_id}"
-  name = "${data.aws_route53_zone.public-zone.name}"
   type = "A"
 
   alias {
