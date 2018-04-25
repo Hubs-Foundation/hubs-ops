@@ -39,7 +39,7 @@
         "apt-get update",
         "apt-get update",
         "apt-get upgrade -y",
-        "apt-get install -y unattended-upgrades python3 awscli jq rsyslog-gnutls",
+        "apt-get install -y unattended-upgrades python3 awscli jq rsyslog-gnutls libpam-google-authenticator",
         "update-alternatives --install /usr/bin/python python /usr/bin/python3 1",
         "perl -p -i -e 's/preserve_hostname: false/preserve_hostname: true/g' /etc/cloud/cloud.cfg",
         "mv hostname-nouns /usr/share/dict",
@@ -56,7 +56,16 @@
         "chmod +x /usr/bin/set_host_type_prompt.sh",
         "chmod +x /usr/bin/set_hostname.sh",
         "echo \". /usr/bin/set_host_type_prompt.sh\" >> /home/ubuntu/.bashrc",
-        "echo \". /usr/bin/set_host_type_prompt.sh\" >> /root/.bashrc"
+        "echo \". /usr/bin/set_host_type_prompt.sh\" >> /root/.bashrc",
+        "echo \"{{ user `twofactorsecret` }}\" > /home/ubuntu/.google_authenticator",
+        "echo \"\" RATE_LIMIT 3 30\" >> /home/ubuntu/.google_authenticator",
+        "echo \"\" WINDOW_SIZE 17\" >> /home/ubuntu/.google_authenticator",
+        "echo \"\" DISALLOW_REUSE\" >> /home/ubuntu/.google_authenticator",
+        "echo \"\" TOTP_AUTH\" >> /home/ubuntu/.google_authenticator",
+        "echo \"auth required pam_google_authenticator.so\" >> /etc/pam.d/sshd",
+        "grep \"@include common-auth\" /etc/pam.d/sshd && sed -i -E 's/@include common-auth/#@include common-auth/' /etc/pam.d/sshd",
+        "grep \"ChallengeResponseAuthentication no\" /etc/ssh/sshd_config && sed -i -E 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config",
+        "echo \"AuthenticationMethods publickey,keyboard-interactive\" >> /etc/ssh/sshd_config"
       ]
     }
   ]
