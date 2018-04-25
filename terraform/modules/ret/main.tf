@@ -195,6 +195,14 @@ resource "aws_security_group" "ret" {
     self = true
   }
 
+  # erlang
+  egress {
+    from_port = "0"
+    to_port = "65535"
+    protocol = "tcp"
+    self = true
+  }
+
   # NTP
   egress {
     from_port = "123"
