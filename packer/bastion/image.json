@@ -62,6 +62,8 @@
         "echo '\" WINDOW_SIZE 17' >> /home/ubuntu/.google_authenticator",
         "echo '\" DISALLOW_REUSE' >> /home/ubuntu/.google_authenticator",
         "echo '\" TOTP_AUTH' >> /home/ubuntu/.google_authenticator",
+        "chmod 0600 /home/ubuntu/.google_authenticator",
+        "chown ubuntu:ubuntu /home/ubuntu/.google_authenticator",
         "echo \"auth required pam_google_authenticator.so\" >> /etc/pam.d/sshd",
         "grep \"@include common-auth\" /etc/pam.d/sshd && sed -i -E 's/@include common-auth/#@include common-auth/' /etc/pam.d/sshd",
         "grep \"ChallengeResponseAuthentication no\" /etc/ssh/sshd_config && sed -i -E 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config",
