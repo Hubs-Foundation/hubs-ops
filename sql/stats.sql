@@ -16,6 +16,8 @@ select day1.a, day2.a, day3.a, day4.a, day5.a, day6.a, day7.a, ((day1.a + day2.a
 
 select 
 g.total_count as total_sessions,
+(a.total_rift_session_time + b.total_openvr_session_time) as total_desktop_vr_time,
+(c.total_gearvr_session_time + e.total_daydream_session_time) as total_mobile_vr_time,
 a.avg_rift_session_time, b.avg_openvr_session_time, c.avg_gearvr_session_time, d.avg_cardboard_session_time, e.avg_daydream_session_time, f.avg_screen_session_time,
 ((a.avg_rift_session_time + b.avg_openvr_session_time) / 2) as desktop_vr_avg_session_time,
 ((c.avg_gearvr_session_time + e.avg_daydream_session_time) / 2) as mobile_vr_avg_session_time,
@@ -26,37 +28,37 @@ a.avg_rift_session_time, b.avg_openvr_session_time, c.avg_gearvr_session_time, d
 
 from
 
-	(select count(sessions.duration) as rift_count, avg(sessions.duration) as avg_rift_session_time from
+	(select count(sessions.duration) as rift_count, sum(sessions.duration) as total_rift_session_time, avg(sessions.duration) as avg_rift_session_time from
 	(select session_id, (entered_event_payload->'entryDisplayType')::varchar display, (ended_at - entered_event_received_at) duration from session_stats
 		where entered_event_received_at > now() - interval '1 week' and (ended_at - entered_event_received_at) between interval '30 seconds' and interval '2 hours') as sessions
 	where (sessions.display like '%Oculus VR HMD%')) as a,
 
-	(select count(sessions.duration) as openvr_count, avg(sessions.duration) as avg_openvr_session_time from
+	(select count(sessions.duration) as openvr_count, sum(sessions.duration) as total_openvr_session_time, avg(sessions.duration) as avg_openvr_session_time from
 	(select session_id, (entered_event_payload->'entryDisplayType')::varchar display, (ended_at - entered_event_received_at) duration from session_stats
 		where entered_event_received_at > now() - interval '1 week' and (ended_at - entered_event_received_at) between interval '30 seconds' and interval '2 hours') as sessions
 	where (sessions.display like '%OpenVR HMD%')) as b,
 
-	(select count(sessions.duration) as gearvr_count, avg(sessions.duration) as avg_gearvr_session_time from
+	(select count(sessions.duration) as gearvr_count, sum(sessions.duration) as total_gearvr_session_time, avg(sessions.duration) as avg_gearvr_session_time from
 	(select session_id, (entered_event_payload->'entryDisplayType')::varchar display, (ended_at - entered_event_received_at) duration from session_stats
 		where entered_event_received_at > now() - interval '1 week' and (ended_at - entered_event_received_at) between interval '30 seconds' and interval '2 hours') as sessions
 	where (sessions.display like '%Gear VR%')) as c,
 
-	(select count(sessions.duration) as cardboard_count, avg(sessions.duration) as avg_cardboard_session_time from
+	(select count(sessions.duration) as cardboard_count, sum(sessions.duration) as total_cardboard_session_time, avg(sessions.duration) as avg_cardboard_session_time from
 	(select session_id, (entered_event_payload->'entryDisplayType')::varchar display, (ended_at - entered_event_received_at) duration from session_stats
 		where entered_event_received_at > now() - interval '1 week' and (ended_at - entered_event_received_at) between interval '30 seconds' and interval '2 hours') as sessions
 	where (sessions.display like '%Cardboard%')) as d,
 
-	(select count(sessions.duration) as daydream_count, avg(sessions.duration) as avg_daydream_session_time from
+	(select count(sessions.duration) as daydream_count, sum(sessions.duration) as total_daydream_session_time, avg(sessions.duration) as avg_daydream_session_time from
 	(select session_id, (entered_event_payload->'entryDisplayType')::varchar display, (ended_at - entered_event_received_at) duration from session_stats
 		where entered_event_received_at > now() - interval '1 week' and (ended_at - entered_event_received_at) between interval '30 seconds' and interval '2 hours') as sessions
 	where (sessions.display like '%Daydream%')) as e,
 
-	(select count(sessions.duration) as screen_count, avg(sessions.duration) as avg_screen_session_time from
+	(select count(sessions.duration) as screen_count, sum(sessions.duration) as total_screen_session_time, avg(sessions.duration) as avg_screen_session_time from
 	(select session_id, (entered_event_payload->'entryDisplayType')::varchar display, (ended_at - entered_event_received_at) duration from session_stats
 		where entered_event_received_at > now() - interval '1 week' and (ended_at - entered_event_received_at) between interval '30 seconds' and interval '2 hours') as sessions
 	where (sessions.display = '"Screen"')) as f,
 
-	(select count(sessions.duration) as total_count, avg(sessions.duration) as avg_total_session_time from
+	(select count(sessions.duration) as total_count, sum(sessions.duration) as total_session_time, avg(sessions.duration) as avg_total_session_time from
 	(select session_id, (entered_event_payload->'entryDisplayType')::varchar display, (ended_at - entered_event_received_at) duration from session_stats
 		where entered_event_received_at > now() - interval '1 week' and (ended_at - entered_event_received_at) between interval '30 seconds' and interval '2 hours') as sessions) as g;
 
