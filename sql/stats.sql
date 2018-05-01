@@ -1,5 +1,9 @@
 set search_path = ret0;
-select active_rooms, total_rooms, ((active_rooms * 1.0) / (total_rooms * 1.0)) * 100 as room_active_conversion_rate from (select count(*) as total_rooms, sum(case when max_occupant_count > 0 then 1 else 0 end) as active_rooms from hubs where inserted_at > now() - interval '1 week') a;
+
+select max(present_sessions) as max_ccu_across_all from node_stats where measured_at > now() - interval '1 week';
+select max(max_occupant_count + 1) from hubs where inserted_at > now() - interval '1 week';
+
+select (active_rooms / 7) as active_rooms_per_day, total_rooms, ((active_rooms * 1.0) / (total_rooms * 1.0)) * 100 as room_active_conversion_rate from (select count(*) as total_rooms, sum(case when max_occupant_count > 0 then 1 else 0 end) as active_rooms from hubs where inserted_at > now() - interval '1 week') a;
 
 select day1.a, day2.a, day3.a, day4.a, day5.a, day6.a, day7.a, ((day1.a + day2.a + day3.a + day4.a + day5.a + day6.a + day7.a) / 7.0) as average_dau_last_week from
 (select count(*) as a from session_stats where started_at > now() - interval '24 hours' and ((entered_event_payload->'isNewDaily')::varchar)::boolean) as day1,
@@ -9,8 +13,6 @@ select day1.a, day2.a, day3.a, day4.a, day5.a, day6.a, day7.a, ((day1.a + day2.a
 (select count(*) as a from session_stats where started_at > now() - interval '120 hours' and started_at < now() - interval '96 hours' and ((entered_event_payload->'isNewDaily')::varchar)::boolean) as day5,
 (select count(*) as a from session_stats where started_at > now() - interval '144 hours' and started_at < now() - interval '120 hours' and ((entered_event_payload->'isNewDaily')::varchar)::boolean) as day6,
 (select count(*) as a from session_stats where started_at > now() - interval '168 hours' and started_at < now() - interval '144 hours' and ((entered_event_payload->'isNewDaily')::varchar)::boolean) as day7;
-
-select max(present_sessions) as max_ccu form node_stats where measured_at > now() - interval '1 week';
 
 select 
 g.total_count as total_sessions,
