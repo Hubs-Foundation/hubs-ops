@@ -2,6 +2,6 @@
 
 - hosts: all
   gather_facts: false
-  sudo: false
+  become: false
   roles:
   - role: squawk
