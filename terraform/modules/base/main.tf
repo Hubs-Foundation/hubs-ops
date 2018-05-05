@@ -69,6 +69,25 @@ resource "aws_s3_bucket" "asset-bundles-bucket" {
   }
 }
 
+# Timecheck bucket (public read)
+resource "aws_s3_bucket" "timecheck-bucket" {
+  bucket = "timecheck.${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers = ["ETag"]
+    max_age_seconds = 31536000
+  }
+
+  website {
+      index_document = "index.html"
+      error_document = "error.html"
+  }
+}
+
 resource "aws_security_group" "cloudfront-http" {
   name = "${var.shared["env"]}-cloudfront-http"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"

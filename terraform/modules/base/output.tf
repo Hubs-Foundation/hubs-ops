@@ -41,3 +41,8 @@ output "lambda_kms_key_arn" {
 output "lambda_kms_key_key_id" {
   value ="${aws_kms_key.lambda-kms-key.key_id}"
 }
+
+output "timecheck_bucket_domain_name" {
+  value ="${aws_s3_bucket.timecheck-bucket.bucket_domain_name}"
+}
+

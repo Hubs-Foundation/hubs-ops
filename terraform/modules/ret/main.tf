@@ -602,3 +602,56 @@ resource "aws_route53_record" "ret-assets-bundles-dns" {
   }
 }
 
+resource "aws_cloudfront_distribution" "timecheck" {
+  enabled = true
+
+  origin {
+    origin_id = "${var.shared["env"]}-timecheck"
+    domain_name = "${data.terraform_remote_state.base.timecheck_bucket_domain_name}"
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  aliases = ["timecheck-${var.shared["env"]}.${var.ret_domain}"]
+
+  default_cache_behavior {
+    allowed_methods = ["HEAD", "GET"]
+    cached_methods = ["HEAD", "GET"]
+    target_origin_id = "${var.shared["env"]}-timecheck"
+   
+    forwarded_values {
+      query_string = true
+      headers = ["Origin"]
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "https-only"
+    min_ttl = 0
+    default_ttl = 0
+    max_ttl = 0
+  }
+
+  price_class = "PriceClass_All"
+  
+  viewer_certificate {
+    acm_certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert-east.arn}"
+    ssl_support_method = "sni-only"
+    minimum_protocol_version = "TLSv1"
+  }
+}
+
+resource "aws_route53_record" "timecheck-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "timecheck-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_cloudfront_distribution.timecheck.domain_name}"
+    zone_id = "${aws_cloudfront_distribution.timecheck.hosted_zone_id}"
+    evaluate_target_health = false
+  }
+}
