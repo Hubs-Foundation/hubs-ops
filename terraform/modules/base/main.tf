@@ -78,7 +78,7 @@ resource "aws_s3_bucket" "timecheck-bucket" {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "HEAD"]
     allowed_origins = ["*"]
-    expose_headers = ["ETag"]
+    expose_headers = ["Date"]
     max_age_seconds = 31536000
   }
 
