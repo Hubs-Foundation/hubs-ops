@@ -17,17 +17,21 @@ data "aws_route53_zone" "reticulum-zone" {
 data "aws_acm_certificate" "ret-alb-listener-cert" {
   domain = "*.${var.ret_domain}"
   statuses = ["ISSUED"]
+  most_recent = true
 }
 
 data "aws_acm_certificate" "ret-alb-listener-public-cert" {
   domain = "${var.public_domain}"
   statuses = ["ISSUED"]
+  types = ["AMAZON_ISSUED"]
+  most_recent = true
 }
 
 data "aws_acm_certificate" "ret-alb-listener-cert-east" {
   provider = "aws.east"
   domain = "*.${var.ret_domain}"
   statuses = ["ISSUED"]
+  most_recent = true
 }
 
 data "aws_ami" "hab-base-ami" {
@@ -72,7 +76,7 @@ resource "aws_alb" "ret-alb" {
   name = "${var.shared["env"]}-ret-alb"
   security_groups = ["${aws_security_group.ret-alb.id}"]
   subnets = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
-  
+
   lifecycle { create_before_destroy = true }
 }
 
@@ -112,7 +116,7 @@ resource "aws_alb_listener" "ret-ssl-alb-listener" {
   ssl_policy = "ELBSecurityPolicy-2015-05"
 
   certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert.arn}"
-  
+
   default_action {
     target_group_arn = "${aws_alb_target_group.ret-alb-group-http.arn}"
     type = "forward"
@@ -221,7 +225,7 @@ resource "aws_iam_role_policy_attachment" "bastion-base-policy" {
   role = "${aws_iam_role.ret.name}"
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
-                           
+
 resource "aws_iam_policy" "ret-alb-register-policy" {
   name = "${var.shared["env"]}-ret-alb-register-policy"
 
@@ -339,7 +343,7 @@ resource "aws_cloudfront_distribution" "ret-assets" {
     allowed_methods = ["GET", "HEAD", "OPTIONS"]
     cached_methods = ["GET", "HEAD"]
     target_origin_id = "reticulum-${var.shared["env"]}-assets"
-   
+
     forwarded_values {
       query_string = true
       headers = ["Origin"]
@@ -353,7 +357,7 @@ resource "aws_cloudfront_distribution" "ret-assets" {
   }
 
   price_class = "PriceClass_All"
-  
+
   viewer_certificate {
     acm_certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert-east.arn}"
     ssl_support_method = "sni-only"
@@ -377,7 +381,7 @@ resource "aws_alb" "ret-smoke-alb" {
   name = "${var.shared["env"]}-ret-smoke-alb"
   security_groups = ["${aws_security_group.ret-alb.id}"]
   subnets = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
-  
+
   lifecycle { create_before_destroy = true }
 }
 
@@ -417,7 +421,7 @@ resource "aws_alb_listener" "ret-smoke-ssl-alb-listener" {
   ssl_policy = "ELBSecurityPolicy-2015-05"
 
   certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert.arn}"
-  
+
   default_action {
     target_group_arn = "${aws_alb_target_group.ret-smoke-alb-group-http.arn}"
     type = "forward"
@@ -429,7 +433,7 @@ resource "aws_alb_listener" "ret-smoke-clear-alb-listener" {
   port = 80
 
   protocol = "HTTP"
-  
+
   default_action {
     target_group_arn = "${aws_alb_target_group.ret-smoke-alb-group-http.arn}"
     type = "forward"
@@ -514,7 +518,7 @@ resource "aws_cloudfront_distribution" "ret-assets-smoke" {
     allowed_methods = ["GET", "HEAD", "OPTIONS"]
     cached_methods = ["GET", "HEAD"]
     target_origin_id = "reticulum-${var.shared["env"]}-assets-smoke"
-   
+
     forwarded_values {
       query_string = true
       headers = ["Origin"]
@@ -528,7 +532,7 @@ resource "aws_cloudfront_distribution" "ret-assets-smoke" {
   }
 
   price_class = "PriceClass_All"
-  
+
   viewer_certificate {
     acm_certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert-east.arn}"
     ssl_support_method = "sni-only"
@@ -568,7 +572,7 @@ resource "aws_cloudfront_distribution" "ret-asset-bundles" {
     allowed_methods = ["GET", "HEAD", "OPTIONS"]
     cached_methods = ["GET", "HEAD"]
     target_origin_id = "reticulum-${var.shared["env"]}-asset-bundles"
-   
+
     forwarded_values {
       query_string = true
       headers = ["Origin"]
@@ -582,7 +586,7 @@ resource "aws_cloudfront_distribution" "ret-asset-bundles" {
   }
 
   price_class = "PriceClass_All"
-  
+
   viewer_certificate {
     acm_certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert-east.arn}"
     ssl_support_method = "sni-only"
@@ -622,7 +626,7 @@ resource "aws_cloudfront_distribution" "timecheck" {
     allowed_methods = ["HEAD", "GET"]
     cached_methods = ["HEAD", "GET"]
     target_origin_id = "${var.shared["env"]}-timecheck"
-   
+
     forwarded_values {
       query_string = true
       headers = ["Origin"]
@@ -636,7 +640,7 @@ resource "aws_cloudfront_distribution" "timecheck" {
   }
 
   price_class = "PriceClass_All"
-  
+
   viewer_certificate {
     acm_certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert-east.arn}"
     ssl_support_method = "sni-only"
