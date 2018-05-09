@@ -1,13 +1,10 @@
 # Runs the bots for the smoke test.
 
 NUM_SQUAWKER_PROCESSES={{ num_squawker_processes }}
-NUM_SQUAWKERS_PER_PROCESS={{ num_squawkers_per_process }}
 CYCLE_TIME={{ cycle_time }}
 PROCESS_SPAWN_DELAY={{ process_spawn_delay }}
-JANUS_SERVER={{ janus_server }}
+HUBS_HOST={{ hubs_host }}
 SMOKE_ROOM={{ smoke_room }}
-AUDIO_URL={{ audio_url }}
-DATA_URL={{ data_url }}
 
 if [ -e "squawkers.pid" ] && kill $(cat squawkers.pid) ; then
   echo "Already running, shutting down."
@@ -22,20 +19,16 @@ echo "Spawning squawkers..."
 
 echo $$ > squawkers.pid
 
-pushd janus-plugin-sfu/client
+pushd hubs/scripts/bot
 
-npm update
-npm install
+yarn 
 
 while true; do
   for i in `seq 1 $NUM_SQUAWKER_PROCESSES`;
     do
-      node ./squawkers-cli.js \
-        --num $NUM_SQUAWKERS_PER_PROCESS \
+      node ./run-bot.js \
         --room $SMOKE_ROOM \
-        --janus $JANUS_SERVER \
-        --audio $AUDIO_URL \
-        --data $DATA_URL &
+        --host $HUBS_HOST &
       sleep $PROCESS_SPAWN_DELAY
     done    
   	

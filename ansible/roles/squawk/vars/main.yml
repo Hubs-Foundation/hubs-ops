@@ -1,11 +1,8 @@
 ---
 
-num_squawker_processes: 1
-num_squawkers_per_process: 2
+num_squawker_processes: 2
 process_spawn_delay: 10
 cycle_time: 120
-janus_server: wss://prod-janus.reticulum.io 
+hubs_host: smoke-hubs.mozilla.com
 # janus room id for smoke-test hub
 smoke_room: 842060733835397
-audio_url: https://ucarecdn.com/3b8bbf6a-c18e-4662-a4a2-99749802cbdc/
-data_url: https://ucarecdn.com/1c202eb0-2903-4065-9b67-298350eb2400/
