@@ -46,3 +46,7 @@ output "timecheck_bucket_domain_name" {
   value ="${aws_s3_bucket.timecheck-bucket.bucket_domain_name}"
 }
 
+output "link_redirector_website_endpoint" {
+  value ="${aws_s3_bucket.link-redirector-bucket.website_endpoint}"
+}
+
