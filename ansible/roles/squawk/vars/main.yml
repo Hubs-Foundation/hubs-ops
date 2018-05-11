@@ -3,6 +3,4 @@
 num_squawker_processes: 2
 process_spawn_delay: 10
 cycle_time: 120
-hubs_host: smoke-hubs.mozilla.com
-# janus room id for smoke-test hub
-smoke_room: 842060733835397
+url: https://smoke-hubs.mozilla.com/0zuesf6c6mf/smoke-test
