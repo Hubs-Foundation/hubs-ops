@@ -42,8 +42,8 @@ output "lambda_kms_key_key_id" {
   value ="${aws_kms_key.lambda-kms-key.key_id}"
 }
 
-output "timecheck_bucket_domain_name" {
-  value ="${aws_s3_bucket.timecheck-bucket.bucket_domain_name}"
+output "timecheck_bucket_website_endpoint" {
+  value ="${aws_s3_bucket.timecheck-bucket.website_endpoint}"
 }
 
 output "link_redirector_website_endpoint" {
