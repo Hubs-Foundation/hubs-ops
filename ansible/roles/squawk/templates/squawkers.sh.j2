@@ -20,7 +20,7 @@ echo $$ > squawkers.pid
 
 pushd hubs/scripts/bot
 
-yarn 
+npm install
 
 while true; do
   for i in `seq 1 $NUM_SQUAWKER_PROCESSES`;
