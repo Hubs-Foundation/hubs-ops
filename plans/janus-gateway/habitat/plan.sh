@@ -2,7 +2,7 @@ pkg_name=janus-gateway
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 
-pkg_version="0.3.1"
+pkg_version="0.4.1"
 pkg_license=('GPLv3')
 pkg_description="Janus is an open source, general purpose, WebRTC gateway"
 pkg_upstream_url="https://janus.conf.meetecho.com/"
@@ -68,8 +68,8 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get meetecho/janus-gateway 4053b20baba6ec1b912e6d9e3889f931995cb214
-  git-get mozilla/janus-plugin-sfu f24c41a0bfc795d53661178af692990d77670c42
+  git-get meetecho/janus-gateway fd1013d822186cb8836c914286e2c86677e2f103
+  git-get mozilla/janus-plugin-sfu 59f97d89c4f024167578f60ff6002af130e4b351
 
   popd
 }
