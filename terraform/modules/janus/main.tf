@@ -60,7 +60,7 @@ resource "aws_security_group" "janus" {
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
- 
+
   # Janus Admin via bastion
   ingress {
     from_port = "${var.janus_admin_port}"
@@ -103,7 +103,7 @@ resource "aws_iam_role_policy_attachment" "bastion-base-policy" {
   role = "${aws_iam_role.janus.name}"
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
-                           
+
 resource "aws_iam_instance_profile" "janus" {
   name = "${var.shared["env"]}-janus"
   role = "${aws_iam_role.janus.id}"
@@ -137,6 +137,9 @@ nat_1_1_mapping = "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4
 [transports.http]
 admin_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
+
+sudo sed -i "s/#RateLimitBurst=1000/RateLimitBurst=5000/" /etc/systemd/journald.conf
+sudo systemctl restart systemd-journald
 
 sudo /usr/bin/hab start mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
@@ -187,8 +190,10 @@ nat_1_1_mapping = "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4
 admin_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
 
+sudo sed -i "s/#RateLimitBurst=1000/RateLimitBurst=5000/" /etc/systemd/journald.conf
+sudo systemctl restart systemd-journald
+
 sudo /usr/bin/hab start mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel unstable
 sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
 EOF
 }
-
