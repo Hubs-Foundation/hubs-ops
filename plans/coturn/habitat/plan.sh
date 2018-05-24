@@ -15,7 +15,7 @@ pkg_description="Free, open source TURN and STUN server."
 pkg_upstream_url="https://github.com/coturn/coturn"
 
 do_build() {
-    ./configure --prefix=${pkg_prefix}
+    ./configure --prefix="${pkg_prefix}"
     make
 }
 
