@@ -22,18 +22,18 @@ pushd hubs/scripts/bot
 
 npm install
 
-while true; do
-  for i in `seq 1 $NUM_SQUAWKER_PROCESSES`;
-    do
+for i in `seq 1 $NUM_SQUAWKER_PROCESSES`; do
+  echo "Running bot $i"
+  (
+    while true; do
       node ./run-bot.js --url $URL &
-      sleep $PROCESS_SPAWN_DELAY
-    done    
-  	
-  sleep $CYCLE_TIME
-  killall -9 node
-  	
-  sleep 1
-  killall -9 chrome
-  	
-  sleep 2
+      botid=$!
+      echo "Bot $i PID $botid"
+      sleep $CYCLE_TIME
+      echo "Killing bot $i at $botid"
+      pkill -TERM -P $botid
+      sleep 5
+    done
+  ) &
+  sleep $PROCESS_SPAWN_DELAY
 done
