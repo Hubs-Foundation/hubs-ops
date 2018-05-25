@@ -1,6 +1,6 @@
 ---
 
-num_squawker_processes: 2
-process_spawn_delay: 30
+num_squawker_processes: 4
+process_spawn_delay: 60
 cycle_time: 600
 url: https://smoke-hubs.mozilla.com/0zuesf6c6mf/smoke-test
