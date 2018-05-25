@@ -7,8 +7,8 @@
 
 - name: Checkout squawkers
   git:
-    repo: https://github.com/mozilla/janus-plugin-sfu.git
-    dest: janus-plugin-sfu
+    repo: https://github.com/mozilla/hubs.git
+    dest: hubs
 
 - name: Run squawker script
   shell: nohup bash squawkers.sh >> squawkers.log 2>&1 &

@@ -1,13 +1,9 @@
 # Runs the bots for the smoke test.
 
 NUM_SQUAWKER_PROCESSES={{ num_squawker_processes }}
-NUM_SQUAWKERS_PER_PROCESS={{ num_squawkers_per_process }}
 CYCLE_TIME={{ cycle_time }}
 PROCESS_SPAWN_DELAY={{ process_spawn_delay }}
-JANUS_SERVER={{ janus_server }}
-SMOKE_ROOM={{ smoke_room }}
-AUDIO_URL={{ audio_url }}
-DATA_URL={{ data_url }}
+URL={{ url }}
 
 if [ -e "squawkers.pid" ] && kill $(cat squawkers.pid) ; then
   echo "Already running, shutting down."
@@ -22,28 +18,22 @@ echo "Spawning squawkers..."
 
 echo $$ > squawkers.pid
 
-pushd janus-plugin-sfu/client
+pushd hubs/scripts/bot
 
-npm update
 npm install
 
-while true; do
-  for i in `seq 1 $NUM_SQUAWKER_PROCESSES`;
-    do
-      node ./squawkers-cli.js \
-        --num $NUM_SQUAWKERS_PER_PROCESS \
-        --room $SMOKE_ROOM \
-        --janus $JANUS_SERVER \
-        --audio $AUDIO_URL \
-        --data $DATA_URL &
-      sleep $PROCESS_SPAWN_DELAY
-    done    
-  	
-  sleep $CYCLE_TIME
-  killall -9 node
-  	
-  sleep 1
-  killall -9 chrome
-  	
-  sleep 2
+for i in `seq 1 $NUM_SQUAWKER_PROCESSES`; do
+  echo "Running bot $i"
+  (
+    while true; do
+      node ./run-bot.js --url $URL &
+      botid=$!
+      echo "Bot $i PID $botid"
+      sleep $CYCLE_TIME
+      echo "Killing bot $i at $botid"
+      pkill -TERM -P $botid
+      sleep 5
+    done
+  ) &
+  sleep $PROCESS_SPAWN_DELAY
 done
