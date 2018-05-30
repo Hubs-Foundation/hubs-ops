@@ -69,11 +69,19 @@ resource "aws_security_group" "janus" {
     security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
   }
 
-  # Janus RTP
+  # Janus RTP-over-UDP
   ingress {
     from_port = "${var.janus_rtp_port_from}"
     to_port = "${var.janus_rtp_port_to}"
     protocol = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Janus RTP-over-TCP
+  ingress {
+    from_port = "${var.janus_rtp_port_from}"
+    to_port = "${var.janus_rtp_port_to}"
+    protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
