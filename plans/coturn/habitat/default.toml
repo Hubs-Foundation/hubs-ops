@@ -1,0 +1,14 @@
+[general]
+
+listening_port = 3478
+alt_listening_port = 0
+
+tls_listening_port = 5349
+alt_tls_listening_port = 0
+
+min_port = 49152
+max_port = 65535
+
+log_file = "stdout"
+
+verbosity = "verbose"

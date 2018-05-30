@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+exec 2>&1
+
+set -e
+
+if [ ! -f {{ pkg.svc_files_path }}/turn_server_pkey.pem ]; then
+    openssl req -x509 -newkey rsa:4096 -nodes -subj "/CN=coturn" \
+            -keyout {{ pkg.svc_files_path }}/turn_server_pkey.pem \
+            -out {{ pkg.svc_files_path }}/turn_server_cert.pem
+fi
+
+exec turnserver -c {{ pkg.svc_config_path }}/turnserver.conf
