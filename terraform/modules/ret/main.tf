@@ -356,6 +356,31 @@ resource "aws_cloudfront_distribution" "ret-assets" {
     max_ttl = 3600
   }
 
+  custom_error_response {
+    error_code = 403
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 404
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 500
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 502
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 503
+    error_caching_min_ttl = 0
+  }
+
   price_class = "PriceClass_All"
 
   viewer_certificate {
@@ -529,6 +554,31 @@ resource "aws_cloudfront_distribution" "ret-assets-smoke" {
     min_ttl = 0
     default_ttl = 3600
     max_ttl = 3600
+  }
+
+  custom_error_response {
+    error_code = 403
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 404
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 500
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 502
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 503
+    error_caching_min_ttl = 0
   }
 
   price_class = "PriceClass_All"
