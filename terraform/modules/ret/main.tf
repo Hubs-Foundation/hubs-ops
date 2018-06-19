@@ -346,7 +346,7 @@ resource "aws_cloudfront_distribution" "ret-assets" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin"]
+      headers = ["Origin", "Content-Type"]
       cookies { forward = "none" }
     }
 
@@ -546,7 +546,7 @@ resource "aws_cloudfront_distribution" "ret-assets-smoke" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin"]
+      headers = ["Origin", "Content-Type"]
       cookies { forward = "none" }
     }
 
