@@ -17,14 +17,21 @@ select day1.a, day2.a, day3.a, day4.a, day5.a, day6.a, day7.a, ((day1.a + day2.a
 select 
 g.total_count as total_sessions,
 (a.total_rift_session_time + b.total_openvr_session_time) as total_desktop_vr_time,
-(c.total_gearvr_session_time + e.total_daydream_session_time) as total_mobile_vr_time,
-a.avg_rift_session_time, b.avg_openvr_session_time, c.avg_gearvr_session_time, d.avg_cardboard_session_time, e.avg_daydream_session_time, f.avg_screen_session_time,
+(c.total_gearvr_session_time + e.total_daydream_session_time + h.total_oculusgo_session_time) as total_mobile_vr_time,
+f.avg_screen_session_time,
 ((a.avg_rift_session_time + b.avg_openvr_session_time) / 2) as desktop_vr_avg_session_time,
-((c.avg_gearvr_session_time + e.avg_daydream_session_time) / 2) as mobile_vr_avg_session_time,
+((c.avg_gearvr_session_time + e.avg_daydream_session_time + h.avg_oculusgo_session_time) / 3) as mobile_vr_avg_session_time,
+((a.rift_count + b.openvr_count + c.gearvr_count + h.oculusgo_count + d.cardboard_count + e.daydream_count * 1.0) / g.total_count) * 100.0 as vr_device_rate,
 ((a.rift_count + b.openvr_count * 1.0) / g.total_count) * 100.0 as desktop_vr_rate,
-((c.gearvr_count + e.daydream_count * 1.0) / g.total_count) * 100.0 as non_cardboard_mobile_rate,
-((d.cardboard_count * 1.0) / g.total_count) * 100.0 as cardboard_mobile_rate,
-((a.rift_count + b.openvr_count + c.gearvr_count + d.cardboard_count + e.daydream_count * 1.0) / g.total_count) * 100.0 as vr_device_rate
+((c.gearvr_count * 1.0 + e.daydream_count * 1.0 + h.oculusgo_count * 1.0) / g.total_count) * 100.0 as non_cardboard_mobile_rate,
+((h.oculusgo_count * 1.0) / g.total_count) * 100.0 as standalone_rate,
+a.avg_rift_session_time, 
+b.avg_openvr_session_time, 
+c.avg_gearvr_session_time, 
+d.avg_cardboard_session_time, 
+e.avg_daydream_session_time, 
+h.avg_oculusgo_session_time, 
+((d.cardboard_count * 1.0) / g.total_count) * 100.0 as cardboard_mobile_rate
 
 from
 
@@ -60,6 +67,12 @@ from
 
 	(select count(sessions.duration) as total_count, sum(sessions.duration) as total_session_time, avg(sessions.duration) as avg_total_session_time from
 	(select session_id, (entered_event_payload->'entryDisplayType')::varchar display, (ended_at - entered_event_received_at) duration from session_stats
-		where entered_event_received_at > now() - interval '1 week' and (ended_at - entered_event_received_at) between interval '30 seconds' and interval '2 hours') as sessions) as g;
+		where entered_event_received_at > now() - interval '1 week' and (ended_at - entered_event_received_at) between interval '30 seconds' and interval '2 hours') as sessions) as g,
+
+	(select count(sessions.duration) as oculusgo_count, sum(sessions.duration) as total_oculusgo_session_time, avg(sessions.duration) as avg_oculusgo_session_time from
+	(select session_id, (entered_event_payload->'entryDisplayType')::varchar display, (ended_at - entered_event_received_at) duration from session_stats
+		where entered_event_received_at > now() - interval '1 week' and (ended_at - entered_event_received_at) between interval '30 seconds' and interval '2 hours') as sessions
+	where (sessions.display = '"Oculus Go"')) as h;
+
 
 
