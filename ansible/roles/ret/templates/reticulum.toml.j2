@@ -32,3 +32,8 @@ pool_size = 16
 [aws]
 alb_target_group_arn = "{{ alb_target_group_arn }}"
 smoke_alb_target_group_arn = "{{ smoke_alb_target_group_arn }}"
+
+[farspark]
+signature_key = "{{ farspark_signature_key }}"
+signature_salt = "{{ farspark_signature_salt }}"
+host = "{{ farspark_host }}"
