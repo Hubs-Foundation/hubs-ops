@@ -150,8 +150,8 @@ EOTOML
 # sudo sed -i "s/#RateLimitBurst=1000/RateLimitBurst=5000/" /etc/systemd/journald.conf
 # sudo systemctl restart systemd-journald
 
-sudo /usr/bin/hab start mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
-sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
+sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
+sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
 EOF
 }
 
@@ -203,7 +203,7 @@ EOTOML
 # sudo sed -i "s/#RateLimitBurst=1000/RateLimitBurst=5000/" /etc/systemd/journald.conf
 # sudo systemctl restart systemd-journald
 
-sudo /usr/bin/hab start mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel unstable
-sudo /usr/bin/hab start mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
+sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel unstable
+sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
 EOF
 }
