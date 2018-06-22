@@ -295,7 +295,7 @@ ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.reticulum_channel}
-sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
+sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 
@@ -494,7 +494,7 @@ ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy at-once --url https://bldr.habitat.sh --channel unstable
-sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable --org mozillareality
+sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 
