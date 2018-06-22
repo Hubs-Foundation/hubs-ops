@@ -39,13 +39,6 @@ data "aws_ami" "hab-base-ami" {
 resource "aws_security_group" "farspark-alb" {
   name = "${var.shared["env"]}-farspark-alb"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
-
-  ingress {
-    from_port = "443"
-    to_port = "443"
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 }
 
 resource "aws_security_group_rule" "farspark-alb-egress" {
@@ -59,7 +52,13 @@ resource "aws_security_group_rule" "farspark-alb-egress" {
 
 resource "aws_alb" "farspark-alb" {
   name = "${var.shared["env"]}-farspark-alb"
-  security_groups = ["${aws_security_group.farspark-alb.id}"]
+
+  security_groups = [
+    "${aws_security_group.farspark-alb.id}",
+    "${data.terraform_remote_state.base.cloudfront_http_security_group_id}",
+    "${data.terraform_remote_state.base.cloudfront_https_security_group_id}"
+  ]
+
   subnets = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
 
   lifecycle { create_before_destroy = true }
@@ -190,7 +189,7 @@ resource "aws_cloudfront_distribution" "farspark-cdn" {
 
   origin {
     origin_id = "farspark-${var.shared["env"]}"
-    domain_name = "${aws_alb.farspark-alb.dns_name}"
+    domain_name = "${var.shared["env"]}-farspark-alb.${var.farspark_domain}"
 
     custom_origin_config {
       http_port = 80
@@ -256,6 +255,18 @@ resource "aws_cloudfront_distribution" "farspark-cdn" {
     acm_certificate_arn = "${data.aws_acm_certificate.farspark-alb-listener-cert-east.arn}"
     ssl_support_method = "sni-only"
     minimum_protocol_version = "TLSv1"
+  }
+}
+
+resource "aws_route53_record" "farspark-alb-dns" {
+  zone_id = "${data.aws_route53_zone.farspark-zone.zone_id}"
+  name = "${var.shared["env"]}-farspark-alb.${data.aws_route53_zone.farspark-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_alb.farspark-alb.dns_name}"
+    zone_id = "${aws_alb.farspark-alb.zone_id}"
+    evaluate_target_health = true
   }
 }
 
