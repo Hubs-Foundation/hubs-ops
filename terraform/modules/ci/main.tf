@@ -165,7 +165,7 @@ resource "aws_launch_configuration" "ci" {
   root_block_device { volume_size = 128 }
   user_data = <<EOF
 #!/usr/bin/env bash
-while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
+while ! nc -z localhost 9632 ; do sleep 1; done
 
 # Jenkins needs to run hab docker studio as sudo, and read key via hab-pkg-upload/promote
 sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-docker-studio

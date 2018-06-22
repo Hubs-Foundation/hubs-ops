@@ -167,7 +167,7 @@ resource "aws_launch_configuration" "farspark" {
   root_block_device { volume_size = 64 }
   user_data = <<EOF
 #!/usr/bin/env bash
-while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
+while ! nc -z localhost 9632 ; do sleep 1; done
 
 sudo /usr/bin/hab svc load mozillareality/farspark --strategy ${var.farspark_restart_strategy} --url https://bldr.habitat.sh --channel ${var.farspark_channel}
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable

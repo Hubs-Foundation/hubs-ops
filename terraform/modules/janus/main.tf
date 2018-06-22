@@ -131,7 +131,7 @@ resource "aws_launch_configuration" "janus" {
   root_block_device { volume_size = 128 }
   user_data = <<EOF
 #!/usr/bin/env bash
-while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
+while ! nc -z localhost 9632 ; do sleep 1; done
 # Forward port 8080 to 80, 8443 to 443 for janus websockets
 sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
@@ -184,7 +184,7 @@ resource "aws_launch_configuration" "janus-smoke" {
   root_block_device { volume_size = 128 }
   user_data = <<EOF
 #!/usr/bin/env bash
-while ! [ -f /hab/sup/default/MEMBER_ID ] ; do sleep 1; done
+while ! nc -z localhost 9632 ; do sleep 1; done
 # Forward port 8080 to 80, 8443 to 443 for janus websockets
 sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
