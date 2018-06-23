@@ -221,7 +221,7 @@ resource "aws_cloudfront_distribution" "farspark-cdn" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin", "Content-Type"]
+      headers = ["Origin", "Content-Type", "Range"]
       cookies { forward = "none" }
     }
 
