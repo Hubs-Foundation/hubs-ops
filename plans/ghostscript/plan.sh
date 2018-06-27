@@ -1,13 +1,13 @@
 pkg_origin=mozillareality
 pkg_name=ghostscript
-pkg_version=9.23
+pkg_version=9.22
 
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 pkg_license=('AGPLv3')
 pkg_description="Ghostscript is a versatile processor for PostScript data with the ability to render PostScript to different targets."
 pkg_upstream_url=https://www.ghostscript.com/
-pkg_source=https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs923/${pkg_name}-${pkg_version}.tar.gz
-pkg_shasum=f65964807a3c97a2c0810d4b9806585367e73129e57ae33378cea18e07a1ed9b
+pkg_source=https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs922/${pkg_name}-${pkg_version}.tar.gz
+pkg_shasum=7f5f4487c0df9dce37481e4c8f192c0322e4c69f5a2ba900a7833c992331bcf4
 pkg_deps=(
   core/glib
   core/glibc # https://github.com/habitat-sh/habitat/issues/3303
