@@ -141,6 +141,7 @@ resource "aws_launch_configuration" "hab" {
   user_data = <<EOF
 #!/usr/bin/env bash
 while ! nc -z localhost 9632 ; do sleep 1; done
+systemctl restart systemd-sysctl.service
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }

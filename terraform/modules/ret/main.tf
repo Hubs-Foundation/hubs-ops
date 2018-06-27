@@ -286,6 +286,7 @@ resource "aws_launch_configuration" "ret" {
   user_data = <<EOF
 #!/usr/bin/env bash
 while ! nc -z localhost 9632 ; do sleep 1; done
+systemctl restart systemd-sysctl.service
 
 sudo mkdir -p /hab/user/reticulum/config
 
@@ -481,6 +482,7 @@ resource "aws_launch_configuration" "ret-smoke" {
   user_data = <<EOF
 #!/usr/bin/env bash
 while ! nc -z localhost 9632 ; do sleep 1; done
+systemctl restart systemd-sysctl.service
 
 sudo mkdir -p /hab/user/reticulum/config
 
