@@ -1,0 +1,6 @@
+#!/bin/bash
+
+exec 2>&1
+
+mkdir -p "{{ pkg.svc_config_path }}/env"
+envdir {{ pkg.svc_config_path }}/env gunicorn -w {{ cfg.general.num_workers }} -b {{ cfg.general.bind_ip }}:{{ cfg.general.port }} youtube_dl_server.app:app
