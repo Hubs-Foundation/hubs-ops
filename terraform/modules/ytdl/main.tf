@@ -66,6 +66,7 @@ resource "aws_alb" "ytdl-alb" {
   ]
 
   subnets = ["${data.terraform_remote_state.vpc.private_subnet_ids}"]
+  internal = true
 
   lifecycle { create_before_destroy = true }
 }
