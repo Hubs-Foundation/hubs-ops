@@ -216,6 +216,7 @@ resource "aws_cloudfront_distribution" "farspark-cdn" {
   aliases = ["${var.farspark_dns_prefix}${var.farspark_domain}"]
 
   default_cache_behavior {
+    compress = true
     allowed_methods = ["GET", "HEAD", "OPTIONS"]
     cached_methods = ["GET", "HEAD"]
     target_origin_id = "farspark-${var.shared["env"]}"

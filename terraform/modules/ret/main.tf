@@ -341,6 +341,7 @@ resource "aws_cloudfront_distribution" "ret-assets" {
   aliases = ["assets-${var.shared["env"]}.${var.ret_domain}"]
 
   default_cache_behavior {
+    compress = true
     allowed_methods = ["GET", "HEAD", "OPTIONS"]
     cached_methods = ["GET", "HEAD"]
     target_origin_id = "reticulum-${var.shared["env"]}-assets"
@@ -542,6 +543,7 @@ resource "aws_cloudfront_distribution" "ret-assets-smoke" {
   aliases = ["smoke-assets-${var.shared["env"]}.${var.ret_domain}"]
 
   default_cache_behavior {
+    compress = true
     allowed_methods = ["GET", "HEAD", "OPTIONS"]
     cached_methods = ["GET", "HEAD"]
     target_origin_id = "reticulum-${var.shared["env"]}-assets-smoke"
@@ -621,6 +623,7 @@ resource "aws_cloudfront_distribution" "ret-asset-bundles" {
   aliases = ["asset-bundles-${var.shared["env"]}.${var.ret_domain}"]
 
   default_cache_behavior {
+    compress = true
     allowed_methods = ["GET", "HEAD", "OPTIONS"]
     cached_methods = ["GET", "HEAD"]
     target_origin_id = "reticulum-${var.shared["env"]}-asset-bundles"
@@ -682,6 +685,7 @@ resource "aws_cloudfront_distribution" "timecheck" {
   aliases = ["timecheck-${var.shared["env"]}.${var.ret_domain}"]
 
   default_cache_behavior {
+    compress = true
     allowed_methods = ["HEAD", "GET"]
     cached_methods = ["HEAD", "GET"]
     target_origin_id = "${var.shared["env"]}-timecheck"
