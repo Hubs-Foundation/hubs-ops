@@ -2,7 +2,7 @@ pkg_name=libnice
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 
-# Need to package HEAD of master for now because of 
+# Need to package HEAD of master for now because of
 # https://github.com/meetecho/janus-gateway/issues/788
 #
 # 0.1.15 isn't released yet
@@ -57,7 +57,7 @@ git-get () {
 
 do_download() {
   export GIT_SSL_CAINFO="$(pkg_path_for core/cacerts)/ssl/certs/cacert.pem"
-  
+
   pushd $HAB_CACHE_SRC_PATH
 
   git-get libnice/libnice
@@ -69,11 +69,6 @@ do_build() {
   pushd $HAB_CACHE_SRC_PATH/libnice/libnice
 
   libtoolize
-
-  # Another hack, need to include LD_LIBRARY_PATH due to configure
-  # causing capability checks to fail due to dynamic linker
-  # https://github.com/habitat-sh/habitat/issues/3303
-  export LD_LIBRARY_PATH=$LD_RUN_PATH
 
   # This is a hack, setting ACLOCAL flags etc didn't seem to work
   cp "$(pkg_path_for core/pkg-config)/share/aclocal/pkg.m4" "$(pkg_path_for core/automake)/share/aclocal/"

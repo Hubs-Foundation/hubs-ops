@@ -83,15 +83,12 @@ do_build() {
 
   libtoolize
 
-  # Another hack, need to include LD_LIBRARY_PATH due to configure
-  # causing capability checks to fail due to dynamic linker
-  # https://github.com/habitat-sh/habitat/issues/3303
-  export LD_LIBRARY_PATH=$LD_RUN_PATH
 
   # This is a hack, setting ACLOCAL flags etc didn't seem to work
   cp "$(pkg_path_for core/pkg-config)/share/aclocal/pkg.m4" "$(pkg_path_for core/automake)/share/aclocal/"
 
   sh autogen.sh
+
   sh configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
 
   make
@@ -100,7 +97,7 @@ do_build() {
   pushd $HAB_CACHE_SRC_PATH/mozilla/janus-plugin-sfu
 
   # Need to pass the library paths directly into rustc
-  RUSTFLAGS="-C link-arg=-Wl,-L,${LD_LIBRARY_PATH//:/ -C link-arg=-Wl,-L,}" cargo build --release
+  RUSTFLAGS="-C link-arg=-Wl,-L,${LD_RUN_PATH//:/ -C link-arg=-Wl,-L,}" cargo build --release
   popd
 }
 
