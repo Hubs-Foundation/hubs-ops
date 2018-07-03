@@ -11,10 +11,10 @@ pkg_source=https://www.gnupg.org/ftp/gcrypt/${pkg_name}/v3.6/${pkg_name}-${pkg_v
 pkg_shasum=20b10d2c9994bc032824314714d0e84c0f19bdb3d715d8ed55beb7364a8ebaed
 pkg_deps=(
   core/glibc
-  core/gmp/6.1.2 # core/coreutils conflict
+  core/gmp
   core/libunistring
-  mozillareality/libidn2
-  mozillareality/nettle
+  core/nettle
+  core/libidn2
   mozillareality/libtasn1
   mozillareality/unbound
 )

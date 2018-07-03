@@ -33,8 +33,8 @@ pkg_build_deps=(
 pkg_deps=(
   core/glib
   core/glibc # https://github.com/habitat-sh/habitat/issues/3303
+  core/nettle
   mozillareality/gnutls
-  mozillareality/nettle
   mozillareality/libtasn1
   mozillareality/pcre
 )
