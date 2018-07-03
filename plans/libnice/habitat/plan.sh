@@ -67,6 +67,10 @@ do_download() {
   popd
 }
 
+do_strip() {
+  build_line "Conspicuously not stripping unneeded symbols from binaries and libraries, like Habitat would do by default"
+}
+
 do_build() {
   pushd $HAB_CACHE_SRC_PATH/libnice/libnice
 
