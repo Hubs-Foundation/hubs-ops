@@ -2,7 +2,7 @@ pkg_name=janus-gateway
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 
-pkg_version="0.4.2"
+pkg_version="0.4.3"
 pkg_license=('GPLv3')
 pkg_description="Janus is an open source, general purpose, WebRTC gateway"
 pkg_upstream_url="https://janus.conf.meetecho.com/"
@@ -30,6 +30,7 @@ pkg_deps=(
   core/glib
   core/util-linux
   core/sqlite
+  core/p11-kit
   mozillareality/jansson
   mozillareality/libsrtp
   mozillareality/usrsctp
@@ -37,15 +38,14 @@ pkg_deps=(
   mozillareality/libwebsockets
   mozillareality/opus
   mozillareality/libnice
-  mozillareality/p11-kit
 
   # https://github.com/habitat-sh/habitat/issues/3303
   core/zlib
   core/glibc
   core/gcc-libs
+  core/nettle
   mozillareality/libtasn1
   mozillareality/pcre
-  mozillareality/nettle
 )
 
 git-get () {
@@ -68,8 +68,8 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get meetecho/janus-gateway 95e13b6734c7fbcb2ce3b35f9c42d88e72c1cdff
-  git-get mozilla/janus-plugin-sfu f8974f12d34e3bbc18af446da3d8a91dd0950e3b
+  git-get meetecho/janus-gateway 3c5ad1b125f696a32c85420f31a24eec79b35028
+  git-get mozilla/janus-plugin-sfu 300561965e0eed162831a07ffa7ea8b94f4a2f1b
 
   popd
 }
@@ -83,15 +83,12 @@ do_build() {
 
   libtoolize
 
-  # Another hack, need to include LD_LIBRARY_PATH due to configure
-  # causing capability checks to fail due to dynamic linker
-  # https://github.com/habitat-sh/habitat/issues/3303
-  export LD_LIBRARY_PATH=$LD_RUN_PATH
 
   # This is a hack, setting ACLOCAL flags etc didn't seem to work
   cp "$(pkg_path_for core/pkg-config)/share/aclocal/pkg.m4" "$(pkg_path_for core/automake)/share/aclocal/"
 
   sh autogen.sh
+
   sh configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
 
   make
@@ -100,7 +97,7 @@ do_build() {
   pushd $HAB_CACHE_SRC_PATH/mozilla/janus-plugin-sfu
 
   # Need to pass the library paths directly into rustc
-  RUSTFLAGS="-C link-arg=-Wl,-L,${LD_LIBRARY_PATH//:/ -C link-arg=-Wl,-L,}" cargo build --release
+  RUSTFLAGS="-C link-arg=-Wl,-L,${LD_RUN_PATH//:/ -C link-arg=-Wl,-L,}" cargo build --release
   popd
 }
 
