@@ -62,7 +62,7 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get libnice/libnice
+  git-get libnice/libnice 34d60446ddfcdb98f2543611151ef8fbc5be4805
 
   popd
 }
