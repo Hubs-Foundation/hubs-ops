@@ -14,6 +14,8 @@ pkg_lib_dirs=(lib)
 pkg_include_dirs=(include)
 
 pkg_build_deps=(
+  core/file
+  core/diffutils
   core/make
   core/gcc
   core/pkg-config
