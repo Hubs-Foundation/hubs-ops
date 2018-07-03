@@ -26,7 +26,7 @@ pkg_build_deps=(
   core/libtool
   core/m4
   core/git
-  mozillareality/p11-kit
+  core/p11-kit
 )
 pkg_deps=(
   core/glib

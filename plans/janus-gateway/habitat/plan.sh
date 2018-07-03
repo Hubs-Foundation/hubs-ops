@@ -30,6 +30,7 @@ pkg_deps=(
   core/glib
   core/util-linux
   core/sqlite
+  core/p11-kit
   mozillareality/jansson
   mozillareality/libsrtp
   mozillareality/usrsctp
@@ -37,7 +38,6 @@ pkg_deps=(
   mozillareality/libwebsockets
   mozillareality/opus
   mozillareality/libnice
-  mozillareality/p11-kit
 
   # https://github.com/habitat-sh/habitat/issues/3303
   core/zlib

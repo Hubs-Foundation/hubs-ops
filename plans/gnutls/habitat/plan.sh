@@ -24,7 +24,7 @@ pkg_build_deps=(
   core/pkg-config
   core/diffutils
   core/coreutils
-  mozillareality/p11-kit
+  core/p11-kit
 )
 pkg_bin_dirs=(bin)
 pkg_include_dirs=(include include/gnutls)
