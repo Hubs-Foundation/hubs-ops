@@ -31,6 +31,7 @@ pkg_deps=(
   core/util-linux
   core/sqlite
   core/p11-kit
+  core/gcc # reqd for libasan
   mozillareality/jansson
   mozillareality/libsrtp
   mozillareality/usrsctp
@@ -87,9 +88,9 @@ do_build() {
   # This is a hack, setting ACLOCAL flags etc didn't seem to work
   cp "$(pkg_path_for core/pkg-config)/share/aclocal/pkg.m4" "$(pkg_path_for core/automake)/share/aclocal/"
 
-  sh autogen.sh
+  ./autogen.sh
 
-  sh configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
+  CFLAGS="${CFLAGS} -fsanitize=address -fno-omit-frame-pointer" LDFLAGS="${LDFLAGS} -lasan" ./configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
 
   make
 
