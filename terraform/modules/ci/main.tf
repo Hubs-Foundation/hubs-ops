@@ -171,6 +171,11 @@ resource "aws_iam_policy" "ci-upload-assets-s3-policy" {
       },
       {
           "Effect": "Allow",
+          "Action": "s3:PutObjectAcl",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.assets_bucket_id}/*"
+      },
+      {
+          "Effect": "Allow",
           "Action": "s3:ListBucket",
           "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.assets_bucket_id}"
       },
@@ -182,6 +187,11 @@ resource "aws_iam_policy" "ci-upload-assets-s3-policy" {
       {
           "Effect": "Allow",
           "Action": "s3:PutObject",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base-prod.assets_bucket_id}/*"
+      },
+      {
+          "Effect": "Allow",
+          "Action": "s3:PutObjectAcl",
           "Resource": "arn:aws:s3:::${data.terraform_remote_state.base-prod.assets_bucket_id}/*"
       },
       {
