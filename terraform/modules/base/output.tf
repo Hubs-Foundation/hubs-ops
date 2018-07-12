@@ -18,6 +18,10 @@ output "builds_bucket_id" {
   value ="${aws_s3_bucket.builds-bucket.id}"
 }
 
+output "assets_bucket_id" {
+  value ="${aws_s3_bucket.assets-bucket.id}"
+}
+
 output "asset_bundles_bucket_id" {
   value ="${aws_s3_bucket.asset-bundles-bucket.id}"
 }

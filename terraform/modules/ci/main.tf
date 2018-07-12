@@ -8,6 +8,7 @@ data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terr
 data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bastion/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "hab" { backend = "s3", config = { key = "hab/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+data "terraform_remote_state" "base-prod" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "mr-prod.terraform", region = "us-west-1", dynamodb_table = "mr-prod-terraform-lock", encrypt = "true" } }
 
 data "aws_route53_zone" "reticulum-zone" {
   name = "${var.ret_domain}."
@@ -136,6 +137,57 @@ resource "aws_iam_policy" "ci-backup-s3-policy" {
           "Effect": "Allow",
           "Action": "s3:ListBucket",
           "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.backups_bucket_id}"
+      }
+    ]
+  }
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "ci-upload-assets-s3-policy" {
+  role = "${aws_iam_role.ci.name}"
+  count = "${var.enabled}"
+
+  policy_arn = "${aws_iam_policy.ci-upload-assets-s3-policy.arn}"
+}
+
+resource "aws_iam_policy" "ci-upload-assets-s3-policy" {
+  name = "${var.shared["env"]}-ci-upload-assets-s3-policy"
+  count = "${var.enabled}"
+
+  policy = <<EOF
+{
+
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+          "Effect": "Allow",
+          "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.assets_bucket_id}/*"
+      },
+      {
+          "Effect": "Allow",
+          "Action": "s3:PutObject",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.assets_bucket_id}/*"
+      },
+      {
+          "Effect": "Allow",
+          "Action": "s3:ListBucket",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.assets_bucket_id}"
+      },
+      {
+          "Effect": "Allow",
+          "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base-prod.assets_bucket_id}/*"
+      },
+      {
+          "Effect": "Allow",
+          "Action": "s3:PutObject",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base-prod.assets_bucket_id}/*"
+      },
+      {
+          "Effect": "Allow",
+          "Action": "s3:ListBucket",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base-prod.assets_bucket_id}"
       }
     ]
   }

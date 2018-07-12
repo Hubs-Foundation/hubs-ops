@@ -55,6 +55,20 @@ resource "aws_s3_bucket" "builds-bucket" {
   acl = "public-read"
 }
 
+# Assets bucket (public read)
+resource "aws_s3_bucket" "assets-bucket" {
+  bucket = "assets.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers = []
+    max_age_seconds = 31536000
+  }
+}
+
 # Asset bundles bucket (public read)
 resource "aws_s3_bucket" "asset-bundles-bucket" {
   bucket = "asset-bundles.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
