@@ -64,7 +64,7 @@ resource "aws_s3_bucket" "asset-bundles-bucket" {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "HEAD"]
     allowed_origins = ["*"]
-    expose_headers = []
+    expose_headers = ["ETag"]
     max_age_seconds = 31536000
   }
 }
