@@ -22,6 +22,10 @@ output "assets_bucket_id" {
   value ="${aws_s3_bucket.assets-bucket.id}"
 }
 
+output "assets_bucket_domain_name" {
+  value ="${aws_s3_bucket.assets-bucket.bucket_domain_name}"
+}
+
 output "asset_bundles_bucket_id" {
   value ="${aws_s3_bucket.asset-bundles-bucket.id}"
 }
