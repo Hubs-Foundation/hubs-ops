@@ -485,6 +485,9 @@ sudo cat > /hab/user/reticulum/config/user.toml << EOTOML
 url_host_prefix = "smoke-"
 static_url_host_prefix = "smoke-"
 
+[pages]
+page_origin_url_suffix = "/latest"
+
 [habitat]
 ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
