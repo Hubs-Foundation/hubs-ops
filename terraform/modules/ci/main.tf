@@ -247,7 +247,7 @@ sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-upload" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-promote" >> /etc/sudoers
 
 sudo apt-get install -y docker.io
-sudo /usr/bin/hab start mozillareality/jenkins-war --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/jenkins-war --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 
