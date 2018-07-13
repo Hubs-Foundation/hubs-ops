@@ -293,6 +293,9 @@ sudo mkdir -p /hab/user/reticulum/config
 sudo cat > /hab/user/reticulum/config/user.toml << EOTOML
 [habitat]
 ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+
+[pages]
+page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/pages/live"
 EOTOML
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.reticulum_channel}
@@ -486,7 +489,7 @@ url_host_prefix = "smoke-"
 static_url_host_prefix = "smoke-"
 
 [pages]
-page_origin_url_suffix = "/latest"
+page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/pages/latest"
 
 [habitat]
 ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
