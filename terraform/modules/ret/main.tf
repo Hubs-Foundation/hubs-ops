@@ -517,14 +517,7 @@ resource "aws_cloudfront_distribution" "ret-assets-smoke" {
 
   origin {
     origin_id = "reticulum-${var.shared["env"]}-assets-smoke"
-    domain_name = "smoke-${var.shared["env"]}.${var.ret_domain}"
-
-    custom_origin_config {
-      http_port = 80
-      https_port = 443
-      origin_ssl_protocols = ["SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"]
-      origin_protocol_policy = "https-only"
-    }
+    domain_name = "${data.terraform_remote_state.base.assets_bucket_domain_name}"
   }
 
   restrictions {
