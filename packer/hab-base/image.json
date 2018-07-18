@@ -43,8 +43,8 @@
         "apt-get update",
         "apt-get update",
         "apt-get update",
-        "apt-get upgrade -y",
-        "apt-get install -y unattended-upgrades python3 awscli jq sysstat",
+        "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y",
+        "DEBIAN_FRONTEND=noninteractive apt-get install -y unattended-upgrades python3 awscli jq sysstat nfs-common",
         "update-alternatives --install /usr/bin/python python /usr/bin/python3 1",
         "mv coredump.conf /etc/systemd",
         "mv sysctl.core.conf /etc/sysctl.d/60-core.conf",
@@ -101,7 +101,8 @@
         "chown root:root /usr/bin/hab-discover-peer",
         "chmod +x /usr/bin/hab-discover-peer",
         "mkdir -p /hab/cache",
-        "useradd hab"
+        "groupadd -g 1001 hab",
+        "useradd -u 1001 -g 1001 hab"
       ]
     },
     { "type": "file", "source": "secrets", "destination": "." },
