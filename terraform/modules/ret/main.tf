@@ -214,6 +214,14 @@ resource "aws_security_group" "ret" {
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  # NFS upload-fs
+  egress {
+    from_port = "2049"
+    to_port = "2049"
+    protocol = "tcp"
+    security_groups = ["${aws_security_group.upload-fs.id}"]
+  }
 }
 
 resource "aws_iam_role" "ret" {
@@ -289,6 +297,11 @@ while ! nc -z localhost 9632 ; do sleep 1; done
 systemctl restart systemd-sysctl.service
 
 sudo mkdir -p /hab/user/reticulum/config
+
+sudo mkdir /uploads
+sudo echo "${aws_efs_mount_target.uploads-fs.0.dns_name}:/       /uploads        nfs     nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=3,noresvport" >> /etc/fstab
+sudo mount /uploads
+sudo chown hab:hab /uploads
 
 sudo cat > /hab/user/reticulum/config/user.toml << EOTOML
 [habitat]
@@ -482,6 +495,11 @@ while ! nc -z localhost 9632 ; do sleep 1; done
 systemctl restart systemd-sysctl.service
 
 sudo mkdir -p /hab/user/reticulum/config
+
+sudo mkdir /uploads
+sudo echo "${aws_efs_mount_target.uploads-fs.0.dns_name}:/       /uploads        nfs     nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=3,noresvport" >> /etc/fstab
+sudo mount /uploads
+sudo chown hab:hab /uploads
 
 sudo cat > /hab/user/reticulum/config/user.toml << EOTOML
 [phx]
@@ -713,4 +731,30 @@ resource "aws_route53_record" "timecheck-dns" {
     zone_id = "${aws_cloudfront_distribution.timecheck.hosted_zone_id}"
     evaluate_target_health = false
   }
+}
+
+resource "aws_efs_file_system" "uploads-fs" {
+  creation_token = "${var.shared["env"]}-uploads"
+  performance_mode = "generalPurpose"
+}
+
+resource "aws_efs_mount_target" "uploads-fs" {
+  file_system_id = "${aws_efs_file_system.uploads-fs.id}"
+  subnet_id = "${element(data.terraform_remote_state.vpc.private_subnet_ids, count.index)}"
+  security_groups = ["${aws_security_group.upload-fs.id}"]
+  count = "${length(data.terraform_remote_state.vpc.private_subnet_ids)}"
+}
+
+resource "aws_security_group" "upload-fs" {
+  name = "${var.shared["env"]}-upload-fs"
+  vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
+}
+
+resource "aws_security_group_rule" "ret-upload-fs-ingress" {
+  type = "ingress"
+  from_port = "2049"
+  to_port = "2049"
+  protocol = "tcp"
+  security_group_id = "${aws_security_group.upload-fs.id}"
+  source_security_group_id = "${aws_security_group.ret.id}"
 }

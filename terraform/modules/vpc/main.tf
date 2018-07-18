@@ -7,6 +7,8 @@ data "aws_availability_zones" "all" {}
 
 resource "aws_vpc" "mod" {
   cidr_block = "${var.cidr}"
+  enable_dns_hostnames = "true"
+
   tags { 
     Name = "${var.shared["env"]}-mr-vpc"
   }
