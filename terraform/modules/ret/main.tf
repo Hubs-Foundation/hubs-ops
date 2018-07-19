@@ -401,6 +401,93 @@ resource "aws_cloudfront_distribution" "ret-assets" {
   }
 }
 
+resource "aws_cloudfront_distribution" "ret-uploads" {
+  enabled = true
+
+  origin {
+    origin_id = "reticulum-${var.shared["env"]}-uploads"
+    domain_name = "${var.shared["env"]}.${var.ret_domain}"
+
+    custom_origin_config {
+      http_port = 80
+      https_port = 443
+      origin_ssl_protocols = ["SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"]
+      origin_protocol_policy = "https-only"
+    }
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  aliases = ["uploads-${var.shared["env"]}.${var.ret_domain}"]
+
+  default_cache_behavior {
+    compress = true
+    allowed_methods = ["GET", "HEAD", "OPTIONS"]
+    cached_methods = ["GET", "HEAD"]
+    target_origin_id = "reticulum-${var.shared["env"]}-uploads"
+
+    forwarded_values {
+      query_string = true
+      headers = ["Origin", "Content-Type", "Authorization"]
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "https-only"
+    min_ttl = 0
+    default_ttl = 3600
+    max_ttl = 3600
+  }
+
+  custom_error_response {
+    error_code = 403
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 404
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 500
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 502
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 503
+    error_caching_min_ttl = 0
+  }
+
+  price_class = "PriceClass_All"
+
+  viewer_certificate {
+    acm_certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert-east.arn}"
+    ssl_support_method = "sni-only"
+    minimum_protocol_version = "TLSv1"
+  }
+}
+
+resource "aws_route53_record" "ret-uploads-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "uploads-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_cloudfront_distribution.ret-uploads.domain_name}"
+    zone_id = "${aws_cloudfront_distribution.ret-uploads.hosted_zone_id}"
+    evaluate_target_health = false
+  }
+}
+
 resource "aws_route53_record" "ret-assets-dns" {
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
   name = "assets-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
