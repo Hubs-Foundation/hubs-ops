@@ -9,6 +9,7 @@
   git:
     repo: https://github.com/mozilla/hubs.git
     dest: hubs
+    version: master
 
 - name: Run squawker script
   shell: nohup bash squawkers.sh >> squawkers.log 2>&1 &
