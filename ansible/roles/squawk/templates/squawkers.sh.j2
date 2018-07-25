@@ -26,7 +26,7 @@ for i in `seq 1 $NUM_SQUAWKER_PROCESSES`; do
   echo "Running bot $i"
   (
     while true; do
-      node ./run-bot.js --url $URL &
+      node ./run-bot.js --audio bot-recording.mp3 --data bot-recording.json --url $URL &
       botid=$!
       echo "Bot $i PID $botid"
       sleep $CYCLE_TIME
