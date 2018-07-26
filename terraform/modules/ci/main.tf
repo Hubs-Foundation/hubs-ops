@@ -68,6 +68,14 @@ resource "aws_security_group" "ci" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Git (for fetching deps)
+  egress {
+    from_port = "9418"
+    to_port = "9418"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # Jenkins
   ingress {
     from_port = "8080"
@@ -300,7 +308,7 @@ resource "aws_alb" "ci-alb" {
   ]
 
   subnets = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
-  
+
   lifecycle { create_before_destroy = true }
 }
 
@@ -370,7 +378,7 @@ resource "aws_cloudfront_distribution" "ci-external" {
     allowed_methods = ["HEAD", "DELETE", "POST", "GET", "OPTIONS", "PUT", "PATCH"]
     cached_methods = ["HEAD", "GET"]
     target_origin_id = "reticulum-${var.shared["env"]}-ci"
-   
+
     forwarded_values {
       query_string = true
       cookies { forward = "all" }
@@ -383,7 +391,7 @@ resource "aws_cloudfront_distribution" "ci-external" {
   }
 
   price_class = "PriceClass_All"
-  
+
   viewer_certificate {
     acm_certificate_arn = "${data.aws_acm_certificate.ret-wildcard-cert-east.arn}"
     ssl_support_method = "sni-only"
