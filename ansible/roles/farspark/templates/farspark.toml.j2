@@ -6,8 +6,9 @@ salt = "{{ farspark_signature_salt }}"
 allow_origins = "{{ farspark_allow_origins }}"
 
 [server]
-read_timeout = 90
-write_timeout = 90
+read_timeout = 30
+write_timeout = 30
+download_timeout = 30
 
 [misc]
 cache_size = 4294967296
