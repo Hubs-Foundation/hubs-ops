@@ -23,44 +23,44 @@
     template:
       src: dd-agent.toml.j2
       dest: "{{ work_dir.path }}/dd-agent.toml"
-  
+
   - name: Write DTLS key
     copy:
       src: dtls.key
       dest: "{{ work_dir.path }}/dtls.key"
-  
+
   - name: Write DTLS cert
     copy:
       src: dtls.pem
       dest: "{{ work_dir.path }}/dtls.pem"
-  
+
   - name: Write WSS key
     copy:
       src: reticulum.io.pem
       dest: "{{ work_dir.path }}/wss.key"
-  
+
   - name: Write WSS cert
     copy:
       src: reticulum.io.crt
       dest: "{{ work_dir.path }}/wss.pem"
-  
+
   - name: Deploy Janus configs
     shell: "cat {{ work_dir.path }}/janus-gateway.toml | /hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s)"
 
   - name: Deploy Datadog Agent configs
     shell: "cat {{ work_dir.path }}/dd-agent.toml | /hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr dd-agent.default $(date +%s)"
-  
+
   - name: Deploy DTLS key
-    shell: "HAB_BUTTERFLY_BINARY=/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.key"
-  
+    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.key"
+
   - name: Deploy DTLS pem
-    shell: "HAB_BUTTERFLY_BINARY=/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.pem"
-  
+    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.pem"
+
   - name: Deploy WSS key
-    shell: "HAB_BUTTERFLY_BINARY=/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.key"
-  
+    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.key"
+
   - name: Deploy WSS pem
-    shell: "HAB_BUTTERFLY_BINARY=/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly hab file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.pem"
+    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.pem"
 
   always:
   - name: Remove work directory
