@@ -33,6 +33,7 @@ for i in `seq 1 $NUM_SQUAWKER_PROCESSES`; do
       echo "Killing bot $i at $botid"
       pkill -TERM -P $botid
       sleep 5
+      pkill -KILL -P $botid
     done
   ) &
   sleep $PROCESS_SPAWN_DELAY
