@@ -56,3 +56,9 @@ host = "{{ uploads_host }}"
 [security]
 content_security_policy = "{{ content_security_policy }}"
 cors_origins = "{{ cors_origins }}"
+
+[email]
+server = "{{ mailer_server }}"
+port = {{ mailer_port }}
+username = "{{ mailer_username }}"
+password = "{{ mailer_password }}"
