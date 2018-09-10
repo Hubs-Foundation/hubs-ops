@@ -159,6 +159,14 @@ resource "aws_security_group" "ret" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Outbound SMTP
+  egress {
+    from_port = "25"
+    to_port = "25"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # Reticulum HTTP
   ingress {
     from_port = "${var.ret_http_port}"
