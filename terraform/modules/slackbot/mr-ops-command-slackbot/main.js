@@ -30,8 +30,9 @@ function processEvent(event, callback) {
         const url = `https:\/\/ci-dev.reticulum.io/buildByToken/buildWithParameters?job=hab-promote&PACKAGE=${pkg}&CHANNEL=stable&token=${jtoken}&SOURCE=${user}`;
         https.get(url, (res) => { callback(null, "Promotion started. See #mr-push."); });
     } else if (commandText.startsWith("hubs deploy ")) {
-        const s3url = commandText.split(" ")[2].trim();
-        const url = `https:\/\/ci-dev.reticulum.io/buildByToken/buildWithParameters?job=hubs-deploy&S3URL=${s3url}&token=${jtoken}&SOURCE=${user}`;
+        const buildVersion = commandText.split(" ")[2].trim();
+        const s3url = commandText.split(" ")[3].trim();
+        const url = `https:\/\/ci-dev.reticulum.io/buildByToken/buildWithParameters?job=hubs-deploy&S3URL=${s3url}&token=${jtoken}&SOURCE=${user}&BUILD_VERSION=${buildVersion}`;
         https.get(url, (res) => { callback(null, "Deploy started. See #mr-push."); });
     } else {
         callback(null, `Invalid command, try "hab promote <package>"`);

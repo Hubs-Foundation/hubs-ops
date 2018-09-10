@@ -10,8 +10,8 @@ if [ -e "squawkers.pid" ] && kill $(cat squawkers.pid) ; then
   sleep 5
 fi
 
-killall -9 node
-killall -9 chrome
+killall -g -9 node
+killall -g -9 chrome
 
 sleep 5
 echo "Spawning squawkers..."
