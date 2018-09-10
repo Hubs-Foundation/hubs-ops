@@ -23,7 +23,6 @@ data "aws_acm_certificate" "ret-alb-listener-cert" {
 data "aws_acm_certificate" "ret-alb-listener-public-cert" {
   domain = "${var.public_domain}"
   statuses = ["ISSUED"]
-  types = ["AMAZON_ISSUED"]
   most_recent = true
 }
 

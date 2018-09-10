@@ -1,7 +1,7 @@
 variable "shared" { type = "map" }
 terraform { backend "s3" {} }
-provider "aws" { region = "${var.shared["region"]}", version = "~> 0.1" }
-provider "aws" { alias = "east", region = "us-east-1", version = "~> 0.1" }
+provider "aws" { region = "${var.shared["region"]}", version = "~> 1.15" }
+provider "aws" { alias = "east", region = "us-east-1", version = "~> 1.15" }
 data "aws_availability_zones" "all" {}
 
 data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
@@ -17,11 +17,13 @@ data "aws_route53_zone" "reticulum-zone" {
 data "aws_acm_certificate" "ret-wildcard-cert" {
   domain = "*.${var.ret_domain}"
   statuses = ["ISSUED"]
+  most_recent = true
 }
 data "aws_acm_certificate" "ret-wildcard-cert-east" {
   provider = "aws.east"
   domain = "*.${var.ret_domain}"
   statuses = ["ISSUED"]
+  most_recent = true
 }
 
 data "aws_ami" "hab-base-ami" {
