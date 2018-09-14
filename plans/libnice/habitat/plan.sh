@@ -34,9 +34,9 @@ pkg_deps=(
   core/glib
   core/glibc # https://github.com/habitat-sh/habitat/issues/3303
   core/nettle
+  core/pcre
+  core/libtasn1
   mozillareality/gnutls
-  mozillareality/libtasn1
-  mozillareality/pcre
 )
 
 pkg_description="Libnice is an implementation of the IETF's Interactive Connectivity Establishment (ICE) standard (RFC 5245)"

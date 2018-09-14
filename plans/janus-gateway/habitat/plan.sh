@@ -45,8 +45,8 @@ pkg_deps=(
   core/glibc
   core/gcc-libs
   core/nettle
-  mozillareality/libtasn1
-  mozillareality/pcre
+  core/pcre
+  core/libtasn1
 )
 
 git-get () {

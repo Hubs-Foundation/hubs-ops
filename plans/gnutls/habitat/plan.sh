@@ -15,7 +15,7 @@ pkg_deps=(
   core/libunistring
   core/nettle
   core/libidn2
-  mozillareality/libtasn1
+  core/libtasn1
   mozillareality/unbound
 )
 pkg_build_deps=(
