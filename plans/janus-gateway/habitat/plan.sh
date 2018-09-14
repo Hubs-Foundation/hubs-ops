@@ -70,7 +70,7 @@ do_download() {
   pushd $HAB_CACHE_SRC_PATH
 
   git-get meetecho/janus-gateway 3c5ad1b125f696a32c85420f31a24eec79b35028
-  git-get mozilla/janus-plugin-sfu 300561965e0eed162831a07ffa7ea8b94f4a2f1b
+  git-get mozilla/janus-plugin-sfu c5d53dfc8a23b4c2645a17b5fa014bfd6f430a15
 
   popd
 }
