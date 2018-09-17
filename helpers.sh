@@ -56,31 +56,30 @@ function moz-proxy {
     $1 -o ProxyJump="$(moz-host $2 bastion).reticulum.io" "${@:3}"
 }
 
-# moz-ssh-into target ...cmd-args
-# SSHes into the given target internal hostname or IP through its bastion host, e.g. `moz-ssh dazzling-druid`.
-function moz-ssh-into {
+# moz-ssh target ...cmd-args
+# SSHes into the given target through its bastion host, e.g. `moz-ssh dazzling-druid`.
+function moz-ssh {
     local ALL_INSTANCES=$(moz-ec2)
-    local DESTINATION=$(echo "$ALL_INSTANCES" | grep "$1")
+    local DESTINATION=$(echo "$ALL_INSTANCES" | grep "$1" | shuf | head -n 1)
     local DESTINATION_ENV=$(echo "$DESTINATION" | awk "{print \$1}")
     local DESTINATION_HOST=$(echo "$DESTINATION" | awk "{print \$3}")
     local BASTION=$(echo "$ALL_INSTANCES" | awk "/$DESTINATION_ENV-bastion/ {print \$3}")
     ssh -o ProxyJump="$BASTION.reticulum.io" "$DESTINATION_HOST-local.reticulum.io" "${@:2}"
 }
 
-# moz-tunnel env asg local-port remote-port ...cmd-args
-# Opens an SSH tunnel to a random host in the given environment and ASG.
+# moz-tunnel target local-port remote-port ...cmd-args
+# Opens an SSH tunnel to the given target through its bastion host, e.g. `moz-tunnel dev-ci 8088 8080`.
 function moz-tunnel {
-    local ENV_INSTANCES=$(moz-ec2 $1)
-    local DESTINATION=$(echo "$ENV_INSTANCES" | awk "/$1-$2/ {print \$3}")
-    local BASTION=$(echo "$ENV_INSTANCES" | awk "/$1-bastion/ {print \$3}")
-    ssh -L "$3:$DESTINATION-local.reticulum.io:$4" "$BASTION.reticulum.io" "${@:5}"
+    local ALL_INSTANCES=$(moz-ec2)
+    local DESTINATION=$(echo "$ALL_INSTANCES" | grep "$1" | shuf | head -n 1)
+    local DESTINATION_ENV=$(echo "$DESTINATION" | awk "{print \$1}")
+    local DESTINATION_HOST=$(echo "$DESTINATION" | awk "{print \$3}")
+    local BASTION=$(echo "$ALL_INSTANCES" | awk "/$DESTINATION_ENV-bastion/ {print \$3}")
+    ssh -L "$2:$DESTINATION_HOST-local.reticulum.io:$3" "$BASTION.reticulum.io" "${@:4}"
 }
 
 # Creates a tunnel to the CI host's web interface on port 8088.
-alias moz-ci='moz-tunnel dev ci 8088 8080'
-
-# Proxies SSH over a bastion host, e.g. `moz-ssh prod dazzling-druid-local.reticulum.io`.
-alias moz-ssh='moz-proxy ssh'
+alias moz-ci='moz-tunnel dev-ci 8088 8080'
 
 # Proxies SCP over a bastion host, e.g. `moz-scp prod dazzling-druid-local.reticulum.io:~/core core`.
 alias moz-scp='moz-proxy scp'
