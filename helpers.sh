@@ -34,7 +34,13 @@ function moz-ec2 {
         FILTERS="$FILTERS Name=tag:aws:autoscaling:groupName,Values=$1-$2"
     fi
     local ALL=$(aws ec2 describe-instances --filters $FILTERS)
-    OUTPUT=$(jq -r '.Reservations | map(.Instances) | flatten | .[] | [((.Tags//[])[]|select(.Key=="env")|.Value) // "null", ((.Tags//[])[]|select(.Key=="aws:autoscaling:groupName")|.Value) // "null", ((.Tags//[])[]|select(.Key=="Name")|.Value) // "null", .PrivateIpAddress // "null", .PublicIpAddress // "null"] | @tsv' <<< "$ALL")
+    local OUTPUT=$(jq -r '.Reservations | map(.Instances) | flatten | .[] | [
+      ((.Tags//[])[]|select(.Key=="env")|.Value) // "null",
+      ((.Tags//[])[]|select(.Key=="aws:autoscaling:groupName")|.Value) // "null",
+      ((.Tags//[])[]|select(.Key=="Name")|.Value) // "null",
+      .PrivateIpAddress // "null",
+      .PublicIpAddress // "null"
+    ] | @tsv' <<< "$ALL")
     echo "${OUTPUT}" | sort -k2,2 -k3,3 | column -t
 }
 
