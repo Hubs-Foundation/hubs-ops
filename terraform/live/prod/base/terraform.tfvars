@@ -13,3 +13,4 @@ ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDI+YCZx8dvtmcILtCkdr3yt2
 link_redirector_enabled = true
 link_redirector_domains = ["hub.link", "hubs.link"]
 link_redirector_target = "https://hubs.mozilla.com/link"
+link_redirector_target_hostname = "hubs.mozilla.com"

@@ -126,6 +126,16 @@ resource "aws_s3_bucket" "link-redirector-bucket" {
   website {
       index_document = "index.html"
       error_document = "error.html"
+
+      routing_rules = <<EOF
+    [{
+        "Redirect": {
+            "ReplaceKeyPrefixWith": "link/",
+            "Protocol": "https",
+            "HostName": "${var.link_redirector_target_hostname}"
+        }
+    }]
+    EOF
   }
 }
 

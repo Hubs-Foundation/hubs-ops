@@ -12,3 +12,7 @@ variable "link_redirector_enabled" {
 variable "link_redirector_target" {
   description = "Target URL to redirect to for link redirector"
 }
+
+variable "link_redirector_target_hostname" {
+  description = "Target hostname to redirect to for link redirector"
+}
