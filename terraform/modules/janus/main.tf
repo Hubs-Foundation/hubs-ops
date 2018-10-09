@@ -139,6 +139,12 @@ sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 
 sudo mkdir -p /hab/user/janus-gateway/config
 
+sudo cat > /etc/cron.d/janus-restart << EOCRON
+0 10 * * * hab killall janus
+EOCRON
+
+/etc/init.d/cron reload
+
 sudo cat > /hab/user/janus-gateway/config/user.toml << EOTOML
 [nat]
 nat_1_1_mapping = "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
