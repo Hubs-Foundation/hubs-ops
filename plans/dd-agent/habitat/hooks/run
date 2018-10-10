@@ -4,5 +4,4 @@ exec 2>&1
 
 set -e
 
-source "embedded/bin/activate"
 exec agent run --cfgpath {{ pkg.svc_config_path }} | logger
