@@ -26,13 +26,23 @@ do_build() {
 
   git clone https://github.com/DataDog/datadog-agent.git $GOPATH/src/github.com/DataDog/datadog-agent
   cd $GOPATH/src/github.com/DataDog/datadog-agent
+  virtualenv "$pkg_prefix"
+  source "$pkg_prefix/bin/activate"
   pip install -r requirements.txt
   invoke deps
-  invoke agent.build --use-embedded-libs
+
+  # Install network check and copy stub configs
+  pip install vendor/integrations-core/network
+  pip install -r vendor/integrations-core/network/requirements.in
+
+  invoke agent.build
 }
 
 do_install() {
   mv "$GOPATH/src/github.com/DataDog/datadog-agent/bin/agent" "$pkg_prefix/bin"
+
+  # TODO this will probably be fixable with normal configs if --cfgpath for check configs is ever respected by agent
+  cp -R "$PLAN_CONTEXT/defaults/conf.d/network.d" "$pkg_prefix/bin/agent/dist/conf.d"
   cp "$GOPATH/bin/gohai" "$pkg_prefix/bin"
 }
 

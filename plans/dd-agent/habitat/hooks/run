@@ -4,5 +4,5 @@ exec 2>&1
 
 set -e
 
-source "embedded/bin/activate"
-exec agent run --cfgpath {{ pkg.svc_config_path }} | logger
+source "{{ pkg.path }}/bin/activate"
+exec "{{ pkg.path }}/bin/agent/agent" run --cfgpath {{ pkg.svc_config_path }} | logger
