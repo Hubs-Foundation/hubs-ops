@@ -1,12 +1,11 @@
 #!/bin/bash
 # Helper functions for interacting with Hubs infrastructure.
 
-# hab-run [plan-dir]
+# hab-run [results-dir]
 # Loads the most-recently-built Habitat .hart package into the local running Habitat supervisor,
 # first stopping and unloading any existing version of the same package. Starts the package running.
 function hab-run {
-    local PLAN_DIR=${1:-.}
-    local RESULTS_DIR=$PLAN_DIR/results
+    local RESULTS_DIR=${1:-./results}
     local RESULTS_ENV=$RESULTS_DIR/last_build.env
     (export $(cat $RESULTS_ENV | xargs) && sudo -E hab svc unload $pkg_ident)
     (export $(cat $RESULTS_ENV | xargs) && sudo -E hab pkg install $RESULTS_DIR/$pkg_artifact)
@@ -18,7 +17,7 @@ function hab-run {
 # Builds a Habitat plan and runs the output locally using hab-run.
 function hab-build-and-run {
     local PLAN_DIR=${1:-.}
-    hab pkg build $PLAN_DIR && hab-run $PLAN_DIR
+    hab pkg build $PLAN_DIR && hab-run
 }
 
 # moz-ec2 [env] [asg]
