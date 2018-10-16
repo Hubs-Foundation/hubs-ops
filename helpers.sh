@@ -7,7 +7,7 @@
 function hab-run {
     local RESULTS_DIR=${1:-./results}
     local RESULTS_ENV=$RESULTS_DIR/last_build.env
-    (export $(cat $RESULTS_ENV | xargs) && sudo -E hab svc unload $pkg_ident)
+    (export $(cat $RESULTS_ENV | xargs) && sudo -E hab svc unload $pkg_origin/$pkg_name)
     (export $(cat $RESULTS_ENV | xargs) && sudo -E hab pkg install $RESULTS_DIR/$pkg_artifact)
     (export $(cat $RESULTS_ENV | xargs) && sudo -E hab svc load $pkg_ident)
     (export $(cat $RESULTS_ENV | xargs) && sudo -E hab svc start $pkg_ident)
