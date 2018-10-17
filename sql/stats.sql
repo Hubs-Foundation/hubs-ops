@@ -2,6 +2,8 @@ set search_path = ret0;
 
 select max(present_sessions) as max_ccu_across_all from node_stats where measured_at > now() - interval '1 week';
 select max(max_occupant_count + 1) from hubs where inserted_at > now() - interval '1 week';
+select count(*) as num_accounts from accounts where inserted_at > '2018-10-17 16:17:18.755355+00';
+select count(*) as num_scenes from scenes where account_id in (select account_id from accounts where inserted_at > '2018-10-17 16:17:18.755355+00');
 
 select (active_rooms / 7) as active_rooms_per_day, total_rooms, ((active_rooms * 1.0) / (total_rooms * 1.0)) * 100 as room_active_conversion_rate, ((object_created_rooms * 1.0) / (total_rooms * 1.0)) * 100 as object_create_conversion_rate, ((image_video_created_rooms * 1.0) / (total_rooms * 1.0)) * 100 as image_video_create_conversion_rate, ((active_object_created_rooms * 1.0) / (active_rooms * 1.0)) * 100 as active_room_object_create_rate, ((active_image_video_created_rooms * 1.0) / (active_rooms * 1.0)) * 100 as active_room_image_video_create_rate from (select count(*) as total_rooms, sum(case when max_occupant_count > 0 then 1 else 0 end) as active_rooms, sum(case when spawned_object_types & x'003FFFFF'::integer > 0 then 1 else 0 end) as object_created_rooms, sum(case when spawned_object_types & x'001b1b1b'::integer > 0 then 1 else 0 end) as image_video_created_rooms, sum(case when max_occupant_count > 0 and spawned_object_types & x'003FFFFF'::integer > 0 then 1 else 0 end) as active_object_created_rooms, sum(case when max_occupant_count > 0 and spawned_object_types & x'001b1b1b'::integer > 0 then 1 else 0 end) as active_image_video_created_rooms from hubs where inserted_at > now() - interval '1 week') a;
 

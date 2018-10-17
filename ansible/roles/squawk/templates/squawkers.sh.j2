@@ -5,18 +5,11 @@ CYCLE_TIME={{ cycle_time }}
 PROCESS_SPAWN_DELAY={{ process_spawn_delay }}
 URL={{ url }}
 
-if [ -e "squawkers.pid" ] && kill $(cat squawkers.pid) ; then
-  echo "Already running, shutting down."
-  sleep 5
-fi
-
 killall -g -9 node
 killall -g -9 chrome
 
 sleep 5
 echo "Spawning squawkers..."
-
-echo $$ > squawkers.pid
 
 pushd hubs/scripts/bot
 
@@ -31,9 +24,8 @@ for i in `seq 1 $NUM_SQUAWKER_PROCESSES`; do
       echo "Bot $i PID $botid"
       sleep $CYCLE_TIME
       echo "Killing bot $i at $botid"
-      pkill -TERM -P $botid
-      sleep 5
       pkill -KILL -P $botid
+      kill -KILL $botid
     done
   ) &
   sleep $PROCESS_SPAWN_DELAY

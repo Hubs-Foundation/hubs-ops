@@ -133,7 +133,7 @@ resource "aws_security_group" "farspark" {
   egress {
     from_port = "123"
     to_port = "123"
-    protocol = "tcp"
+    protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
@@ -228,9 +228,6 @@ resource "aws_cloudfront_distribution" "farspark-cdn" {
     }
 
     viewer_protocol_policy = "https-only"
-    min_ttl = 0
-    default_ttl = 3600
-    max_ttl = 3600
   }
 
   custom_error_response {

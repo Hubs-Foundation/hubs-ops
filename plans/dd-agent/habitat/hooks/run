@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+exec 2>&1
+
+set -e
+
+source "{{ pkg.path }}/bin/activate"
+exec "{{ pkg.path }}/bin/agent/agent" run --cfgpath {{ pkg.svc_config_path }} | logger

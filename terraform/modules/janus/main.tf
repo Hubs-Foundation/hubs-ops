@@ -97,7 +97,7 @@ resource "aws_security_group" "janus" {
   egress {
     from_port = "123"
     to_port = "123"
-    protocol = "tcp"
+    protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
@@ -138,6 +138,12 @@ sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 
 sudo mkdir -p /hab/user/janus-gateway/config
+
+sudo cat > /etc/cron.d/janus-restart << EOCRON
+0 10 * * * hab killall janus
+EOCRON
+
+/etc/init.d/cron reload
 
 sudo cat > /hab/user/janus-gateway/config/user.toml << EOTOML
 [nat]
