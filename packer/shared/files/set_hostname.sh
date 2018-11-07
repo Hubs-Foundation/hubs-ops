@@ -38,7 +38,8 @@ done
 echo "Setting hostname to ${NEW_HOSTNAME}"
 
 sudo hostname "$NEW_HOSTNAME.$HOSTED_ZONE_NAME"
-sudo "$NEW_HOSTNAME.$HOSTED_ZONE_NAME" > /var/run/generated_hostname
+sudo echo "$NEW_HOSTNAME.$HOSTED_ZONE_NAME" > /var/run/generated_hostname
+sudo cat /var/run/generated_hostname > /etc/hostname
 sudo service rsyslog restart
 
 ROUTE53_PRIVATE_RECORD="{ \"ChangeBatch\": { \"Changes\": [ { \"Action\": \"UPSERT\", \"ResourceRecordSet\": { \"Name\": \"${NEW_HOSTNAME}-local.${HOSTED_ZONE_NAME}.\", \"Type\": \"A\", \"TTL\": 900, \"ResourceRecords\": [ { \"Value\": \"$PRIVATE_IP\" } ] } } ] } }"
