@@ -1,5 +1,19 @@
 const ALLOWED_ORIGINS = ["hubs.mozilla.com", "smoke-hubs.mozilla.com"];
 
+async function streamBody(readable, writable) {
+  let reader = readable.getReader()
+  let writer = writable.getWriter()
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    // Optionally transform value's bytes here.
+    await writer.write(value)
+  }
+
+  await writer.close()
+}
+
 async function proxyRequest(r) {
   const url = new URL(r.url);
 
@@ -23,13 +37,19 @@ async function proxyRequest(r) {
 
       for (const [name, value] of res.headers) {
         headers[name] = value;
+      }
 
+      for (const [name, value] of r.headers) {
         if (name.toLowerCase() === "origin" && ALLOWED_ORIGINS.indexOf(value) >= 0) {
-          headers["Access-Control-Allow-Origin"] = value;
+          headers["access-control-allow-origin"] = value;
         }
       }
 
-      return new Response(res.body, { headers });
+      let { readable, writable } = new TransformStream();
+
+      streamBody(res.body, writable);
+
+      return new Response(readable, { headers });
     });
   } else {
     return new Response("Bad Request", { status: 400, statusText: "Bad Request" });
