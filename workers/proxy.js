@@ -7,7 +7,6 @@ async function streamBody(readable, writable) {
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
-    // Optionally transform value's bytes here.
     await writer.write(value)
   }
 
