@@ -9,6 +9,7 @@ killall -g -9 node
 killall -g -9 chrome
 
 sleep 5
+
 echo "Spawning squawkers..."
 
 pushd hubs/scripts/bot
@@ -17,6 +18,7 @@ npm install
 
 for i in `seq 1 $NUM_SQUAWKER_PROCESSES`; do
   echo "Running bot $i"
+  # fork a new shell for each squawker process
   (
     while true; do
       node ./run-bot.js --audio bot-recording.mp3 --data bot-recording.json --url $URL &
@@ -26,7 +28,11 @@ for i in `seq 1 $NUM_SQUAWKER_PROCESSES`; do
       echo "Killing bot $i at $botid"
       pkill -KILL -P $botid
       kill -KILL $botid
+      logrotate -s logrotate.state logrotate.conf
     done
   ) &
   sleep $PROCESS_SPAWN_DELAY
 done
+
+# keep this process alive forever, so we can kill the process group easily
+while true; do sleep 1; done

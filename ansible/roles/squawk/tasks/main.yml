@@ -12,5 +12,10 @@
     version: master
     force: true
 
+- name: Copy logrotate conf
+  copy:
+    src: logrotate.conf
+    dest: "/home/ubuntu/hubs/scripts/bot/logrotate.conf"
+
 - name: Run squawker script
   shell: nohup bash squawkers.sh >> squawkers.log 2>&1 &
