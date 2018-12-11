@@ -1,4 +1,4 @@
-const ALLOWED_ORIGINS = ["hubs.mozilla.com", "smoke-hubs.mozilla.com"];
+const ALLOWED_ORIGINS = ["https://hubs.mozilla.com", "https://smoke-hubs.mozilla.com"];
 
 async function streamBody(readable, writable) {
   let reader = readable.getReader()
