@@ -1,4 +1,4 @@
-const ALLOWED_ORIGINS = ["hubs.mozilla.com", "smoke-hubs.mozilla.com"];
+const ALLOWED_ORIGINS = ["https://hubs.mozilla.com", "https://smoke-hubs.mozilla.com"];
 
 async function streamBody(readable, writable) {
   let reader = readable.getReader()
@@ -7,7 +7,6 @@ async function streamBody(readable, writable) {
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
-    // Optionally transform value's bytes here.
     await writer.write(value)
   }
 
