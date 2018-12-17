@@ -1,4 +1,4 @@
-const ALLOWED_ORIGINS = ["https://hubs.mozilla.com", "https://smoke-hubs.mozilla.com"];
+const ALLOWED_ORIGINS = ["https://hubs.local:8080", "https://hubs.local:4000", "https://dev.reticulum.io", "https://smoke-dev.reticulum.io", "https://hubs.mozilla.com", "https://smoke-hubs.mozilla.com"];
 
 async function streamBody(readable, writable) {
   let reader = readable.getReader()
@@ -28,7 +28,7 @@ async function proxyRequest(r) {
     return fetch(targetUrl, {
       headers: r.headers,
       method: r.method,
-      redirect: "follow",
+      redirect: "manual",
       referrer: r.referrer,
       referrerPolicy: r.referrerPolicy
     }).then(res => {
@@ -48,7 +48,7 @@ async function proxyRequest(r) {
 
       streamBody(res.body, writable);
 
-      return new Response(readable, { headers });
+      return new Response(readable, { status: res.status, statusText: res.statusText, headers });
     });
   } else {
     return new Response("Bad Request", { status: 400, statusText: "Bad Request" });
