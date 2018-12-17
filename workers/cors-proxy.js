@@ -28,7 +28,7 @@ async function proxyRequest(r) {
     return fetch(targetUrl, {
       headers: r.headers,
       method: r.method,
-      redirect: "manual",
+      redirect: "follow",
       referrer: r.referrer,
       referrerPolicy: r.referrerPolicy
     }).then(res => {
@@ -41,6 +41,7 @@ async function proxyRequest(r) {
       for (const [name, value] of r.headers) {
         if (name.toLowerCase() === "origin" && ALLOWED_ORIGINS.indexOf(value) >= 0) {
           headers["access-control-allow-origin"] = value;
+          headers["access-control-allow-methods"] = "GET, HEAD, OPTIONS"
         }
       }
 
