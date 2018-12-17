@@ -25,8 +25,20 @@ async function proxyRequest(r) {
       targetUrl = url.protocol + "//" + targetUrl;
     }
 
+    const sendHeaders = new Headers();
+
+    for (const [name, value] of r.headers) {
+      // Cloudflare will handle Etag based caching.
+
+      if (name.toLowerCase() === "etag" || name.toLowerCase() === "if-none-match" || name.toLowerCase() === "if-match") {
+       continue;
+      }
+
+      sendHeaders[name] = value;
+    }
+
     return fetch(targetUrl, {
-      headers: r.headers,
+      headers: sendHeaders,
       method: r.method,
       redirect: "follow",
       referrer: r.referrer,
