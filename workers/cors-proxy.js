@@ -57,6 +57,8 @@ async function proxyRequest(r) {
         }
       }
 
+      headers["vary"] = "Origin";
+
       let { readable, writable } = new TransformStream();
 
       streamBody(res.body, writable);
