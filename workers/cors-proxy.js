@@ -28,26 +28,24 @@ async function proxyRequest(r) {
     const sendHeaders = new Headers();
 
     for (const [name, value] of r.headers) {
-      // Cloudflare will handle Etag based caching.
-
-      if (name.toLowerCase() === "etag" || name.toLowerCase() === "if-none-match" || name.toLowerCase() === "if-match") {
-       continue;
-      }
-
       sendHeaders[name] = value;
     }
 
     return fetch(targetUrl, {
       headers: sendHeaders,
       method: r.method,
-      redirect: "follow",
+      redirect: "manual",
       referrer: r.referrer,
       referrerPolicy: r.referrerPolicy
     }).then(res => {
       const headers = {};
 
       for (const [name, value] of res.headers) {
-        headers[name] = value;
+        if (name === "location") {
+          headers[name] = url.protocol + "//" + url.host + "/" + encodeURIComponent(value);
+        } else {
+          headers[name] = value;
+        }
       }
 
       for (const [name, value] of r.headers) {
