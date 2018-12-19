@@ -42,7 +42,7 @@ pipeline {
           def identPath = sh(returnStdout: true, script: "${s}").trim()
           s = $/eval 'tail -n +6 ${hart} | xzcat | tar xf - "${identPath}" -O'/$
           def packageIdent = sh(returnStdout: true, script: "${s}").trim()
-          build job: 'hab-promote', parameters: [[PACKAGE: packageIdent, CHANNEL: "stable", FROM: "jenkins"]]
+          build job: 'hab-promote', parameters: [[$class: 'StringParameterValue', name: "PACKAGE": value: packageIdent], [ $class: 'StringParameterValue', name: "CHANNEL", value: "stable"], [ $class: '$StringParameterValue', name: "FROM", value: "jenkins"]]
         }
       }
     }
