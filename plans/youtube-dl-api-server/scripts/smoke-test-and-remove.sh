@@ -6,7 +6,8 @@
 PACKAGE_IDENT=$1
 
 hab pkg install -b core/curl
-cd /hab/pkgs/$PACKAGE_IDENT
+hab pkg install src/results/*.hart
+cd /hab/pkgs/mozillareality/$PACKAGE_IDENT
 bin/youtube-dl-server --number-processes 1
 sleep 5
 curl -i http://localhost:9191/api/play?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ | head -n 1 | grep '302 FOUND' || rm -rf /src/results
