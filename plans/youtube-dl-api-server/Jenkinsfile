@@ -31,7 +31,7 @@ pipeline {
     stage('build') {
       steps {
         script {
-          def habCommand = "sudo /usr/bin/hab-docker-studio -k mozillareality run build"
+          def habCommand = "cd plans/youtube-dl-api-server && sudo /usr/bin/hab-docker-studio -k mozillareality run build"
           sh "/usr/bin/script --return -c ${shellString(habCommand)} /dev/null"
         }
       }
