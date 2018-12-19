@@ -6,7 +6,7 @@
 PACKAGE_IDENT=$1
 
 hab pkg install -b core/curl
-hab pkg install src/results/*.hart
+hab pkg install /src/results/*.hart
 cd /hab/pkgs/mozillareality/$PACKAGE_IDENT
 bin/youtube-dl-server --number-processes 1
 sleep 5
