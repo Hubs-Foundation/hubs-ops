@@ -34,6 +34,15 @@ pipeline {
           def habCommand = "cd plans/youtube-dl-api-server && sudo /usr/bin/hab-docker-studio -k mozillareality run build"
           sh "/usr/bin/script --return -c ${shellString(habCommand)} /dev/null"
           sh 'sudo /usr/bin/hab-pkg-upload $(ls -rt plans/youtube-dl-api-server/results/*.hart | head -n 1)'
+
+          // Grab IDENT file and cat it from .hart
+          def s = $/eval 'ls -rt plans/youtube-dl-api-server/results/*.hart | head -n 1'/$
+          def hart = sh(returnStdout: true, script: "${s}").trim()
+          s = $/eval 'tail -n +6 ${hart} | xzcat | tar tf - | grep IDENT'/$
+          def identPath = sh(returnStdout: true, script: "${s}").trim()
+          s = $/eval 'tail -n +6 ${hart} | xzcat | tar xf - "${identPath}" -O'/$
+          def package = sh(returnStdout: true, script: "${s}").trim()
+          build 'hab-promote', parameters: [PACKAGE: package, CHANNEL: "stable", FROM: "jenkins"]
         }
       }
     }
