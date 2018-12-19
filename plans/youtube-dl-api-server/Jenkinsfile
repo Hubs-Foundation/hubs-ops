@@ -45,7 +45,7 @@ pipeline {
           sh "/usr/bin/script --return -c ${shellString(smokeTestCommand)} /dev/null"
 
           sh 'sudo /usr/bin/hab-pkg-upload $(ls -rt plans/youtube-dl-api-server/results/*.hart | head -n 1)'
-          build job: 'hab-promote', parameters: [$class: 'StringParameterValue', name: "PACKAGE", value: packageIdent], [ $class: 'StringParameterValue', name: "CHANNEL", value: "stable"], [ $class: 'StringParameterValue', name: "FROM", value: "jenkins"]]
+          build job: 'hab-promote', parameters: [[$class: 'StringParameterValue', name: "PACKAGE", value: packageIdent], [ $class: 'StringParameterValue', name: "CHANNEL", value: "stable"], [ $class: 'StringParameterValue', name: "FROM", value: "jenkins"]]
         }
       }
     }
