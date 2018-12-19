@@ -41,8 +41,8 @@ pipeline {
           s = $/eval 'tail -n +6 ${hart} | xzcat | tar tf - | grep IDENT'/$
           def identPath = sh(returnStdout: true, script: "${s}").trim()
           s = $/eval 'tail -n +6 ${hart} | xzcat | tar xf - "${identPath}" -O'/$
-          def package = sh(returnStdout: true, script: "${s}").trim()
-          build 'hab-promote', parameters: [PACKAGE: package, CHANNEL: "stable", FROM: "jenkins"]
+          def packageIdent = sh(returnStdout: true, script: "${s}").trim()
+          build 'hab-promote', parameters: [PACKAGE: packageIdent, CHANNEL: "stable", FROM: "jenkins"]
         }
       }
     }
