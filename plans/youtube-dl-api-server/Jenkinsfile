@@ -33,7 +33,7 @@ pipeline {
         script {
           def habCommand = "cd plans/youtube-dl-api-server && sudo /usr/bin/hab-docker-studio -k mozillareality run build"
           sh "/usr/bin/script --return -c ${shellString(habCommand)} /dev/null"
-          sh 'sudo /usr/bin/hab-pkg-upload $(ls -rt results/*.hart | head -n 1)'
+          sh 'sudo /usr/bin/hab-pkg-upload $(ls -rt plans/youtube-dl-api-server/results/*.hart | head -n 1)'
         }
       }
     }
