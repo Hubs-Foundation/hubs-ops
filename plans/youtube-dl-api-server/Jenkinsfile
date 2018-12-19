@@ -24,7 +24,7 @@ pipeline {
   stages {
     stage('pre-build') {
       steps {
-        sh 'rm -rf ./results'
+        sh 'rm -rf ./plans/youtube-dl-api-server/results'
       }
     }
 
@@ -33,6 +33,7 @@ pipeline {
         script {
           def habCommand = "cd plans/youtube-dl-api-server && sudo /usr/bin/hab-docker-studio -k mozillareality run build"
           sh "/usr/bin/script --return -c ${shellString(habCommand)} /dev/null"
+          sh 'sudo /usr/bin/hab-pkg-upload $(ls -rt results/*.hart | head -n 1)'
         }
       }
     }
