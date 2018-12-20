@@ -5,6 +5,9 @@
     include_vars:
       file: "roles/ret/vars/{{ env }}.yml"
 
+  - name: Install moz hab-butterfly (needed until https://github.com/habitat-sh/habitat/issues/5257 is closed, still seems broken if calling -r ipv4:9631)
+    shell: "hab pkg install mozillareality/hab-butterfly"
+
   - name: Create work directory
     tempfile:
       state: directory
@@ -22,10 +25,10 @@
       dest: "{{ work_dir.path }}/dd-agent.toml"
 
   - name: Deploy Reticulum configs
-    shell: "cat {{ work_dir.path }}/reticulum.toml | hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr reticulum.default $(date +%s)"
+    shell: "cat {{ work_dir.path }}/reticulum.toml | /hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr reticulum.default $(date +%s)"
 
   - name: Deploy Datadog Agent configs
-    shell: "cat {{ work_dir.path }}/dd-agent.toml | hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr dd-agent.default $(date +%s)"
+    shell: "cat {{ work_dir.path }}/dd-agent.toml | /hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr dd-agent.default $(date +%s)"
 
   always:
   - name: Remove work directory
