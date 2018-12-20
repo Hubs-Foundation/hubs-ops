@@ -209,6 +209,7 @@ EOTOML
 sudo sed -i "s/#RateLimitBurst=1000/RateLimitBurst=5000/" /etc/systemd/journald.conf
 sudo systemctl restart systemd-journald
 
+sudo /usr/bin/save_service_files janus-gateway default mozillareality
 sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel unstable
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
