@@ -25,7 +25,7 @@ async function proxyRequest(r) {
       targetUrl = url.protocol + "//" + targetUrl;
     }
 
-    const sendHeaders = new Headers();
+    const sendHeaders = {};
 
     for (const [name, value] of r.headers) {
       sendHeaders[name] = value;
@@ -54,13 +54,11 @@ async function proxyRequest(r) {
           headers["access-control-allow-methods"] = "GET, HEAD, OPTIONS"
         }
       }
-
+ 
       headers["vary"] = "Origin";
-
       let { readable, writable } = new TransformStream();
 
       streamBody(res.body, writable);
-
       return new Response(readable, { status: res.status, statusText: res.statusText, headers });
     });
   } else {
