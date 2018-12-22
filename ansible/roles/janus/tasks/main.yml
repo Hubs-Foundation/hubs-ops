@@ -26,11 +26,23 @@
       dest: "{{ work_dir.path }}/{{ item }}.toml"
     loop: "{{ services }}"
 
-  - name: "Write local file"
+  - name: "Write local file key"
     copy:
-      src: "{{ item }}"
-      dest: "{{ work_dir.path }}/{{ item }}"
+      src: "{{ item }}.key"
+      dest: "{{ work_dir.path }}/{{ item }}.key"
     when: env != 'local'
+    loop: "{{ keyfiles }}"
+
+  - name: "Write local file pem"
+    copy:
+      src: "{{ item }}.pem"
+      dest: "{{ work_dir.path }}/{{ item }}.pem"
+    when: env != 'local'
+    loop: "{{ keyfiles }}"
+
+  - name: "Generate local cert"
+    shell: "openssl req -newkey rsa:2048 -nodes -keyout \"{{ work_dir.path }}/{{ item }}.key\" -x509 -days 365 -out \"{{ work_dir.path }}/{{ item }}.pem\" -subj '/C=US/ST=California/L=Mountain View/O=YourOrg/OU=YourDept/CN=yoursite.com'"
+    when: env == 'local'
     loop: "{{ keyfiles }}"
 
   - name: "Deploy remote configs"
@@ -38,19 +50,39 @@
     when: env != 'local'
     loop: "{{ services }}"
 
-  - name: "Make local target dir"
+  - name: "Make local target config dir"
     shell: "mkdir -p /hab/user/{{ item }}/config"
     when: env == 'local'
     loop: "{{ services }}"
 
-  - name: "Deploy local config"
+  - name: "Make local target files dir"
+    shell: "mkdir -p /hab/svc/{{ item }}/files"
+    when: env == 'local'
+    loop: "{{ services }}"
+
+  - name: "Copy local config"
     shell: "cp {{ work_dir.path }}/{{ item }}.toml /hab/user/{{ item }}/config/user.toml"
     when: env == 'local'
     loop: "{{ services }}"
 
-  - name: "Deploy remote file"
-    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/{{ item }}"
+  - name: "Deploy remote file key"
+    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/{{ item }}.key"
     when: env != 'local'
+    loop: "{{ keyfiles }}"
+
+  - name: "Deploy remote file pem"
+    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/{{ item }}.pem"
+    when: env != 'local'
+    loop: "{{ keyfiles }}"
+
+  - name: "Copy local keyfile pem"
+    shell: "cp \"{{ work_dir.path }}/{{ item }}.pem\" /hab/svc/janus-gateway/files"
+    when: env == 'local'
+    loop: "{{ keyfiles }}"
+
+  - name: "Copy local keyfile key"
+    shell: "cp \"{{ work_dir.path }}/{{ item }}.key\" /hab/svc/janus-gateway/files"
+    when: env == 'local'
     loop: "{{ keyfiles }}"
 
   always:
@@ -58,4 +90,3 @@
     file:
       path: "{{ work_dir.path }}"
       state: absent
-    when: env != 'local'

@@ -5,7 +5,5 @@ services:
   - dd-agent
 
 keyfiles:
-  - dtls.key
-  - dtls.pem
-  - wss.pem # reticulum.io.pem
-  - wss.key # reticulum.io.crt
+  - dtls
+  - wss # reticulum.io.pem, reticulum.io.crt
