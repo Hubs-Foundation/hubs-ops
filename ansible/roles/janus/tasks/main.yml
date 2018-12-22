@@ -1,12 +1,18 @@
 ---
 
 - block:
+  - name: Include remote specific vars
+    include_vars:
+      file: "roles/janus/vars/remote.yml"
+    when: env != 'local'
+
   - name: Include environment specific vars
     include_vars:
       file: "roles/janus/vars/{{ env }}.yml"
 
   - name: Install moz hab-butterfly (needed until https://github.com/habitat-sh/habitat/issues/4066 is closed)
     shell: "hab pkg install mozillareality/hab-butterfly"
+    when: env != 'local'
 
   - name: Create work directory
     tempfile:
@@ -14,56 +20,42 @@
       suffix: deploy
     register: work_dir
 
-  - name: Write Janus config file
+  - name: "Write config"
     template:
-      src: janus-gateway.toml.j2
-      dest: "{{ work_dir.path }}/janus-gateway.toml"
+      src: "{{ item }}.toml.j2"
+      dest: "{{ work_dir.path }}/{{ item }}.toml"
+    loop: "{{ services }}"
 
-  - name: Write DD agent config file
-    template:
-      src: dd-agent.toml.j2
-      dest: "{{ work_dir.path }}/dd-agent.toml"
-
-  - name: Write DTLS key
+  - name: "Write local file"
     copy:
-      src: dtls.key
-      dest: "{{ work_dir.path }}/dtls.key"
+      src: "{{ item }}"
+      dest: "{{ work_dir.path }}/{{ item }}"
+    when: env != 'local'
+    loop: "{{ keyfiles }}"
 
-  - name: Write DTLS cert
-    copy:
-      src: dtls.pem
-      dest: "{{ work_dir.path }}/dtls.pem"
+  - name: "Deploy remote configs"
+    shell: "cat {{ work_dir.path }}/{{ item }}.toml | /hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr {{ item }}.default $(date +%s)"
+    when: env != 'local'
+    loop: "{{ services }}"
 
-  - name: Write WSS key
-    copy:
-      src: reticulum.io.pem
-      dest: "{{ work_dir.path }}/wss.key"
+  - name: "Make local target dir"
+    shell: "mkdir -p /hab/user/{{ item }}/config"
+    when: env == 'local'
+    loop: "{{ services }}"
 
-  - name: Write WSS cert
-    copy:
-      src: reticulum.io.crt
-      dest: "{{ work_dir.path }}/wss.pem"
+  - name: "Deploy local config"
+    shell: "cp {{ work_dir.path }}/{{ item }}.toml /hab/user/{{ item }}/config/user.toml"
+    when: env == 'local'
+    loop: "{{ services }}"
 
-  - name: Deploy Janus configs
-    shell: "cat {{ work_dir.path }}/janus-gateway.toml | /hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s)"
-
-  - name: Deploy Datadog Agent configs
-    shell: "cat {{ work_dir.path }}/dd-agent.toml | /hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr dd-agent.default $(date +%s)"
-
-  - name: Deploy DTLS key
-    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.key"
-
-  - name: Deploy DTLS pem
-    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/dtls.pem"
-
-  - name: Deploy WSS key
-    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.key"
-
-  - name: Deploy WSS pem
-    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/wss.pem"
+  - name: "Deploy remote file"
+    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/{{ item }}"
+    when: env != 'local'
+    loop: "{{ keyfiles }}"
 
   always:
   - name: Remove work directory
     file:
       path: "{{ work_dir.path }}"
       state: absent
+    when: env != 'local'
