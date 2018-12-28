@@ -28,6 +28,12 @@ async function proxyRequest(r) {
     const sendHeaders = {};
 
     for (const [name, value] of r.headers) {
+      // Cloudflare will handle Etag based caching.
+
+      if (name.toLowerCase() === "etag" || name.toLowerCase() === "if-none-match" || name.toLowerCase() === "if-match") {
+       continue;
+      }
+
       sendHeaders[name] = value;
     }
 
@@ -41,11 +47,10 @@ async function proxyRequest(r) {
       const headers = {};
 
       for (const [name, value] of res.headers) {
-        if (name === "location") {
-          headers[name] = url.protocol + "//" + url.host + "/" + encodeURIComponent(value);
-        } else {
-          headers[name] = value;
-        }
+         // Cloudflare will handle Etag based caching.
+        if (name.toLowerCase() === "etag") continue;
+ 
+        headers[name] = value;
       }
 
       for (const [name, value] of r.headers) {
@@ -56,9 +61,11 @@ async function proxyRequest(r) {
       }
  
       headers["vary"] = "Origin";
+
       let { readable, writable } = new TransformStream();
 
       streamBody(res.body, writable);
+
       return new Response(readable, { status: res.status, statusText: res.statusText, headers });
     });
   } else {
