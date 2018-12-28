@@ -177,8 +177,8 @@ resource "aws_autoscaling_group" "janus" {
   availability_zones = ["${data.aws_availability_zones.all.names}"]
   vpc_zone_identifier = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
 
-  min_size = "1"
-  max_size = "1"
+  min_size = "${var.min_janus_servers}"
+  max_size = "${var.max_janus_servers}"
 
   lifecycle { create_before_destroy = true }
   tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }

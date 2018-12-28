@@ -14,6 +14,8 @@ terragrunt = {
 
 janus_instance_type = "c5.2xlarge"
 smoke_janus_instance_type = "m3.medium"
+min_janus_servers = 2
+max_janus_servers = 2
 janus_wss_port = 443
 janus_https_port = 8443
 janus_admin_port = 7000
