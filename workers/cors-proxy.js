@@ -29,9 +29,8 @@ async function proxyRequest(r) {
 
     for (const [name, value] of r.headers) {
       // Cloudflare will handle Etag based caching.
-
       if (name.toLowerCase() === "etag" || name.toLowerCase() === "if-none-match" || name.toLowerCase() === "if-match") {
-       continue;
+        continue;
       }
 
       sendHeaders[name] = value;
@@ -47,10 +46,16 @@ async function proxyRequest(r) {
       const headers = {};
 
       for (const [name, value] of res.headers) {
-         // Cloudflare will handle Etag based caching.
-        if (name.toLowerCase() === "etag") continue;
- 
-        headers[name] = value;
+        // Cloudflare will handle Etag based caching.
+        if (name.toLowerCase() === "etag") {
+          continue;
+        }
+
+        if (name === "location") {
+          headers[name] = url.protocol + "//" + url.host + "/" + encodeURIComponent(value);
+        } else {
+          headers[name] = value;
+        }
       }
 
       for (const [name, value] of r.headers) {
