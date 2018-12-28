@@ -166,6 +166,15 @@ resource "aws_security_group" "ret" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Outbound Janus admin for load balancing
+  # HACK: This whitelists for ring overall to avoid cycle between janus/ret terraform scripts
+  egress {
+    from_port = "7000"
+    to_port = "7000"
+    protocol = "tcp"
+    security_groups = ["${data.terraform_remote_state.hab.hab_ring_security_group_id}"]
+  }
+
   # Reticulum HTTP
   ingress {
     from_port = "${var.ret_http_port}"
