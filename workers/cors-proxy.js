@@ -38,7 +38,7 @@ addEventListener("fetch", e => {
 
     const responseHeaders = {};
 
-    for (let name of ["Content-Type", "Cache-Control", "Expires", "Accept-Ranges", "Range", "Date", "Last-Modified", "ETag", "Location"]) {
+    for (let name of ["Content-Length", "Content-Range", "Content-Type", "Cache-Control", "Expires", "Accept-Ranges", "Range", "Date", "Last-Modified", "ETag", "Location"]) {
       let value = res.headers.get(name);
       if (!value) continue;
 
