@@ -8,6 +8,7 @@ data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terr
 data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bastion/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "hab" { backend = "s3", config = { key = "hab/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+data "terraform_remote_state" "ret" { backend = "s3", config = { key = "ret/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
 data "aws_ami" "hab-base-ami" {
   most_recent = true
@@ -67,6 +68,14 @@ resource "aws_security_group" "janus" {
     to_port = "${var.janus_admin_port}"
     protocol = "tcp"
     security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
+  }
+
+  # Janus Admin via reticulum
+  ingress {
+    from_port = "${var.janus_admin_port}"
+    to_port = "${var.janus_admin_port}"
+    protocol = "tcp"
+    security_groups = ["${data.terraform_remote_state.ret.ret_security_group_id}"]
   }
 
   # Janus RTP-over-UDP
@@ -168,8 +177,8 @@ resource "aws_autoscaling_group" "janus" {
   availability_zones = ["${data.aws_availability_zones.all.names}"]
   vpc_zone_identifier = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
 
-  min_size = "1"
-  max_size = "1"
+  min_size = "${var.min_janus_servers}"
+  max_size = "${var.max_janus_servers}"
 
   lifecycle { create_before_destroy = true }
   tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }
