@@ -13,59 +13,53 @@ async function streamBody(readable, writable) {
   await writer.close()
 }
 
-async function proxyRequest(r) {
-  const url = new URL(r.url);
-
-  const prefix = "/";
-
-  if (url.pathname.startsWith(prefix)) {
-    const remainingUrl = url.pathname.replace(new RegExp("^" + prefix), "");
-    let targetUrl = decodeURIComponent(remainingUrl);
-    if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
-      targetUrl = url.protocol + "//" + targetUrl;
-    }
-
-    const sendHeaders = {};
-
-    for (const [name, value] of r.headers) {
-      sendHeaders[name] = value;
-    }
-
-    return fetch(targetUrl, {
-      headers: sendHeaders,
-      method: r.method,
-      redirect: "manual",
-      referrer: r.referrer,
-      referrerPolicy: r.referrerPolicy
-    }).then(res => {
-      const headers = {};
-
-      for (const [name, value] of res.headers) {
-        if (name === "location") {
-          headers[name] = url.protocol + "//" + url.host + "/" + encodeURIComponent(value);
-        } else {
-          headers[name] = value;
-        }
-      }
-
-      for (const [name, value] of r.headers) {
-        if (name.toLowerCase() === "origin" && ALLOWED_ORIGINS.indexOf(value) >= 0) {
-          headers["access-control-allow-origin"] = value;
-          headers["access-control-allow-methods"] = "GET, HEAD, OPTIONS"
-        }
-      }
- 
-      headers["vary"] = "Origin";
-      let { readable, writable } = new TransformStream();
-
-      streamBody(res.body, writable);
-      return new Response(readable, { status: res.status, statusText: res.statusText, headers });
-    });
-  } else {
-    return new Response("Bad Request", { status: 400, statusText: "Bad Request" });
-  }
-}
-
 addEventListener("fetch", e => {
-  e.respondWith(proxyRequest(e.request));
+  const request = e.request;
+  const url = new URL(request.url);
+  const origin = request.headers.get("Origin");
+
+  let targetUrl = decodeURIComponent(url.pathname.substring(1));
+
+  if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
+    targetUrl = url.protocol + "//" + targetUrl;
+  }
+
+  const proxyHeaders = {};
+
+  for (let name of ["Accept", "Accept-Encoding", "Accept-Language", "Range", "Referer", "User-Agent"]) {
+    let value = request.headers.get(name);
+    if (!value) continue;
+
+    proxyHeaders[name] = value;
+  }
+
+  e.respondWith((async () => {
+    const res = await fetch(targetUrl, { headers: proxyHeaders, method: request.method, redirect: "manual", referrer: request.referrer, referrerPolicy: request.referrerPolicy });
+
+    const responseHeaders = {};
+
+    for (let name of ["Content-Type", "Cache-Control", "Expires", "Accept-Ranges", "Range", "Date", "Last-Modified", "ETag", "Location"]) {
+      let value = res.headers.get(name);
+      if (!value) continue;
+
+      if (name === "Location") {
+        responseHeaders[name] = url.protocol + "//" + url.host + "/" + encodeURIComponent(value);
+      } else {
+        responseHeaders[name] = value;
+      }
+    }
+
+    if (origin && ALLOWED_ORIGINS.indexOf(origin) >= 0) {
+      responseHeaders["Access-Control-Allow-Origin"] = origin;
+      responseHeaders["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS";
+    }
+
+    responseHeaders["Vary"] = "Origin";
+    responseHeaders['X-Content-Type-Options'] = "nosniff"
+
+    let { readable, writable } = new TransformStream();
+
+    streamBody(res.body, writable);
+    return new Response(readable, { status: res.status, statusText: res.statusText, headers: responseHeaders });
+  })());
 });
