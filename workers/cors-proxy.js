@@ -1,4 +1,5 @@
 const ALLOWED_ORIGINS = ["https://hubs.local:8080", "https://hubs.local:4000", "https://dev.reticulum.io", "https://smoke-dev.reticulum.io", "https://hubs.mozilla.com", "https://smoke-hubs.mozilla.com"];
+const PROXY_HOST = "https://hubs-proxy.com"
 
 async function streamBody(readable, writable) {
   let reader = readable.getReader()
@@ -15,13 +16,12 @@ async function streamBody(readable, writable) {
 
 addEventListener("fetch", e => {
   const request = e.request;
-  const url = new URL(request.url);
   const origin = request.headers.get("Origin");
-
-  let targetUrl = decodeURIComponent(url.pathname.substring(1));
+  const proxyUrl = new URL(PROXY_HOST);
+  let targetUrl = request.url.substring(PROXY_HOST.length + 1).replace(/^http(s?):\/([^/])/, "http$1://$2");
 
   if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
-    targetUrl = url.protocol + "//" + targetUrl;
+    targetUrl = proxyUrl.protocol + "//" + targetUrl;
   }
 
   const proxyHeaders = {};
@@ -43,7 +43,7 @@ addEventListener("fetch", e => {
       if (!value) continue;
 
       if (name === "Location") {
-        responseHeaders[name] = url.protocol + "//" + url.host + "/" + encodeURIComponent(value);
+        responseHeaders[name] = proxyUrl.protocol + "//" + proxyUrl.host + "/" + value;
       } else {
         responseHeaders[name] = value;
       }
