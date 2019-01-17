@@ -77,6 +77,13 @@ function moz-tunnel {
     ssh -L "$2:$DESTINATION_HOST-local.reticulum.io:$3" "$BASTION.reticulum.io" "${@:4}"
 }
 
+# moz-iex target ...cmd-args
+# SSHes into a Reticulum host and opens an Elixir console.
+function moz-iex {
+    SCRIPT_PATH=$(dirname "$BASH_SOURCE[0]")
+    moz-ssh "$1" "$(< $SCRIPT_PATH/bin/remote_console.sh)" "${@:3}"
+}
+
 # Creates a tunnel to the CI host's web interface on port 8088.
 alias moz-ci='moz-tunnel dev-ci 8088 8080'
 

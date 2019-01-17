@@ -32,4 +32,4 @@ fi
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 scp -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa $SCRIPTPATH/remote_console.sh "ubuntu@${TARGET_IP}:~" > /dev/null
-ssh -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa -t "ubuntu@${TARGET_IP}" 'chmod +x remote_console.sh ; sudo ./remote_console.sh'
+ssh -o ProxyCommand="ssh -W %h:%p -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}" -i ~/.ssh/mozilla_mr_id_rsa -t "ubuntu@${TARGET_IP}" 'chmod +x remote_console.sh ; ./remote_console.sh'
