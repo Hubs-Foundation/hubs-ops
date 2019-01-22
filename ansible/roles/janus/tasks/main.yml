@@ -3,16 +3,16 @@
 - block:
   - name: Include main vars
     include_vars:
-      file: "hubs-ops-secrets/roles/janus/vars/main.yml"
+      file: "{{ secrets_path }}/roles/janus/vars/main.yml"
 
   - name: Include remote specific vars
     include_vars:
-      file: "hubs-ops-secrets/roles/janus/vars/remote.yml"
+      file: "{{ secrets_path }}/roles/janus/vars/remote.yml"
     when: env != 'local'
 
   - name: Include environment specific vars
     include_vars:
-      file: "hubs-ops-secrets/roles/janus/vars/{{ env }}.yml"
+      file: "{{ secrets_path }}/roles/janus/vars/{{ env }}.yml"
 
   - name: Install moz hab-butterfly (needed until https://github.com/habitat-sh/habitat/issues/4066 is closed)
     shell: "hab pkg install mozillareality/hab-butterfly"
@@ -32,7 +32,7 @@
 
   - name: "Write local file key"
     copy:
-      src: "hubs-ops-secrets/roles/janus/files/{{ item }}.key"
+      src: "{{ secrets_path }}/roles/janus/files/{{ item }}.key"
       dest: "{{ work_dir.path }}/{{ item }}.key"
     when: env != 'local'
     loop: "{{ keyfiles }}"

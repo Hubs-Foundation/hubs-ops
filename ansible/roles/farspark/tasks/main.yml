@@ -3,11 +3,11 @@
 - block:
   - name: Include main vars
     include_vars:
-      file: "hubs-ops-secrets/roles/farspark/vars/main.yml"
+      file: "{{ secrets_path }}/roles/farspark/vars/main.yml"
 
   - name: Include environment specific vars
     include_vars:
-      file: "hubs-ops-secrets/roles/farspark/vars/{{ env }}.yml"
+      file: "{{ secrets_path }}/roles/farspark/vars/{{ env }}.yml"
 
   - name: Install moz hab-butterfly (needed until https://github.com/habitat-sh/habitat/issues/5257 is closed)
     shell: "hab pkg install mozillareality/hab-butterfly"
