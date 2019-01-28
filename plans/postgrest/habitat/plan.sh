@@ -14,7 +14,6 @@ pkg_build_deps=(
   core/gcc
 )
 pkg_deps=(
-  core/postgresql
   core/gcc-libs
   core/glibc
   core/openssl
