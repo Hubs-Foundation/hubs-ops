@@ -44,6 +44,14 @@ resource "aws_security_group" "stream" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # WebRTC
+  egress {
+    from_port = "0"
+    to_port = "65535"
+    protocol = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # NTP
   egress {
     from_port = "123"
@@ -84,6 +92,7 @@ resource "aws_launch_configuration" "stream" {
     "${data.terraform_remote_state.hab.hab_ring_security_group_id}",
   ]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
+  root_block_device { volume_size = 32 }
   iam_instance_profile = "${aws_iam_instance_profile.stream.id}"
   associate_public_ip_address = false
   lifecycle { create_before_destroy = true }
