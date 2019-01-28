@@ -5,10 +5,12 @@ pkg_upstream_url=https://github.com/begriffs/postgrest
 pkg_source=https://github.com/begriffs/postgrest.git
 pkg_version=undefined
 pkg_branch=v0.5.0.0
+ghc_version=8.4.3
 pkg_bin_dirs=(bin)
 
 pkg_build_deps=(
   mozillareality/haskell-stack
+  core/ghc/${ghc_version}
   core/git
   core/patchelf
   core/gcc

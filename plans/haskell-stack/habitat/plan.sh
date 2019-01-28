@@ -1,9 +1,9 @@
 pkg_name=haskell-stack
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
-pkg_version=1.3.2
+pkg_version=1.9.3
 pkg_source=https://github.com/commercialhaskell/stack/releases/download/v${pkg_version}/stack-${pkg_version}-linux-x86_64-static.tar.gz
-pkg_shasum=ebeb76744c85b7cd5504b6e29f8912b920a247b7895a2d4a1fe9564f5c5ec164
+pkg_shasum=c9bf6d371b51de74f4bfd5b50965966ac57f75b0544aebb59ade22195d0b7543
 pkg_bin_dirs=(bin)
 
 ghc_version=8.4.3
