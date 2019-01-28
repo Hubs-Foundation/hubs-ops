@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cd {{pkg.svc_bin_path}}
+exec postgrest {{cfg.run.options}} {{ pkg.svc_config_path }}/postgrest.conf 2>&1
