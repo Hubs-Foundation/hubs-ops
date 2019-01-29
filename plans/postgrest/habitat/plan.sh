@@ -3,7 +3,7 @@ pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 pkg_upstream_url=https://github.com/begriffs/postgrest
 pkg_source=https://github.com/begriffs/postgrest.git
-pkg_version=undefined
+pkg_version=0.5.0
 pkg_branch=v0.5.0.0
 ghc_version=8.4.3
 pkg_bin_dirs=(bin)
@@ -14,10 +14,13 @@ pkg_build_deps=(
   core/git
   core/patchelf
   core/gcc
+  core/zlib
+  core/cacerts
+  core/gawk
 )
 pkg_deps=(
   core/gcc-libs
-  core/glibc
+  core/glibc/2.27
   core/openssl
   core/zlib
 )
@@ -60,13 +63,12 @@ do_unpack() {
 }
 
 do_build() {
-  export LIBRARY_PATH="${LIBRARY_PATH}:$(pkg_path_for postgresql)/lib"
-  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pkg_path_for postgresql)/lib"
-
   mkdir "${HAB_CACHE_SRC_PATH}/${pkg_dirname}/bin"
+  export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${LD_RUN_PATH}"
+  echo $LD_LIBRARY_PATH
+  export LIBRARY_PATH="$LIBRARY_PATH:${LD_RUN_PATH}"
 
   stack build \
-    --extra-include-dirs="$(pkg_path_for zlib)/include" \
     --copy-bins \
     --local-bin-path="${HAB_CACHE_SRC_PATH}/${pkg_dirname}/bin" \
     && return 0

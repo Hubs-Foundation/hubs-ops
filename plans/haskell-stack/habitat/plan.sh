@@ -9,6 +9,7 @@ pkg_bin_dirs=(bin)
 ghc_version=8.4.3
 pkg_deps=(
   core/ghc/${ghc_version}
+  core/glibc/2.27
   core/cacerts
   core/coreutils
   core/gawk
@@ -22,7 +23,6 @@ pkg_deps=(
   core/gnupg
   core/libffi
   core/gcc
-  core/glibc
 )
 
 do_unpack() {
