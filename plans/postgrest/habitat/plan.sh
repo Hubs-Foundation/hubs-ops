@@ -15,10 +15,11 @@ pkg_build_deps=(
   core/gcc
 )
 pkg_deps=(
-  core/gcc-libs
-  core/glibc
-  core/openssl
-  core/zlib
+  core/gcc-libs/7.3.0
+  core/glibc/2.27/20180608041157
+  core/linux-headers/4.15.9/20180608041107
+  core/openssl/1.0.2q/20181212183918
+  core/zlib/1.2.11/20180608050617
   mozillareality/ncurses5-compat-libs
 )
 
@@ -71,6 +72,9 @@ do_build() {
   rm /lib64/ld-linux-x86-64.so.2 || echo ""
   ln -s $(pkg_path_for core/glibc)/lib/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
 
+  stack install --extra-include-dirs="$(pkg_path_for core/zlib)/include" cabal-install
+  stack install --extra-include-dirs="$(pkg_path_for core/zlib)/include" happy
+
   # Custom stack.yaml after adding extra deps :P
   cat > "stack.yaml" <<- EOM
 resolver: lts-9.6
@@ -98,7 +102,7 @@ extra-deps:
   - binary-parser-0.5.5
   - bsb-http-chunked-0.0.0.4
   - byteorder-1.0.4
-  - bytestring-0.10.2.0
+  - bytestring-0.10.4.1
   - bytestring-builder-0.10.8.2.0
   - bytestring-strict-builder-0.4.5.1
   - bytestring-tree-builder-0.2.7.2
@@ -230,7 +234,7 @@ extra-deps:
   - th-lift-instances-0.1.11
   - th-orphans-0.13.6
   - th-reify-many-0.1.8
-  - time-1.4.2
+  - time-1.5.0.1
   - time-locale-compat-0.1.1.5
   - transformers-base-0.4.5.2
   - transformers-compat-0.6.2
@@ -266,7 +270,6 @@ EOM
     --extra-include-dirs="$(pkg_path_for core/zlib)/include" \
     --copy-bins \
     --local-bin-path="${HAB_CACHE_SRC_PATH}/${pkg_dirname}/bin" \
-    --resolver ghc-8.0.1 \
     && return 0
 
   return 1
