@@ -10,17 +10,13 @@ pkg_bin_dirs=(bin)
 
 pkg_build_deps=(
   mozillareality/haskell-stack
-  core/ghc/${ghc_version}
   core/git
   core/patchelf
   core/gcc
-  core/zlib
-  core/cacerts
-  core/gawk
 )
 pkg_deps=(
   core/gcc-libs
-  core/glibc/2.27
+  core/glibc
   core/openssl
   core/zlib
 )
@@ -65,8 +61,8 @@ do_unpack() {
 do_build() {
   mkdir "${HAB_CACHE_SRC_PATH}/${pkg_dirname}/bin"
   export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${LD_RUN_PATH}"
-  echo $LD_LIBRARY_PATH
   export LIBRARY_PATH="$LIBRARY_PATH:${LD_RUN_PATH}"
+  #export PATH=$PATH:$(pkg_path_for core/ghc)/bin
 
   stack build \
     --copy-bins \
