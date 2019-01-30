@@ -91,7 +91,7 @@
       "type": "shell",
       "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
       "inline": [
-        "curl -L \"https://api.bintray.com/content/habitat/stable/linux/x86_64/hab-%24latest-x86_64-linux.tar.gz?bt_package=hab-x86_64-linux\" | tar xvz",
+        "curl -L \"https://api.bintray.com/content/habitat/stable/linux/x86_64/hab-0.73.0-20190115004751-x86_64-linux.tar.gz?bt_package=hab-x86_64-linux\" | tar xvz",
         "find . -name 'hab' -exec mv {} /usr/bin \\;",
         "chmod +x /usr/bin/hab",
         "mv hab.service /lib/systemd/system",
