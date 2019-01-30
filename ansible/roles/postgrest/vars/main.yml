@@ -1,0 +1,8 @@
+---
+
+services:
+  - postgrest
+  - dd-agent
+
+keyfiles:
+  - jwk.json
