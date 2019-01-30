@@ -9,6 +9,10 @@
     include_vars:
       file: "{{ secrets_path }}/roles/postgrest/vars/{{ env }}.yml"
 
+  - name: Include environment specific vars
+    include_vars:
+      file: "roles/postgrest/vars/{{ env }}.yml"
+
   - name: Install moz hab-butterfly (needed until https://github.com/habitat-sh/habitat/issues/4066 is closed)
     shell: "hab pkg install mozillareality/hab-butterfly"
     when: env != 'local'
@@ -27,7 +31,7 @@
 
   - name: "Write local JWK"
     copy:
-      src: "{{ secrets_path }}/roles/postgrest/files/{{ item }}.{{ env }}"
+      src: "{{ item }}.{{ env }}"
       dest: "{{ work_dir.path }}/{{ item }}"
     when: env != 'local'
     loop: "{{ keyfiles }}"
