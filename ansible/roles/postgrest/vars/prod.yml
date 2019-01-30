@@ -6,6 +6,6 @@ db_pool: 10
 server_host: "0.0.0.0"
 server_port: 3000
 jwt_secret_enabled: "true"
-jwt_aud: "ret"
+jwt_aud: "ret_perms"
 role_claim_key: ".postgrest_role"
 collect_ec2_tags: "no"
