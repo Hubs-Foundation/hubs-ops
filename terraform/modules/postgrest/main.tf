@@ -99,6 +99,7 @@ systemctl restart systemd-sysctl.service
 
 sudo /usr/bin/hab svc load mozillareality/postgrest --strategy ${var.postgrest_restart_strategy} --url https://bldr.habitat.sh --channel ${var.postgrest_channel}
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/python /usr/bin/save_service_files postgrest default mozillareality
 EOF
 }
 
