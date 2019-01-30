@@ -1,0 +1,10 @@
+---
+
+services:
+  - hubs-discord-bot
+  - dd-agent
+
+collect_ec2_tags: "no"
+shard_id: "0"
+shard_count: "0"
+verbose: "false"
