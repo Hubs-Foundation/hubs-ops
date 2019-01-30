@@ -26,9 +26,11 @@ execute 'create or replace view ' || name || ' as (select ' || pk || ' as id, '
             AND  c.column_name NOT IN(pk)
     ), ',') ||
 				' from ret0.' || name || ' as o)';
+
+execute 'grant all privileges on all tables in schema ret0_admin to ret_admin';
+
 end
 
-execute 'grant all privileges on all tables in schema ret0_admin to ret_admin'
 
 $$ language plpgsql;
 
