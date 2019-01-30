@@ -1,0 +1,13 @@
+[db]
+uri = "{{ db_uri }}"
+schema = "{{ db_schema }}"
+anon_role = "{{ db_anon_role }}"
+
+[server]
+host = "{{ server_host }}"
+port = {{ server_port }}
+
+[security]
+jwt_secret_enabled = {{ jwt_secret_enabled }}
+jwt_aud = "{{ jwt_aud }}"
+role_claim_key = "{{ role_claim_key }}"

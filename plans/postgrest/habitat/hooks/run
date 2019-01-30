@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+exec 2>&1
+
+set -e
+
+exec postgrest {{cfg.run.options}} {{ pkg.svc_config_path }}/postgrest.conf
