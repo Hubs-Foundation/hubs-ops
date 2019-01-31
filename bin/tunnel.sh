@@ -25,7 +25,9 @@ EC2_INFO=$(aws ec2 --region $REGION describe-instances)
 BASTION_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.State ; .Name == \"running\"))) | map(select(any(.Tags // [] | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-bastion\"))) | .[] .PublicIpAddress" | shuf | head -n1)
 echo $BASTION_IP
 
-if [[ $HOST_TYPE_OR_NAME == *"-"* ]] ; then
+if [[ $HOST_TYPE_OR_NAME == *"."* ]] ; then
+  TARGET_IP=$(dig +short $HOST_TYPE_OR_NAME | shuf | head -n1)
+elif [[ $HOST_TYPE_OR_NAME == *"-"* ]] ; then
   # it's a hostname
   TARGET_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.State ; .Name == \"running\"))) | map(select(any(.Tags // [] | from_entries ; .[\"Name\"] == \"${HOST_TYPE_OR_NAME}\"))) | .[] | .PrivateIpAddress" | shuf | head -n1)
 else

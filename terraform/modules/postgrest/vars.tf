@@ -13,3 +13,13 @@ variable "postgrest_channel" {
 variable "postgrest_restart_strategy" {
   description = "Habitat restart strategy for PostgREST"
 }
+
+variable "postgrest_domain" {
+  description = "Domain name being used for PostgREST server (ex reticulum.io)"
+}
+
+variable "postgrest_dns_prefix" {
+  description = "Prefix before domain for DNS entry"
+}
+
+

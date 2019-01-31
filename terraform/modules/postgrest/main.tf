@@ -11,6 +11,10 @@ data "terraform_remote_state" "hab" { backend = "s3", config = { key = "hab/terr
 data "terraform_remote_state" "ret-db" { backend = "s3", config = { key = "ret-db/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "ret" { backend = "s3", config = { key = "ret/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
+data "aws_route53_zone" "postgrest-zone" {
+  name = "${var.postgrest_domain}."
+}
+
 data "aws_ami" "hab-base-ami" {
   most_recent = true
   owners = ["self"]
@@ -18,6 +22,84 @@ data "aws_ami" "hab-base-ami" {
   filter {
     name = "name"
     values = ["hab-base-*"]
+  }
+}
+
+data "aws_acm_certificate" "postgrest-alb-listener-cert" {
+  domain = "*.${var.postgrest_domain}"
+  statuses = ["ISSUED"]
+  most_recent = true
+}
+
+data "aws_acm_certificate" "postgrest-alb-listener-cert-east" {
+  provider = "aws.east"
+  domain = "*.${var.postgrest_domain}"
+  statuses = ["ISSUED"]
+  most_recent = true
+}
+
+resource "aws_security_group" "postgrest-alb" {
+  name = "${var.shared["env"]}-postgrest-alb"
+  vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
+
+  ingress {
+    from_port = "${var.postgrest_http_port}"
+    to_port = "${var.postgrest_http_port}"
+    protocol = "tcp"
+    security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
+  }
+}
+
+resource "aws_security_group_rule" "postgrest-alb-egress" {
+  type = "egress"
+  from_port = "${var.postgrest_http_port}"
+  to_port = "${var.postgrest_http_port}"
+  protocol = "tcp"
+  security_group_id = "${aws_security_group.postgrest-alb.id}"
+  source_security_group_id = "${aws_security_group.postgrest.id}"
+}
+
+resource "aws_alb" "postgrest-alb" {
+  name = "${var.shared["env"]}-postgrest-alb"
+
+  security_groups = [
+    "${aws_security_group.postgrest-alb.id}"
+  ]
+
+  subnets = ["${data.terraform_remote_state.vpc.private_subnet_ids}"]
+  internal = true
+
+  lifecycle { create_before_destroy = true }
+}
+
+resource "aws_alb_target_group" "postgrest-alb-group-http" {
+  name = "${var.shared["env"]}-postgrest-alb-group-http"
+  vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
+  port = "${var.postgrest_http_port}"
+  protocol = "HTTP"
+  deregistration_delay = 0
+
+  health_check {
+    path = "/"
+    healthy_threshold = 2
+    unhealthy_threshold = 2
+    interval = 10
+    timeout = 5
+  }
+}
+
+resource "aws_alb_listener" "postgrest-ssl-alb-listener" {
+  load_balancer_arn = "${aws_alb.postgrest-alb.arn}"
+  port = "${var.postgrest_http_port}"
+
+  protocol = "HTTPS"
+  ssl_policy = "ELBSecurityPolicy-2015-05"
+
+  certificate_arn = "${data.aws_acm_certificate.postgrest-alb-listener-cert.arn}"
+
+  default_action {
+    target_group_arn = "${aws_alb_target_group.postgrest-alb-group-http.arn}"
+    type = "forward"
   }
 }
 
@@ -44,7 +126,7 @@ resource "aws_security_group" "postgrest" {
     from_port = "${var.postgrest_http_port}"
     to_port = "${var.postgrest_http_port}"
     protocol = "tcp"
-    security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
+    security_groups = ["${aws_security_group.postgrest-alb.id}"]
   }
 
   # SSH
@@ -112,8 +194,22 @@ resource "aws_autoscaling_group" "postgrest" {
   min_size = "1"
   max_size = "1"
 
+  target_group_arns = ["${aws_alb_target_group.postgrest-alb-group-http.arn}"]
+
   lifecycle { create_before_destroy = true }
   tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }
   tag { key = "host-type", value = "${var.shared["env"]}-postgrest", propagate_at_launch = true }
   tag { key = "hab-ring", value = "${var.shared["env"]}", propagate_at_launch = true }
+}
+
+resource "aws_route53_record" "postgrest-dns" {
+  zone_id = "${data.aws_route53_zone.postgrest-zone.zone_id}"
+  name = "${var.postgrest_dns_prefix}${data.aws_route53_zone.postgrest-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_alb.postgrest-alb.dns_name}"
+    zone_id = "${aws_alb.postgrest-alb.zone_id}"
+    evaluate_target_health = true
+  }
 }

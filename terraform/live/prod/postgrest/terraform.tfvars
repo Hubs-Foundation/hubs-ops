@@ -12,6 +12,8 @@ terragrunt = {
   }
 }
 
+postgrest_domain = "reticulum.io"
+postgrest_dns_prefix = "postgrest."
 postgrest_instance_type = "m3.medium"
 postgrest_http_port = 3000
 postgrest_restart_strategy = "at-once"
