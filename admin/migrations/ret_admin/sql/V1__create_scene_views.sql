@@ -19,7 +19,9 @@ WHERE
  AND indisprimary;
 
 -- Create a view with the primary key renamed to id 
-execute 'create or replace view ' || name || ' as (select ' || pk || ' as id, '
+execute 'create or replace view ' || name
+|| ' as (select ' || pk || ' as id, '
+|| ' cast(' || pk || ' as varchar) as text_id, '
 || array_to_string(ARRAY(SELECT 'o' || '.' || c.column_name
         FROM information_schema.columns As c
             WHERE table_name = name AND table_schema = 'ret0'
@@ -27,13 +29,16 @@ execute 'create or replace view ' || name || ' as (select ' || pk || ' as id, '
     ), ',') ||
 				' from ret0.' || name || ' as o)';
 
-execute 'grant all privileges on all tables in schema ret0_admin to ret_admin';
-
 end
 
 
 $$ language plpgsql;
 
 select create_or_replace_admin_view('scenes');
+grant select, insert, update on ret0_admin.scenes to ret_admin;
+
 select create_or_replace_admin_view('accounts');
+grant select, insert, update on ret0_admin.accounts to ret_admin;
+
 select create_or_replace_admin_view('owned_files');
+grant select, insert, update on ret0_admin.owned_files to ret_admin;
