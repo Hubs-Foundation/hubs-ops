@@ -1,0 +1,6 @@
+---
+
+- block:
+  - name: Ensure JRE
+    apt: name=default-jre
+    become_user: 'root'
