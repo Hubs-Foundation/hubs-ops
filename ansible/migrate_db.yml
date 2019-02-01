@@ -1,9 +1,9 @@
 ---
 
 - hosts: all
-  gather_facts: false
+  gather_facts: true
   become: true
-  become_user: "{{ false if connection == 'local' else 'root' }}"
+  become_user: "root"
   connection: "{{ connection }}"
   roles:
   - role: migrate

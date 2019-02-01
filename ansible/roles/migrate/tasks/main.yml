@@ -1,6 +1,58 @@
 ---
 
 - block:
-  - name: Ensure JRE
-    apt: name=default-jre
-    become_user: 'root'
+  - name: Include environment specific secrets
+    include_vars:
+      file: "{{ secrets_path }}/roles/migrate/vars/{{ env }}.yml"
+
+  - name: Include environment specific vars
+    include_vars:
+      file: "roles/migrate/vars/{{ env }}.yml"
+
+  - name: Add Docker GPG key
+    apt_key: url=https://download.docker.com/linux/ubuntu/gpg
+
+  - name: Add Docker APT repository
+    apt_repository:
+      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ansible_distribution_release}} stable
+
+  - name: Install list of packages
+    apt:
+      name: ['apt-transport-https','ca-certificates','curl','software-properties-common','docker-ce']
+      state: present
+      update_cache: yes
+
+  - name: Create work directory
+    tempfile:
+      state: directory
+      suffix: deploy
+    register: work_dir
+
+  - name: Checkout hubs-ops
+    git:
+      repo: "{{ ops_repo }}"
+      dest: "{{ work_dir.path }}"
+
+  - name: "Write configs"
+    template:
+      src: "flyway.conf.j2"
+      dest: "{{ work_dir.path }}/db/{{ item }}/conf/flyway.conf"
+    loop: "{{ schemas }}"
+
+  - name: Baseline schemas
+    shell: "docker run --mount type=bind,source={{ work_dir.path }}/db/{{ item }}/conf,target=/conf --mount type=bind,source={{ work_dir.path }}/db/{{ item }}/sql,target=/sql --network=host --rm boxfuse/flyway -configFiles=/conf/flyway.conf baseline"
+    args:
+      chdir: "{{ work_dir.path }}/db/{{ item }}"
+    loop: "{{ schemas }}"
+
+  - name: Migrate schemas
+    shell: "docker run --mount type=bind,source={{ work_dir.path }}/db/{{ item }}/conf,target=/conf --mount type=bind,source={{ work_dir.path }}/db/{{ item }}/sql,target=/sql --network=host --rm boxfuse/flyway -configFiles=/conf/flyway.conf migrate"
+    args:
+      chdir: "{{ work_dir.path }}/db/{{ item }}"
+    loop: "{{ schemas }}"
+
+  always:
+  - name: Remove work directory
+    file:
+      path: "{{ work_dir.path }}"
+      state: absent

@@ -1,0 +1,4 @@
+---
+
+db_url: jdbc:postgresql://localhost:5432/ret_dev
+db_password: postgres
