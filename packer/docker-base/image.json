@@ -23,7 +23,7 @@
     },
     "instance_type": "m3.medium",
     "ssh_username": "ubuntu",
-    "ami_name": "hab-base-{{timestamp}}"
+    "ami_name": "docker-base-{{timestamp}}"
   }],
   "provisioners": [
     { "type": "file", "source": "../shared/files/hostname-adjectives", "destination": "hostname-adjectives" },
@@ -31,7 +31,6 @@
     { "type": "file", "source": "../shared/files/set_hostname.sh", "destination": "set_hostname.sh" },
     { "type": "file", "source": "../shared/files/set_host_type_prompt.sh", "destination": "set_host_type_prompt.sh" },
     { "type": "file", "source": "../shared/files/set-hostname.service", "destination": "set-hostname.service" },
-    { "type": "file", "source": "../shared/files/save_service_files", "destination": "save_service_files" },
     { "type": "file", "source": "../shared/files/coredump.conf", "destination": "coredump.conf" },
     { "type": "file", "source": "../shared/files/sysctl.core.conf", "destination": "sysctl.core.conf" },
     { "type": "file", "source": "../shared/files/limits.core.conf", "destination": "limits.core.conf" },
@@ -45,7 +44,12 @@
         "apt-get update",
         "apt-get update",
         "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y",
-        "DEBIAN_FRONTEND=noninteractive apt-get install -y unattended-upgrades python3 awscli jq sysstat nfs-common",
+        "DEBIAN_FRONTEND=noninteractive apt-get install -y unattended-upgrades python3 awscli jq sysstat nfs-common apt-transport-https ca-certificates curl gnupg-agent software-properties-common",
+        "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
+        "apt-key fingerprint 0EBFCD88 | grep \"9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88\" || exit 1",
+        "sudo add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
+        "apt-get update",
+        "DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce",
         "update-alternatives --install /usr/bin/python python /usr/bin/python3 1",
         "mv coredump.conf /etc/systemd",
         "mv sysctl.core.conf /etc/sysctl.d/60-core.conf",
@@ -70,49 +74,16 @@
         "mv set_host_type_prompt.sh /usr/bin",
         "mv set_hostname.sh /usr/bin",
         "mv set-hostname.service /lib/systemd/system",
-        "mv save_service_files /usr/bin",
         "chown root:root /lib/systemd/system/set-hostname.service",
         "systemctl enable set-hostname",
         "chown root:root /usr/share/dict/hostname-nouns",
         "chown root:root /usr/share/dict/hostname-adjectives",
         "chown root:root /usr/bin/set_hostname.sh",
         "chown root:root /usr/bin/set_host_type_prompt.sh",
-        "chown root:root /usr/bin/save_service_files",
         "chmod +x /usr/bin/set_host_type_prompt.sh",
         "chmod +x /usr/bin/set_hostname.sh",
-        "chmod +x /usr/bin/save_service_files",
         "echo \". /usr/bin/set_host_type_prompt.sh\" >> /home/ubuntu/.bashrc",
         "echo \". /usr/bin/set_host_type_prompt.sh\" >> /root/.bashrc"
-      ]
-    },
-    { "type": "file", "source": "files/hab.service", "destination": "hab.service" },
-    { "type": "file", "source": "files/hab-discover-peer", "destination": "hab-discover-peer" },
-    {
-      "type": "shell",
-      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
-      "inline": [
-        "curl -L \"https://api.bintray.com/content/habitat/stable/linux/x86_64/hab-0.73.0-20190115004751-x86_64-linux.tar.gz?bt_package=hab-x86_64-linux\" | tar xvz",
-        "find . -name 'hab' -exec mv {} /usr/bin \\;",
-        "chmod +x /usr/bin/hab",
-        "mv hab.service /lib/systemd/system",
-        "chown root:root /lib/systemd/system/hab.service",
-        "systemctl enable hab",
-        "mv hab-discover-peer /usr/bin",
-        "chown root:root /usr/bin/hab-discover-peer",
-        "chmod +x /usr/bin/hab-discover-peer",
-        "mkdir -p /hab/cache",
-        "groupadd -g 1001 hab",
-        "useradd -u 1001 -g 1001 hab"
-      ]
-    },
-    { "type": "file", "source": "secrets", "destination": "." },
-    {
-      "type": "shell",
-      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
-      "inline": [
-        "mv secrets/hab-keys /hab/cache/keys",
-        "chown -R root:root /hab/cache/keys",
-        "chmod -R 0600 /hab/cache/keys"
       ]
     }
   ]

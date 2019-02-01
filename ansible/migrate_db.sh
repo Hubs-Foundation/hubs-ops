@@ -31,7 +31,7 @@ BASTION_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten |
 if [[ $ENVIRONMENT == "local" ]] ; then
   ansible-playbook --ask-vault-pass -i "127.0.0.1," --extra-vars "env=${ENVIRONMENT} connection=local secrets_path=${HUBS_OPS_SECRETS_PATH}" -u ubuntu "migrate_db.yml"
 else
-  TARGET_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.State ; .Name == \"running\"))) | map(select(any(.Tags // [] | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-hab\"))) | .[] | .PrivateIpAddress" | shuf | head -n1)
+  TARGET_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.State ; .Name == \"running\"))) | map(select(any(.Tags // [] | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-util\"))) | .[] | .PrivateIpAddress" | shuf | head -n1)
 
   ansible-playbook --ask-vault-pass -i "${TARGET_IP}," --ssh-common-args="-i ~/.ssh/mozilla_mr_id_rsa -o ProxyCommand=\"ssh -W %h:%p -o StrictHostKeyChecking=no -i ~/.ssh/mozilla_mr_id_rsa ubuntu@${BASTION_IP}\"" --extra-vars "env=${ENVIRONMENT} connection=ssh secrets_path=${HUBS_OPS_SECRETS_PATH}" -u ubuntu "migrate_db.yml"
 fi
