@@ -10,43 +10,46 @@ pkg_bin_dirs=(bin)
 pkg_include_dirs=(include)
 pkg_lib_dirs=(lib)
 pkg_build_deps=(
-  core/automake
-  core/autoconf
-  core/make
-  core/gcc
-  core/pkg-config
-  core/which
-  core/libtool
-  core/m4
-  core/rust
-  core/cacerts
-  core/git
-  mozillareality/gnutls
-  mozillareality/gengetopt
+    core/automake
+    core/autoconf
+    core/make
+    core/gcc
+    core/pkg-config
+    core/which
+    core/libtool
+    core/m4
+    core/rust
+    core/cacerts
+    core/git
+    mozillareality/gnutls
+    mozillareality/gengetopt
 )
 
+# versions are pinned for convenience building with Habitat, not because we give a crap about
+# having these versions in particular -- latest versions of everything should be sufficient
 pkg_deps=(
-  core/openssl
-  core/glib
-  core/util-linux
-  core/sqlite
-  core/p11-kit
-  core/gcc # reqd for libasan
-  mozillareality/jansson
-  mozillareality/libsrtp
-  mozillareality/usrsctp
-  mozillareality/libmicrohttpd
-  mozillareality/libwebsockets
-  mozillareality/opus
-  mozillareality/libnice
+    core/gcc/7.3.0/20180608051919 # reqd for libasan
+    core/glib/2.50.3/20180718153537
+    core/openssl/1.0.2n/20180608102213
+    core/p11-kit/0.23.10/20180608191918
+    core/sqlite/3130000/20180608141313
+    core/util-linux/2.31.1/20180608101132
 
-  # https://github.com/habitat-sh/habitat/issues/3303
-  core/zlib
-  core/glibc
-  core/gcc-libs
-  core/nettle
-  core/pcre
-  core/libtasn1
+    mozillareality/jansson/2.10/20170922013102
+    mozillareality/libmicrohttpd/0.9.55/20170923183119
+    mozillareality/libnice/0.1.15/20180914001451
+    mozillareality/libsrtp/2.1.0/20170923183826
+    mozillareality/libwebsockets/2.4.2/20180702225550
+    mozillareality/opus/1.2.1/20170922184322
+    mozillareality/usrsctp/0.9.4.0/20170923224507
+
+    # https://github.com/habitat-sh/habitat/issues/3303
+    core/zlib/1.2.11/20180608050617
+    core/glibc/2.27/20180608041157
+    core/gcc-libs/7.3.0/20180608091701
+    core/nettle/3.4/20180609173754
+    core/pcre/8.41/20180608092740
+    core/libtasn1/4.13/20180608191858
 )
 
 git-get () {
@@ -70,7 +73,7 @@ do_download() {
   pushd $HAB_CACHE_SRC_PATH
 
   git-get meetecho/janus-gateway 3c5ad1b125f696a32c85420f31a24eec79b35028
-  git-get mozilla/janus-plugin-sfu c5d53dfc8a23b4c2645a17b5fa014bfd6f430a15
+  git-get mozilla/janus-plugin-sfu e88464ae037b7e3b6202c1792c934b02dacae545
 
   popd
 }
