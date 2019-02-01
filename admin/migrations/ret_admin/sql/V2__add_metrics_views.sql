@@ -1,7 +1,7 @@
 set search_path = ret0;
 
 create view ret0_admin.hubs_metrics as 
-(select A.*, B.*, C.*, D.*, E.*, F.*, G.*, H.*, I.average_dau_last_week, J.*
+(select 1 as id, A.*, B.*, C.*, D.*, E.*, F.*, G.*, H.*, I.average_dau_last_week, J.*
 from
 (
 	select count(*) as num_accounts from accounts where inserted_at > '2018-10-17 16:17:18.755355+00'
