@@ -1,4 +1,8 @@
-create or replace function create_or_replace_admin_view(name text)
+create or replace function create_or_replace_admin_view(
+  name text,
+  extra_columns text default '',
+  extra_clauses text default ''
+)
 returns void as
 $$
 declare
@@ -21,13 +25,13 @@ WHERE
 -- Create a view with the primary key renamed to id 
 execute 'create or replace view ' || name
 || ' as (select ' || pk || ' as id, '
-|| ' cast(' || pk || ' as varchar) as text_id, '
+|| ' cast(' || pk || ' as varchar) as text_id, ' || extra_columns
 || array_to_string(ARRAY(SELECT 'o' || '.' || c.column_name
         FROM information_schema.columns As c
             WHERE table_name = name AND table_schema = 'ret0'
             AND  c.column_name NOT IN(pk)
     ), ',') ||
-				' from ret0.' || name || ' as o)';
+				' from ret0.' || name || ' as o ' || extra_clauses || ')';
 
 end
 
