@@ -101,3 +101,4 @@ from
 );
 
 set search_path = ret0_admin;
+grant all privileges on all tables in schema ret0_admin to ret_admin;
