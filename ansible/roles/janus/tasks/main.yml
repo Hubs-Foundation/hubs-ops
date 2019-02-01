@@ -44,6 +44,12 @@
     when: env != 'local'
     loop: "{{ keyfiles }}"
 
+  - name: "Write local auth key"
+    copy:
+      src: "perms.pub.der.{{ env }}"
+      dest: "{{ work_dir.path }}/perms.pub.der"
+    when: env != 'local'
+
   - name: "Generate local cert"
     shell: "openssl req -newkey rsa:2048 -nodes -keyout \"{{ work_dir.path }}/{{ item }}.key\" -x509 -days 365 -out \"{{ work_dir.path }}/{{ item }}.pem\" -subj '/C=US/ST=California/L=Mountain View/O=YourOrg/OU=YourDept/CN=yoursite.com'"
     when: env == 'local'
@@ -79,6 +85,10 @@
     when: env != 'local'
     loop: "{{ keyfiles }}"
 
+  - name: "Deploy remote auth key"
+    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/perms.pub.der"
+    when: env != 'local'
+
   - name: "Copy local keyfile pem"
     shell: "cp \"{{ work_dir.path }}/{{ item }}.pem\" /hab/svc/janus-gateway/files"
     when: env == 'local'
@@ -88,6 +98,10 @@
     shell: "cp \"{{ work_dir.path }}/{{ item }}.key\" /hab/svc/janus-gateway/files"
     when: env == 'local'
     loop: "{{ keyfiles }}"
+
+  - name: "Copy local auth key"
+    shell: "cp \"{{ work_dir.path }}/perms.pub.der\" /hab/svc/janus-gateway/files"
+    when: env == 'local'
 
   always:
   - name: Remove work directory
