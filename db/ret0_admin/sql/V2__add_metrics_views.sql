@@ -1,6 +1,6 @@
 set search_path = ret0;
 
-create view ret0_admin.hubs_metrics as 
+create or replace view ret0_admin.hubs_metrics as 
 (select 1 as id, A.*, B.*, C.*, D.*, E.*, F.*, G.*, H.*, I.average_dau_last_week, J.*
 from
 (
