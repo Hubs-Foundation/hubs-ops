@@ -4,6 +4,6 @@ db_user: postgres
 
 schemas:
   - public
-  - ret_admin
+  - ret0_admin
 
 ops_repo: https://github.com/mozilla/hubs-ops.git
