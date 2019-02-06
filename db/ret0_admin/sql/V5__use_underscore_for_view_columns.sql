@@ -38,11 +38,14 @@ end
 
 $$ language plpgsql;
 
+drop view ret0_admin.scenes;
 select create_or_replace_admin_view('scenes');
 grant select, insert, update on ret0_admin.scenes to ret_admin;
 
+drop view ret0_admin.accounts;
 select create_or_replace_admin_view('accounts');
 grant select, insert, update on ret0_admin.accounts to ret_admin;
 
+drop view ret0_admin.owned_files;
 select create_or_replace_admin_view('owned_files');
 grant select, insert, update on ret0_admin.owned_files to ret_admin;
