@@ -1,19 +1,6 @@
 const ALLOWED_ORIGINS = ["https://hubs.local:8080", "https://hubs.local:4000", "https://dev.reticulum.io", "https://smoke-dev.reticulum.io", "https://hubs.mozilla.com", "https://smoke-hubs.mozilla.com"];
 const PROXY_HOST = "https://hubs-proxy.com"
 
-async function streamBody(readable, writable) {
-  let reader = readable.getReader()
-  let writer = writable.getWriter()
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    await writer.write(value)
-  }
-
-  await writer.close()
-}
-
 addEventListener("fetch", e => {
   const request = e.request;
   const origin = request.headers.get("Origin");
@@ -38,7 +25,7 @@ addEventListener("fetch", e => {
 
     const responseHeaders = {};
 
-    for (let name of ["Content-Length", "Content-Range", "Content-Type", "Cache-Control", "Expires", "Accept-Ranges", "Range", "Date", "Last-Modified", "ETag", "Location"]) {
+    for (let name of ["Content-Length", "Content-Range", "Content-Type", "Cache-Control", "Expires", "Accept-Ranges", "Range", "Date", "Last-Modified", "ETag", "Location", "Content-Encoding"]) {
       let value = res.headers.get(name);
       if (!value) continue;
 
@@ -57,9 +44,6 @@ addEventListener("fetch", e => {
     responseHeaders["Vary"] = "Origin";
     responseHeaders['X-Content-Type-Options'] = "nosniff"
 
-    let { readable, writable } = new TransformStream();
-
-    streamBody(res.body, writable);
-    return new Response(readable, { status: res.status, statusText: res.statusText, headers: responseHeaders });
+    return new Response(res.body, { status: res.status, statusText: res.statusText, headers: responseHeaders });
   })());
 });
