@@ -11,29 +11,12 @@ addEventListener("fetch", e => {
     targetUrl = proxyUrl.protocol + "//" + targetUrl;
   }
 
-  const proxyHeaders = {};
-
-  for (let name of ["Accept", "Accept-Encoding", "Accept-Language", "Range", "Referer", "User-Agent"]) {
-    let value = request.headers.get(name);
-    if (!value) continue;
-
-    proxyHeaders[name] = value;
-  }
-
   e.respondWith((async () => {
-    const res = await fetch(targetUrl, { headers: proxyHeaders, method: request.method, redirect: "manual", referrer: request.referrer, referrerPolicy: request.referrerPolicy });
+    const res = await fetch(targetUrl, { headers: request.headers, method: request.method, redirect: "manual", referrer: request.referrer, referrerPolicy: request.referrerPolicy });
+    const responseHeaders = new Headers(res.headers);
 
-    const responseHeaders = {};
-
-    for (let name of ["Content-Length", "Content-Range", "Content-Type", "Cache-Control", "Expires", "Accept-Ranges", "Range", "Date", "Last-Modified", "ETag", "Location", "Content-Encoding"]) {
-      let value = res.headers.get(name);
-      if (!value) continue;
-
-      if (name === "Location") {
-        responseHeaders[name] = proxyUrl.protocol + "//" + proxyUrl.host + "/" + value;
-      } else {
-        responseHeaders[name] = value;
-      }
+    if(responseHeaders.get("Location")) {
+      responseHeaders.set("Location",  proxyUrl.protocol + "//" + proxyUrl.host + "/" + responseHeaders.get("Location"));
     }
 
     if (origin && ALLOWED_ORIGINS.indexOf(origin) >= 0) {
