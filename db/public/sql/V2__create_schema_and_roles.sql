@@ -1,3 +1,4 @@
+create schema ret0_admin;
 create role postgrest_authenticator noinherit login;
 
 create role postgrest_anonymous;
