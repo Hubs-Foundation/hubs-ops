@@ -1,0 +1,60 @@
+---
+
+- hosts: all
+  gather_facts: false
+  become: true
+  become_user: root
+  connection: "{{ connection }}"
+  
+  tasks: 
+  - name: download habitat installer
+    get_url:
+      url: https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh
+      dest: /tmp/install.sh
+      mode: 0755
+
+  - name: installing habitat
+    shell: /tmp/install.sh
+
+  - name: create hab user/group
+    user:
+      name: hab
+      home: /hab
+      create_home: yes
+      shell: /bin/bash
+      groups: sudo
+      append: yes
+
+  - name: change /hab folder permission
+    command: chown -R hab:hab /hab 
+
+  - name: create /hab/keys directory
+    become: yes
+    become_user: hab
+    file:
+      path: /hab/keys
+      state: directory
+
+  - name: create ring key and box keys
+    command: "{{ item }}"
+    become: yes
+    become_user: hab
+    loop:
+      - "hab ring key generate mr"
+      - "hab svc key generate janus.default mozillareality"
+      - "hab svc key generate farspark.default mozillareality"
+      - "hab svc key generate reticulum.default mozillareality"
+      - "hab svc key generate dd-agent.default mozillareality"
+
+  - name: create hab systemd service
+    copy:
+      src: ./hab.service
+      dest: /lib/systemd/system/hab.service
+      mode: 644
+
+  - name: start and enable hab systemd service
+    service:
+      name: hab.service
+      state: started
+      daemon_reload: yes
+      enabled: yes
