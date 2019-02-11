@@ -6,13 +6,16 @@ addEventListener("fetch", e => {
   const origin = request.headers.get("Origin");
   const proxyUrl = new URL(PROXY_HOST);
   let targetUrl = request.url.substring(PROXY_HOST.length + 1).replace(/^http(s?):\/([^/])/, "http$1://$2");
-
+  
   if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
     targetUrl = proxyUrl.protocol + "//" + targetUrl;
   }
+  
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete("Origin"); // Some domains disallow access from improper Origins
 
   e.respondWith((async () => {
-    const res = await fetch(targetUrl, { headers: request.headers, method: request.method, redirect: "manual", referrer: request.referrer, referrerPolicy: request.referrerPolicy });
+    const res = await fetch(targetUrl, { headers: requestHeaders, method: request.method, redirect: "manual", referrer: request.referrer, referrerPolicy: request.referrerPolicy });
     const responseHeaders = new Headers(res.headers);
 
     if(responseHeaders.get("Location")) {
@@ -20,12 +23,12 @@ addEventListener("fetch", e => {
     }
 
     if (origin && ALLOWED_ORIGINS.indexOf(origin) >= 0) {
-      responseHeaders["Access-Control-Allow-Origin"] = origin;
-      responseHeaders["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS";
+      responseHeaders.set("Access-Control-Allow-Origin", origin);
+      responseHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
     }
 
-    responseHeaders["Vary"] = "Origin";
-    responseHeaders['X-Content-Type-Options'] = "nosniff"
+    responseHeaders.set("Vary", "Origin");
+    responseHeaders.set('X-Content-Type-Options', "nosniff");
 
     return new Response(res.body, { status: res.status, statusText: res.statusText, headers: responseHeaders });
   })());
