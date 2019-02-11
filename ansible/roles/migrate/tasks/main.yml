@@ -26,11 +26,10 @@
       dest: "{{ work_dir.path }}/db/{{ item }}/conf/flyway.conf"
     loop: "{{ schemas }}"
 
-  - name: Baseline schemas
-    shell: "docker run --mount type=bind,source={{ work_dir.path }}/db/{{ item }}/conf,target=/conf --mount type=bind,source={{ work_dir.path }}/db/{{ item }}/sql,target=/sql --network=host --rm boxfuse/flyway -configFiles=/conf/flyway.conf baseline"
+  - name: Baseline public schema
+    shell: "docker run --mount type=bind,source={{ work_dir.path }}/db/public/conf,target=/conf --mount type=bind,source={{ work_dir.path }}/db/public/sql,target=/sql --network=host --rm boxfuse/flyway -configFiles=/conf/flyway.conf baseline"
     args:
-      chdir: "{{ work_dir.path }}/db/{{ item }}"
-    loop: "{{ schemas }}"
+      chdir: "{{ work_dir.path }}/db/public"
 
   - name: Migrate schemas
     shell: "docker run --mount type=bind,source={{ work_dir.path }}/db/{{ item }}/conf,target=/conf --mount type=bind,source={{ work_dir.path }}/db/{{ item }}/sql,target=/sql --network=host --rm boxfuse/flyway -configFiles=/conf/flyway.conf migrate"
