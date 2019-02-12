@@ -255,6 +255,11 @@ resource "aws_cloudfront_distribution" "farspark-cdn" {
     error_caching_min_ttl = 0
   }
 
+  custom_error_response {
+    error_code = 504
+    error_caching_min_ttl = 0
+  }
+
   price_class = "PriceClass_All"
 
   viewer_certificate {
