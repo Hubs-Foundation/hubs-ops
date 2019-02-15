@@ -32,7 +32,7 @@ function moz-ec2 {
     then
         FILTERS="$FILTERS Name=tag:aws:autoscaling:groupName,Values=$1-$2"
     fi
-    local ALL=$(aws ec2 describe-instances --filters $FILTERS)
+    local ALL=$(aws ec2 describe-instances --output json --filters $FILTERS)
     local OUTPUT=$(jq -r '.Reservations | map(.Instances) | flatten | .[] | [
       ((.Tags//[])[]|select(.Key=="env")|.Value) // "null",
       ((.Tags//[])[]|select(.Key=="aws:autoscaling:groupName")|.Value) // "null",
