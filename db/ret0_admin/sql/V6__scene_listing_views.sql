@@ -1,3 +1,6 @@
+select create_or_replace_admin_view('scenes');
+
+grant select, insert, update on ret0_admin.scenes to ret_admin;
 select create_or_replace_admin_view('scene_listings');
 grant select, insert, update on ret0_admin.scene_listings to ret_admin;
 
