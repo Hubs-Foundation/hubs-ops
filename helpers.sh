@@ -77,13 +77,13 @@ function moz-tunnel {
     ssh -L "$2:$DESTINATION_HOST-local.reticulum.io:$3" "$BASTION.reticulum.io" "${@:4}"
 }
 
-# moz-tunnel-postgrest env local-post remote-port ...cmd-args
-# Opens an SSH tunnel to a Postgrest admin console. (This is magically different from SSH tunnels
+# moz-tunnel-postgrest ...cmd-args
+# Opens an SSH tunnel to the prod Postgrest admin console. (This is magically different from SSH tunnels
 # to anything else because there is an ALB in front of the instance with a hardcoded DNS, and
-# the instance won't talk to anyone except the ALB.)
-function moz-tunnel-postgrest {
-    local BASTION=$(moz-ec2 "$1" bastion | awk "{print \$3}")
-    ssh -L "$2:postgrest.reticulum.io:$3" "$BASTION.reticulum.io" "${@:4}"
+# the instance won't talk to anyone except the ALB. The dev ALB is called postgrest-dev.reticulum.io.)
+function moz-admin {
+    local BASTION=$(moz-ec2 prod bastion | awk "{print \$3}")
+    ssh -L "3000:postgrest.reticulum.io:3000" "$BASTION.reticulum.io" "${@:1}"
 }
 
 # moz-iex target ...cmd-args
@@ -95,9 +95,6 @@ function moz-iex {
 
 # Creates a tunnel to the CI host's web interface on port 8088.
 alias moz-ci='moz-tunnel dev-ci 8088 8080'
-
-# Creates a tunnel to the prod admin console web interface on port 3000.
-alias moz-admin='moz-tunnel-postgrest prod 3000 3000'
 
 # Proxies SCP over a bastion host, e.g. `moz-scp prod dazzling-druid-local.reticulum.io:~/core core`.
 alias moz-scp='moz-proxy scp'
