@@ -26,13 +26,13 @@ function moz-ec2 {
     local FILTERS="Name=instance-state-name,Values=running"
     if [ ! -z "$1" ]
     then
-        FILTERS="$FILTERS Name=tag:env,Values=$1"
+        FILTERS="$FILTERS,Name=tag:env,Values=$1"
     fi
     if [ ! -z "$2" ]
     then
-        FILTERS="$FILTERS Name=tag:aws:autoscaling:groupName,Values=$1-$2"
+        FILTERS="$FILTERS,Name=tag:aws:autoscaling:groupName,Values=$1-$2"
     fi
-    local ALL=$(aws ec2 describe-instances --output json --filters $FILTERS)
+    local ALL=$(aws ec2 describe-instances --output json --filters "$FILTERS")
     local OUTPUT=$(jq -r '.Reservations | map(.Instances) | flatten | .[] | [
       ((.Tags//[])[]|select(.Key=="env")|.Value) // "null",
       ((.Tags//[])[]|select(.Key=="aws:autoscaling:groupName")|.Value) // "null",
@@ -82,8 +82,7 @@ function moz-tunnel {
 # to anything else because there is an ALB in front of the instance with a hardcoded DNS, and
 # the instance won't talk to anyone except the ALB. The dev ALB is called postgrest-dev.reticulum.io.)
 function moz-admin {
-    local BASTION=$(moz-ec2 prod bastion | awk "{print \$3}")
-    ssh -L "3000:postgrest.reticulum.io:3000" "$BASTION.reticulum.io" "${@:1}"
+    ssh -L "3000:postgrest.reticulum.io:3000" "$(moz-host prod bastion).reticulum.io" "${@:1}"
 }
 
 # moz-iex target ...cmd-args
