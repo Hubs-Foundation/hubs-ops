@@ -11,6 +11,7 @@ hostname_dns_suffix = "{{ run_hostname_dns_suffix }}"
 [guardian]
 secret_key = "{{ guardian_secret_key }}"
 perms_key = "{{ guardian_perms_key }}"
+oauth_token_key = "{{ guardian_oauth_token_key }}"
 
 [habitat]
 http_port = 9631
@@ -41,6 +42,15 @@ smoke_alb_target_group_arn = "{{ smoke_alb_target_group_arn }}"
 signature_key = "{{ farspark_signature_key }}"
 signature_salt = "{{ farspark_signature_salt }}"
 host = "{{ farspark_host }}"
+
+[ret]
+bot_access_key = "{{ ret_bot_access_key }}"
+
+[discord_client]
+client_id = "{{ discord_client_client_id }}"
+client_secret = "{{ discord_client_client_secret }}"
+bot_token = "{{ discord_client_bot_token }}"
+
 
 [resolver]
 giphy_api_key = "{{ giphy_api_key }}"
