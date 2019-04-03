@@ -324,7 +324,8 @@ sudo cat > /hab/user/reticulum/config/user.toml << EOTOML
 ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 
 [pages]
-page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/pages/live"
+hubs_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/hubs/pages/live"
+spoke_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/spoke/pages/live"
 EOTOML
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.reticulum_channel}
@@ -610,7 +611,8 @@ url_host_prefix = "smoke-"
 static_url_host_prefix = "smoke-"
 
 [pages]
-page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/pages/latest"
+hubs_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/hubs/pages/latest"
+spoke_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/spoke/pages/latest"
 
 [habitat]
 ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
