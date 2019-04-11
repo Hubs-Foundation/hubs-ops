@@ -31,7 +31,12 @@ function processEvent(event, callback) {
         const buildVersion = commandText.split(" ")[2].trim();
         const s3url = commandText.split(" ")[3].trim();
         const url = `https:\/\/ci-dev.reticulum.io/buildByToken/buildWithParameters?job=hubs-deploy&S3URL=${s3url}&token=${jtoken}&SOURCE=${user}&BUILD_VERSION=${buildVersion}`;
-        https.get(url, (res) => { callback(null, "Deploy started. See #mr-push."); });
+        https.get(url, (res) => { callback(null, "Hubs deploy started. See #mr-push."); });
+    } else if (commandText.startsWith("spoke deploy ")) {
+        const buildVersion = commandText.split(" ")[2].trim();
+        const s3url = commandText.split(" ")[3].trim();
+        const url = `https:\/\/ci-dev.reticulum.io/buildByToken/buildWithParameters?job=spoke-deploy&S3URL=${s3url}&token=${jtoken}&SOURCE=${user}&BUILD_VERSION=${buildVersion}`;
+        https.get(url, (res) => { callback(null, "Spoke deploy started. See #mr-push."); });
     } else if (commandText.startsWith("hubs support on")) {
         const options = {
             hostname: 'hubs.mozilla.com',
