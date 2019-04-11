@@ -11,11 +11,11 @@ output "photomnemonic-bucket-id" {
 }
 
 output "photomnemonic-iam-role" {
-  value = "${aws_iam_role.photomnemonic-iam-role.id}"
+  value = "${aws_iam_role.photomnemonic-iam-role.*.arn[0]}"
 }
 
 output "photomnemonic-security-group" {
-  value = "${aws_security_group.photomnemonic.id}"
+  value = "${aws_security_group.photomnemonic.arn}"
 }
 
 output "photomnemonic-region" {
