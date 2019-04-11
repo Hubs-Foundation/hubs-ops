@@ -16,6 +16,6 @@ ENVIRONMENT=$3
 
 [[ -z "$ENVIRONMENT" ]] && ENVIRONMENT=dev
 
-pushd live/$ENVIRONMENT/$MODULE
+pushd live/$ENVIRONMENT/$MODULE > /dev/null
 terragrunt $COMMAND $4 $5 $6 $7 $8 $9 --terragrunt-source ../../../modules/$MODULE --terragrunt-download-dir ../../../.terragrunt_cache
-popd
+popd > /dev/null
