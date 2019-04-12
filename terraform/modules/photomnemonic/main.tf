@@ -8,6 +8,10 @@ data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terr
 data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "ret" { backend = "s3", config = { key = "ret/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
+data "aws_route53_zone" "photomnemonic-zone" {
+  name = "${var.photomnemonic_domain}."
+}
+
 resource "random_id" "bucket-identifier" {
   byte_length = 8
 }
@@ -72,13 +76,6 @@ resource "aws_security_group" "photomnemonic" {
   name = "${var.shared["env"]}-photomnemonic"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
 
-  ingress {
-    from_port = "80"
-    to_port = "80"
-    protocol = "tcp"
-    security_groups = ["${data.terraform_remote_state.ret.ret_security_group_id}"]
-  }
-
   egress {
     from_port = "80"
     to_port = "80"
@@ -92,4 +89,38 @@ resource "aws_security_group" "photomnemonic" {
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+resource "aws_security_group" "photomnemonic-vpc-endpoint" {
+  name = "${var.shared["env"]}-photomnemonic-vpc-endpoint"
+  vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
+
+  ingress {
+    from_port = "443"
+    to_port = "443"
+    protocol = "tcp"
+    security_groups = ["${data.terraform_remote_state.ret.ret_security_group_id}"]
+  }
+}
+
+resource "aws_vpc_endpoint" "photomnemonic" {
+  vpc_id            = "${data.terraform_remote_state.vpc.vpc_id}"
+  vpc_endpoint_type = "Interface"
+  service_name      = "com.amazonaws.${var.shared["region"]}.execute-api"
+  vpc_endpoint_type = "Interface"
+  subnet_ids = ["${data.terraform_remote_state.vpc.private_subnet_ids}"]
+
+  security_group_ids = [
+    "${aws_security_group.photomnemonic-vpc-endpoint.id}",
+  ]
+
+  private_dns_enabled = true
+}
+
+resource "aws_route53_record" "photomnemonic" {
+  zone_id = "${data.aws_route53_zone.photomnemonic-zone.zone_id}"
+  name    = "${var.photomnemonic_dns_prefix}${data.aws_route53_zone.photomnemonic-zone.name}"
+  type    = "CNAME"
+  ttl     = "300"
+  records = ["${lookup(aws_vpc_endpoint.photomnemonic.dns_entry[0], "dns_name")}"]
 }
