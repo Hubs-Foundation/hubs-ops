@@ -17,10 +17,6 @@ resource "aws_s3_bucket" "photomnemonic-bucket" {
   acl = "private"
 }
 
-resource "aws_cloudwatch_log_group" "photomnemonic" {
-  name = "photomnemonic-${var.shared["env"]}"
-}
-
 resource "aws_iam_policy" "photomnemonic-policy" {
   name = "${var.shared["env"]}-photomnemonic-policy"
 
@@ -51,12 +47,8 @@ resource "aws_iam_policy" "photomnemonic-policy" {
         ]
     },
     {
-      "Action": ["logs:CreateLogGroup", "logs:CreateLogStream"],
-      "Resource": ["${aws_cloudwatch_log_group.photomnemonic.arn}"],
-      "Effect": "Allow"
-    }, {
-      "Action": ["logs:PutLogEvents"],
-      "Resource": ["${aws_cloudwatch_log_group.photomnemonic.arn}:*"],
+      "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+      "Resource": "arn:aws:logs:${var.shared["region"]}:${var.shared["account_id"]}:log-group:/aws/lambda/*:*:*",
       "Effect": "Allow"
     }
   ]
@@ -86,13 +78,18 @@ resource "aws_security_group" "photomnemonic" {
     protocol = "tcp"
     security_groups = ["${data.terraform_remote_state.ret.ret_security_group_id}"]
   }
-}
 
-resource "aws_security_group_rule" "photomnemonic-egress" {
-  type = "egress"
-  from_port = "80"
-  to_port = "80"
-  protocol = "tcp"
-  security_group_id = "${aws_security_group.photomnemonic.id}"
-  source_security_group_id = "${aws_security_group.photomnemonic.id}"
+  egress {
+    from_port = "80"
+    to_port = "80"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port = "443"
+    to_port = "443"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
