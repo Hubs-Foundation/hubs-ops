@@ -17,6 +17,10 @@ resource "aws_s3_bucket" "photomnemonic-bucket" {
   acl = "private"
 }
 
+resource "aws_cloudwatch_log_group" "photomnemonic" {
+  name = "photomnemonic-${var.shared["env"]}"
+}
+
 resource "aws_iam_policy" "photomnemonic-policy" {
   name = "${var.shared["env"]}-photomnemonic-policy"
 
@@ -33,6 +37,27 @@ resource "aws_iam_policy" "photomnemonic-policy" {
         "Effect": "Allow",
         "Action": "s3:ListBucket",
         "Resource": "arn:aws:s3:::${aws_s3_bucket.photomnemonic-bucket.id}"
+    },
+    {
+        "Effect": "Allow",
+        "Resource": "*",
+        "Action": [
+            "ec2:DescribeInstances",
+            "ec2:CreateNetworkInterface",
+            "ec2:AttachNetworkInterface",
+            "ec2:DescribeNetworkInterfaces",
+            "ec2:DeleteNetworkInterface",
+            "autoscaling:CompleteLifecycleAction"
+        ]
+    },
+    {
+      "Action": ["logs:CreateLogGroup", "logs:CreateLogStream"],
+      "Resource": ["${aws_cloudwatch_log_group.photomnemonic.arn}"],
+      "Effect": "Allow"
+    }, {
+      "Action": ["logs:PutLogEvents"],
+      "Resource": ["${aws_cloudwatch_log_group.photomnemonic.arn}:*"],
+      "Effect": "Allow"
     }
   ]
 }

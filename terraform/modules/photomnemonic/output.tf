@@ -15,7 +15,7 @@ output "photomnemonic-iam-role" {
 }
 
 output "photomnemonic-security-group" {
-  value = "${aws_security_group.photomnemonic.arn}"
+  value = "${aws_security_group.photomnemonic.id}"
 }
 
 output "photomnemonic-region" {
