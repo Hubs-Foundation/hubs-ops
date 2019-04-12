@@ -3,7 +3,7 @@ output "photomnemonic-vpc-id" {
 }
 
 output "photomnemonic-subnet-ids" {
-  value = "${data.terraform_remote_state.vpc.public_subnet_ids}"
+  value = "${data.terraform_remote_state.vpc.private_subnet_ids}"
 }
 
 output "photomnemonic-bucket-id" {
