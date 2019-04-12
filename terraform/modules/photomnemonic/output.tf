@@ -17,3 +17,11 @@ output "photomnemonic-iam-role" {
 output "photomnemonic-security-group" {
   value = "${aws_security_group.photomnemonic.id}"
 }
+
+output "photomnemonic-account-id" {
+  value = "${var.shared["account_id"]}"
+}
+
+output "photomnemonic-region" {
+  value = "${var.shared["region"]}"
+}
