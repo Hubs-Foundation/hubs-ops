@@ -1,5 +1,9 @@
 ---
 
+- name: Include environment specific vars
+  include_vars:
+    file: "roles/squawk/vars/{{ env }}.yml"
+
 - name: Write squawker run script
   template:
     src: squawkers.sh.j2
