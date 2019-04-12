@@ -12,4 +12,4 @@ terragrunt = {
   }
 }
 
-enabled = false
+enabled = true
