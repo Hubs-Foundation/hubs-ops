@@ -1,6 +1,7 @@
 ---
 
 host: https://dev.reticulum.io
+num_squawker_processes: 3
 hub_sids:
   smoke: smoke
   crowd: crowd

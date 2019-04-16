@@ -1,5 +1,4 @@
 ---
 
-num_squawker_processes: 4
 process_spawn_delay: 60
 cycle_time: 600

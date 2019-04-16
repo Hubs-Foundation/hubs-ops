@@ -17,8 +17,8 @@ data "aws_ami" "squawk-ami" {
   }
 }
 
-resource "aws_security_group" "squawk" {
-  name = "${var.shared["env"]}-squawk"
+resource "aws_security_group" "bots_crowd" {
+  name = "${var.shared["env"]}-bots_crowd"
   count = "${var.enabled}"
 
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
@@ -70,50 +70,50 @@ resource "aws_security_group" "squawk" {
   }
 }
 
-resource "aws_iam_role" "squawk" {
-  name = "${var.shared["env"]}-squawk"
+resource "aws_iam_role" "bots_crowd" {
+  name = "${var.shared["env"]}-bots_crowd"
   count = "${var.enabled}"
 
   assume_role_policy = "${var.shared["ec2_role_policy"]}"
 }
 
-resource "aws_iam_role_policy_attachment" "squawk-base-policy" {
+resource "aws_iam_role_policy_attachment" "bots_crowd-base-policy" {
   count = "${var.enabled}"
 
-  role = "${aws_iam_role.squawk.name}"
+  role = "${aws_iam_role.bots_crowd.name}"
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
 
-resource "aws_iam_instance_profile" "squawk" {
-  name = "${var.shared["env"]}-squawk"
+resource "aws_iam_instance_profile" "bots_crowd" {
+  name = "${var.shared["env"]}-bots_crowd"
   count = "${var.enabled}"
 
-  role = "${aws_iam_role.squawk.id}"
+  role = "${aws_iam_role.bots_crowd.id}"
 }
 
-resource "aws_launch_configuration" "squawk" {
+resource "aws_launch_configuration" "bots_crowd" {
   count = "${var.enabled}"
   image_id = "${data.aws_ami.squawk-ami.id}"
-  instance_type = "${var.squawk_instance_type}"
-  security_groups = ["${aws_security_group.squawk.id}"]
+  instance_type = "${var.bots_crowd_instance_type}"
+  security_groups = ["${aws_security_group.bots_crowd.id}"]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
-  iam_instance_profile = "${aws_iam_instance_profile.squawk.id}"
+  iam_instance_profile = "${aws_iam_instance_profile.bots_crowd.id}"
   associate_public_ip_address = false
   lifecycle { create_before_destroy = true }
 }
 
-resource "aws_autoscaling_group" "squawk" {
-  name = "${var.shared["env"]}-squawk"
+resource "aws_autoscaling_group" "bots_crowd" {
+  name = "${var.shared["env"]}-bots_crowd"
   count = "${var.enabled}"
 
-  launch_configuration = "${aws_launch_configuration.squawk.id}"
+  launch_configuration = "${aws_launch_configuration.bots_crowd.id}"
   availability_zones = ["${data.aws_availability_zones.all.names}"]
   vpc_zone_identifier = ["${data.terraform_remote_state.vpc.private_subnet_ids}"]
 
-  min_size = "${var.min_squawk_servers}"
-  max_size = "${var.max_squawk_servers}"
+  min_size = "${var.min_bots_crowd_servers}"
+  max_size = "${var.max_bots_crowd_servers}"
 
   lifecycle { create_before_destroy = true }
   tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }
-  tag { key = "host-type", value = "${var.shared["env"]}-squawk", propagate_at_launch = true }
+  tag { key = "host-type", value = "${var.shared["env"]}-bots_crowd", propagate_at_launch = true }
 }

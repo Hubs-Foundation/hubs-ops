@@ -1,6 +1,6 @@
 terragrunt = {
   terraform {
-    source = "git::git@github.com:mozilla/mr-ops.git//terraform/modules/squawk"
+    source = "git::git@github.com:mozilla/mr-ops.git//terraform/modules/bots_smoke"
   }
 
   include {
@@ -13,6 +13,6 @@ terragrunt = {
 }
 
 enabled = true
-squawk_instance_type = "c4.xlarge"
-min_squawk_servers = 1
-max_squawk_servers = 1
+bots_smoke_instance_type = "c4.xlarge"
+min_bots_smoke_servers = 1
+max_bots_smoke_servers = 1
