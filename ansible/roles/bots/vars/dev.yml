@@ -1,0 +1,6 @@
+---
+
+host: https://dev.reticulum.io
+hub_sids:
+  smoke: smoke
+  crowd: crowd

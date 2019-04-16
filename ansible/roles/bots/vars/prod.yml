@@ -1,0 +1,5 @@
+---
+
+host: https://smoke-hubs.mozilla.com
+hub_sids:
+  smoke: 0zuesf6c6mf

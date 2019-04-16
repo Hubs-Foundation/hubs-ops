@@ -2,7 +2,11 @@
 
 - name: Include environment specific vars
   include_vars:
-    file: "roles/squawk/vars/{{ env }}.yml"
+    file: "roles/bots/vars/{{ env }}.yml"
+
+- name: Set hub sid
+  set_fact:
+    hub_sid: "{{ hub_sids[bot_type] }}"
 
 - name: Write squawker run script
   template:

@@ -3,5 +3,6 @@
 - hosts: all
   gather_facts: false
   become: false
+  serial: 1
   roles:
-  - role: squawk
+  - role: bots
