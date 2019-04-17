@@ -1,7 +1,7 @@
 variable "shared" { type = "map" }
 terraform { backend "s3" {} }
-provider "aws" { region = "${var.shared["region"]}", version = "~> 0.1" }
-provider "aws" { alias = "east", region = "us-east-1", version = "~> 0.1" }
+provider "aws" { region = "${var.shared["region"]}", version = "~> 1.15" }
+provider "aws" { alias = "east", region = "us-east-1", version = "~> 1.15" }
 data "aws_availability_zones" "all" {}
 
 data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
@@ -10,14 +10,24 @@ data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bast
 data "terraform_remote_state" "hab" { backend = "s3", config = { key = "hab/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "ret" { backend = "s3", config = { key = "ret/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
-data "aws_ami" "hab-base-ami" {
+data "aws_ami" "janus-ami" {
   most_recent = true
   owners = ["self"]
 
   filter {
     name = "name"
-    values = ["hab-base-*"]
+    values = ["janus-*"]
   }
+}
+
+resource "random_id" "bucket-identifier" {
+  byte_length = 8
+}
+
+# Logs bucket
+resource "aws_s3_bucket" "janus-bucket" {
+  bucket = "janus.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "private"
 }
 
 resource "aws_security_group" "janus" {
@@ -121,13 +131,42 @@ resource "aws_iam_role_policy_attachment" "bastion-base-policy" {
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
 
+resource "aws_iam_policy" "janus-bucket-policy" {
+  name = "${var.shared["env"]}-janus-bucket-policy"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+        "Effect": "Allow",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.janus-bucket.id}/*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_s3_bucket_public_access_block" "janus-bucket-block" {
+  bucket = "${aws_s3_bucket.janus-bucket.id}"
+
+  block_public_acls   = true
+  block_public_policy = true
+}
+
+resource "aws_iam_role_policy_attachment" "janus-role-attach" {
+  role = "${aws_iam_role.janus.name}"
+  policy_arn = "${aws_iam_policy.janus-bucket-policy.arn}"
+}
+
 resource "aws_iam_instance_profile" "janus" {
   name = "${var.shared["env"]}-janus"
   role = "${aws_iam_role.janus.id}"
 }
 
 resource "aws_launch_configuration" "janus" {
-  image_id = "${data.aws_ami.hab-base-ami.id}"
+  image_id = "${data.aws_ami.janus-ami.id}"
   instance_type = "${var.janus_instance_type}"
   security_groups = [
     "${aws_security_group.janus.id}",
@@ -167,7 +206,9 @@ sudo systemctl restart systemd-journald
 
 sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
-sudo /usr/bin/python /usr/bin/save_service_files janus-gateway default mozillareality
+aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/janus-gateway-files.tar.gz.gpg .
+gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/janus-gateway/files/gpg-file-key.txt janus-gateway-files.tar.gz.gpg | tar xz -C /hab/svc/janus-gateway/files
+rm janus-gateway-files.tar.gz.gpg
 EOF
 }
 
@@ -187,7 +228,7 @@ resource "aws_autoscaling_group" "janus" {
 }
 
 resource "aws_launch_configuration" "janus-smoke" {
-  image_id = "${data.aws_ami.hab-base-ami.id}"
+  image_id = "${data.aws_ami.janus-ami.id}"
   instance_type = "${var.smoke_janus_instance_type}"
   security_groups = [
     "${aws_security_group.janus.id}",
@@ -221,6 +262,8 @@ sudo systemctl restart systemd-journald
 
 sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel unstable
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
-sudo /usr/bin/python /usr/bin/save_service_files janus-gateway default mozillareality
+aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/janus-gateway-files.tar.gz.gpg .
+gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/janus-gateway/files/gpg-file-key.txt janus-gateway-files.tar.gz.gpg | tar xz -C /hab/svc/janus-gateway/files
+rm janus-gateway-files.tar.gz.gpg
 EOF
 }

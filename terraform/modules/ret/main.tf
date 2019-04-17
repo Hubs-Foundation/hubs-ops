@@ -33,13 +33,13 @@ data "aws_acm_certificate" "ret-alb-listener-cert-east" {
   most_recent = true
 }
 
-data "aws_ami" "hab-base-ami" {
+data "aws_ami" "hab-census-ami" {
   most_recent = true
   owners = ["self"]
 
   filter {
     name = "name"
-    values = ["hab-base-*"]
+    values = ["hab-census-*"]
   }
 }
 
@@ -295,7 +295,7 @@ resource "aws_iam_instance_profile" "ret" {
 }
 
 resource "aws_launch_configuration" "ret" {
-  image_id = "${data.aws_ami.hab-base-ami.id}"
+  image_id = "${data.aws_ami.hab-census-ami.id}"
   instance_type = "${var.ret_instance_type}"
   security_groups = [
     "${aws_security_group.ret.id}",
@@ -581,7 +581,7 @@ resource "aws_alb_listener" "ret-smoke-clear-alb-listener" {
 }
 
 resource "aws_launch_configuration" "ret-smoke" {
-  image_id = "${data.aws_ami.hab-base-ami.id}"
+  image_id = "${data.aws_ami.hab-census-ami.id}"
   instance_type = "${var.ret_instance_type}"
   security_groups = [
     "${aws_security_group.ret.id}",

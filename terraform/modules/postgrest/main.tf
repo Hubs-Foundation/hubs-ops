@@ -15,13 +15,13 @@ data "aws_route53_zone" "postgrest-zone" {
   name = "${var.postgrest_domain}."
 }
 
-data "aws_ami" "hab-base-ami" {
+data "aws_ami" "hab-census-ami" {
   most_recent = true
   owners = ["self"]
 
   filter {
     name = "name"
-    values = ["hab-base-*"]
+    values = ["hab-census-*"]
   }
 }
 
@@ -162,7 +162,7 @@ resource "aws_iam_instance_profile" "postgrest" {
 }
 
 resource "aws_launch_configuration" "postgrest" {
-  image_id = "${data.aws_ami.hab-base-ami.id}"
+  image_id = "${data.aws_ami.hab-census-ami.id}"
   instance_type = "${var.postgrest_instance_type}"
   security_groups = [
     "${aws_security_group.postgrest.id}",

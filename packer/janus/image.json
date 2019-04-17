@@ -23,7 +23,7 @@
     },
     "instance_type": "m3.medium",
     "ssh_username": "ubuntu",
-    "ami_name": "hab-base-{{timestamp}}"
+    "ami_name": "janus-{{timestamp}}"
   }],
   "provisioners": [
     { "type": "file", "source": "../shared/files/hostname-adjectives", "destination": "hostname-adjectives" },
@@ -45,7 +45,7 @@
         "apt-get update",
         "apt-get update",
         "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y",
-        "DEBIAN_FRONTEND=noninteractive apt-get install -y unattended-upgrades python3 awscli jq sysstat nfs-common",
+        "DEBIAN_FRONTEND=noninteractive apt-get install -y unattended-upgrades python3 awscli jq sysstat nfs-common gnupg2",
         "update-alternatives --install /usr/bin/python python /usr/bin/python3 1",
         "mv coredump.conf /etc/systemd",
         "mv sysctl.core.conf /etc/sysctl.d/60-core.conf",
@@ -113,6 +113,10 @@
         "mv secrets/hab-keys /hab/cache/keys",
         "chown -R root:root /hab/cache/keys",
         "chmod -R 0600 /hab/cache/keys",
+        "mkdir -p /hab/svc/janus-gateway/files",
+        "mv secrets/janus/* /hab/svc/janus-gateway/files",
+        "chown -R hab:hab /hab/svc",
+        "chmod -R 0600 /hab/svc/janus-gateway/files/*",
         "rm -rf secrets"
       ]
     }

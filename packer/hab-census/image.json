@@ -23,7 +23,7 @@
     },
     "instance_type": "m3.medium",
     "ssh_username": "ubuntu",
-    "ami_name": "hab-base-{{timestamp}}"
+    "ami_name": "hab-census-{{timestamp}}"
   }],
   "provisioners": [
     { "type": "file", "source": "../shared/files/hostname-adjectives", "destination": "hostname-adjectives" },
@@ -85,7 +85,7 @@
         "echo \". /usr/bin/set_host_type_prompt.sh\" >> /root/.bashrc"
       ]
     },
-    { "type": "file", "source": "../shared/files/hab.service", "destination": "hab.service" },
+    { "type": "file", "source": "../shared/files/hab-with-census.service", "destination": "hab.service" },
     { "type": "file", "source": "../shared/files/hab-discover-peer", "destination": "hab-discover-peer" },
     {
       "type": "shell",
