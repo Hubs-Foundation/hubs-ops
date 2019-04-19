@@ -770,31 +770,6 @@ resource "aws_efs_mount_target" "uploads-fs" {
   count = "${length(data.terraform_remote_state.vpc.private_subnet_ids)}"
 }
 
-resource "aws_backup_vault" "uploads-backup" {
-  name        = "uploads-backup"
-}
-
-resource "aws_backup_selection" "uploads-backup" {
-  plan_id      = "${aws_backup_plan.uploads-backup.id}"
-
-  name         = "uploads-backup"
-  iam_role_arn = "arn:aws:iam::123456789012:role/service-role/AWSBackupDefaultServiceRole"
-
-  resources = [
-    "${aws_efs_file_system.uploads-fs.arn}"
-  ]
-}
-
-resource "aws_backup_plan" "uploads-backup" {
-  name = "uploads-backup"
-
-  rule {
-    rule_name         = "daily 3am pst"
-    target_vault_name = "${aws_backup_vault.uploads-backup.name}"
-    schedule          = "cron(0 10 * * ? *)"
-  }
-}
-
 resource "aws_security_group" "upload-fs" {
   name = "${var.shared["env"]}-upload-fs"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
