@@ -783,3 +783,44 @@ resource "aws_security_group_rule" "ret-upload-fs-ingress" {
   security_group_id = "${aws_security_group.upload-fs.id}"
   source_security_group_id = "${aws_security_group.ret.id}"
 }
+
+resource "random_id" "bucket-identifier" {
+  byte_length = 8
+}
+
+resource "aws_s3_bucket" "upload-backup-bucket" {
+  bucket = "ret-upload-backup-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "private"
+}
+
+resource "aws_iam_role_policy_attachment" "ret-upload-backup-role-attach" {
+  role = "${aws_iam_role.ret.name}"
+  policy_arn = "${aws_iam_policy.ret-upload-backup-policy.arn}"
+}
+
+resource "aws_iam_policy" "ret-upload-backup-policy" {
+  name = "${var.shared["env"]}-ret-upload-backup-policy"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+        "Effect": "Allow",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.upload-backup-bucket.id}/*"
+    },
+    {
+        "Effect": "Allow",
+        "Action": "s3:PutObject",
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.upload-backup-bucket.id}/*"
+    },
+    {
+        "Effect": "Allow",
+        "Action": "s3:ListBucket",
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.upload-backup-bucket.id}"
+    }
+  ]
+}
+EOF
+}
