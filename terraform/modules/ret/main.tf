@@ -1,7 +1,7 @@
 variable "shared" { type = "map" }
 terraform { backend "s3" {} }
-provider "aws" { region = "${var.shared["region"]}", version = "~> 1.15" }
-provider "aws" { alias = "east", region = "us-east-1", version = "~> 1.15" }
+provider "aws" { region = "${var.shared["region"]}", version = "~> 2.0" }
+provider "aws" { alias = "east", region = "us-east-1", version = "~> 2.0" }
 data "aws_availability_zones" "all" {}
 
 data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
@@ -768,6 +768,31 @@ resource "aws_efs_mount_target" "uploads-fs" {
   subnet_id = "${element(data.terraform_remote_state.vpc.private_subnet_ids, count.index)}"
   security_groups = ["${aws_security_group.upload-fs.id}"]
   count = "${length(data.terraform_remote_state.vpc.private_subnet_ids)}"
+}
+
+resource "aws_backup_vault" "uploads-backup" {
+  name        = "uploads-backup"
+}
+
+resource "aws_backup_selection" "uploads-backup" {
+  plan_id      = "${aws_backup_plan.uploads-backup.id}"
+
+  name         = "uploads-backup"
+  iam_role_arn = "arn:aws:iam::123456789012:role/service-role/AWSBackupDefaultServiceRole"
+
+  resources = [
+    "${aws_efs_file_system.uploads-fs.arn}"
+  ]
+}
+
+resource "aws_backup_plan" "uploads-backup" {
+  name = "uploads-backup"
+
+  rule {
+    rule_name         = "daily 3am pst"
+    target_vault_name = "${aws_backup_vault.uploads-backup.name}"
+    schedule          = "cron(0 10 * * ? *)"
+  }
 }
 
 resource "aws_security_group" "upload-fs" {
