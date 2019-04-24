@@ -1,0 +1,57 @@
+---
+
+ret_db_hostname: "hubs.local"
+phoenix_url_host: "hubs.local"
+phoenix_static_url_host: "hubs.local"
+phoenix_allow_all_origins: "true"
+hubs_page_origin: "https://hubs.local:8080"
+spoke_page_origin: "https://hubs.local:9090"
+farspark_signature_key: "248cf801c4f5d6fd70c1b0dfea8dedeb57adafa7821027d546f016efef5a501bd8168c8479d33b466199d0ac68c71bb71b68c27537102a63cd70776aa83bca76"
+farspark_signature_salt: "da914bb89e332b2a815a667875584d067b698fe1f6f5c61d98384dc74d2ed85b67eea0a51325afb9d9c7d798f4bbbd630102a261e152aceb13d9469b02da6b31"
+farspark_host: 
+ret_bot_access_key: "secret"
+giphy_api_key: null
+deviantart_client_id: null
+deviantart_client_secret: null
+imgur_mashape_api_key: null
+imgur_client_id:  null
+tenor_api_key: null
+bing_search_api_key: null
+twitch_client_id: null
+ytdl_host: "https://hubs.local:8081"
+google_poly_api_key: null
+youtube_api_key: null
+sketchfab_api_key: null
+photomnemonic_endpoint: "https://pyrkq22jjj.execute-api.us-west-1.amazonaws.com/public"
+discord_client_client_id: null
+discord_client_client_secret: null
+discord_client_bot_token: null
+uploads_host: "https://hubs.local:4000"
+content_security_policy: "default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline';"
+mailer_server: null
+mailer_port: null
+mailer_username: null
+mailer_password: null
+mailer_from: null
+guardian_secret_key: "47iqPEdWcfE7xRnyaxKDLt9OGEtkQG3SycHBEMOuT2qARmoESnhc76IgCUjaQIwX"
+guardian_perms_key: null
+guardian_oauth_token_key: null
+support_slack_webhook_url: null
+web_push_subject: "mailto:admin@hubs.local"
+web_push_public_key: "BAb03820kHYuqIvtP6QuCKZRshvv_zp5eDtqkuwCUAxASBZMQbFZXzv8kjYOuLGF16A3k8qYnIN10_4asB-Aw7w"
+web_push_private_key: "w76tXh1d3RBdVQ5eINevXRwW6Ow6uRcBa8tBDOXfmxM"
+sentry_dsn: null
+janus_admin_secret: "secret"
+ret_db_password: "postgres"
+erlang_node_cookie: "4hLcgv+k1GO+fgV43dJ+LHkmFRoCqdxyo/xV93MFVff9XF0+sTR4OAQydT3fxBtD"
+phoenix_secret_key: "5sB9mzMMgLdsQZoPF6qOPP1x5PNxlzXi+xbP8Zvqgw2aAz0xlw6qIZjWrCduqORa"
+phoenix_admin_access_key: "admin"
+run_hostname_dns_suffix: ""
+alb_target_group_arn: ""
+smoke_alb_target_group_arn: ""
+uploads_storage_path: "/hab/svc/reticulum/var"
+uploads_ttl: 172800
+janus_admin_port: 7000
+janus_service_name: "janus-gateway"
+cors_origins: "*"
+dd_api_key: null
