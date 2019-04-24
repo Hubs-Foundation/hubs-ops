@@ -1,8 +1,18 @@
 [phx]
+{% if phoenix_port %}
+port = {{ phoenix_port }}
+{% else %}
 port = 4000
+{% endif %}
 secret_key = "{{ phoenix_secret_key }}"
 url_host = "{{ phoenix_url_host }}"
+{% if phoenix_url_port %}
+url_port = "{{ phoenix_url_port }}"
+{% endif %}
 static_url_host = "{{ phoenix_static_url_host }}"
+{% if phoenix_static_url_port %}
+static_url_port = "{{ phoenix_static_url_port }}"
+{% endif %}
 admin_access_key = "{{ phoenix_admin_access_key }}"
 
 [run]
@@ -142,3 +152,12 @@ dsn = "{{ sentry_dsn }}"
 service_name = "{{ janus_service_name }}"
 admin_secret = "{{ janus_admin_secret }}"
 admin_port = {{ janus_admin_port }}
+
+{% if hubs_page_origin %}
+[pages]
+hubs_page_origin = "{{ hubs_page_origin }}"
+spoke_page_origin = "{{ spoke_page_origin }}"
+{% if page_origin_insecure_ssl %}
+insecure_ssl = "{{ page_origin_insecure_ssl }}"
+{% endif %}
+{% endif %}
