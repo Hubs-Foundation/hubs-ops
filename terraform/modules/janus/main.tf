@@ -188,7 +188,7 @@ sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 sudo mkdir -p /hab/user/janus-gateway/config
 
 sudo cat > /etc/cron.d/janus-restart << EOCRON
-0 10 * * * hab killall janus
+0 10 * * * hab PID=\$(head -n 1 /hab/svc/janus-gateway/var/janus-self.pid) ; kill \$PID ; sleep 10 ; kill -0 \$PID 2> /dev/null && kill -9 \$PID
 EOCRON
 
 /etc/init.d/cron reload
@@ -248,6 +248,12 @@ sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 
 sudo mkdir -p /hab/user/janus-gateway/config
+
+sudo cat > /etc/cron.d/janus-restart << EOCRON
+0 10 * * * hab PID=\$(head -n 1 /hab/svc/janus-gateway/var/janus-self.pid) ; kill \$PID ; sleep 10 ; kill -0 \$PID 2> /dev/null && kill -9 \$PID
+EOCRON
+
+/etc/init.d/cron reload
 
 sudo cat > /hab/user/janus-gateway/config/user.toml << EOTOML
 [nat]
