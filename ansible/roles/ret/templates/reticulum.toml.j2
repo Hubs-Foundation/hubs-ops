@@ -1,8 +1,18 @@
 [phx]
+{% if phoenix_port %}
+port = {{ phoenix_port }}
+{% else %}
 port = 4000
+{% endif %}
 secret_key = "{{ phoenix_secret_key }}"
 url_host = "{{ phoenix_url_host }}"
+{% if phoenix_url_port %}
+url_port = "{{ phoenix_url_port }}"
+{% endif %}
 static_url_host = "{{ phoenix_static_url_host }}"
+{% if phoenix_static_url_port %}
+static_url_port = "{{ phoenix_static_url_port }}"
+{% endif %}
 admin_access_key = "{{ phoenix_admin_access_key }}"
 
 [run]
@@ -10,22 +20,18 @@ hostname_dns_suffix = "{{ run_hostname_dns_suffix }}"
 
 [guardian]
 secret_key = "{{ guardian_secret_key }}"
+{% if guardian_perms_key %}
 perms_key = "{{ guardian_perms_key }}"
+{% endif %}
+{% if guardian_oauth_token_key %}
 oauth_token_key = "{{ guardian_oauth_token_key }}"
+{% endif %}
 
 [habitat]
 http_port = 9631
 
 [erlang]
 node_cookie = "{{ erlang_node_cookie }}"
-
-[oauth_google]
-client_id = "{{ oauth_google_client_id }}"
-client_secret = "{{ oauth_google_client_secret }}"
-
-[basic_auth]
-username = "{{ basic_auth_username }}"
-password = "{{ basic_auth_password }}"
 
 [db]
 username = "postgres"
@@ -35,8 +41,12 @@ database = "ret_production"
 pool_size = 16
 
 [aws]
+{% if alb_target_group_arn %}
 alb_target_group_arn = "{{ alb_target_group_arn }}"
+{% endif %}
+{% if smoke_alb_target_group_arn %}
 smoke_alb_target_group_arn = "{{ smoke_alb_target_group_arn }}"
+{% endif %}
 
 [farspark]
 signature_key = "{{ farspark_signature_key }}"
@@ -47,25 +57,55 @@ host = "{{ farspark_host }}"
 bot_access_key = "{{ ret_bot_access_key }}"
 
 [discord_client]
+{% if discord_client_client_id %}
 client_id = "{{ discord_client_client_id }}"
+{% endif %}
+{% if discord_client_client_secret %}
 client_secret = "{{ discord_client_client_secret }}"
+{% endif %}
+{% if discord_client_bot_token %}
 bot_token = "{{ discord_client_bot_token }}"
+{% endif %}
 
 
 [resolver]
+{% if giphy_api_key %}
 giphy_api_key = "{{ giphy_api_key }}"
+{% endif %}
+{% if deviantart_client_id %}
 deviantart_client_id = "{{ deviantart_client_id }}"
+{% endif %}
+{% if deviantart_client_secret %}
 deviantart_client_secret = "{{ deviantart_client_secret }}"
+{% endif %}
+{% if imgur_mashape_api_key %}
 imgur_mashape_api_key = "{{ imgur_mashape_api_key }}"
+{% endif %}
+{% if imgur_client_id %}
 imgur_client_id = "{{ imgur_client_id }}"
+{% endif %}
 ytdl_host = "{{ ytdl_host }}"
+{% if youtube_api_key %}
 youtube_api_key = "{{ youtube_api_key }}"
+{% endif %}
+{% if google_poly_api_key %}
 google_poly_api_key = "{{ google_poly_api_key }}"
+{% endif %}
+{% if sketchfab_api_key %}
 sketchfab_api_key = "{{ sketchfab_api_key }}"
+{% endif %}
+{% if tenor_api_key %}
 tenor_api_key = "{{ tenor_api_key }}"
+{% endif %}
+{% if bing_search_api_key %}
 bing_search_api_key = "{{ bing_search_api_key }}"
+{% endif %}
+{% if twitch_client_id %}
 twitch_client_id = "{{ twitch_client_id }}"
+{% endif %}
+{% if photomnemonic_endpoint %}
 photomnemonic_endpoint = "{{ photomnemonic_endpoint }}"
+{% endif %}
 
 [uploads]
 storage_path = "{{ uploads_storage_path }}"
@@ -77,14 +117,26 @@ content_security_policy = "{{ content_security_policy }}"
 cors_origins = "{{ cors_origins }}"
 
 [email]
+{% if mailer_server %}
 server = "{{ mailer_server }}"
+{% endif %}
+{% if mailer_port %}
 port = {{ mailer_port }}
+{% endif %}
+{% if mailer_username %}
 username = "{{ mailer_username }}"
+{% endif %}
+{% if mailer_password %}
 password = "{{ mailer_password }}"
+{% endif %}
+{% if mailer_from %}
 from = "{{ mailer_from }}"
+{% endif %}
 
 [support]
+{% if support_slack_webhook_url %}
 slack_webhook_url = "{{ support_slack_webhook_url }}"
+{% endif %}
 
 [web_push]
 subject = "{{ web_push_subject }}"
@@ -92,13 +144,20 @@ public_key = "{{ web_push_public_key }}"
 private_key = "{{ web_push_private_key }}"
 
 [sentry]
+{% if sentry_dsn %}
 dsn = "{{ sentry_dsn }}"
-
-[discord]
-bot_token = "{{ discord_bot_token }}"
-hostnames = "{{ discord_hostnames }}"
+{% endif %}
 
 [janus]
 service_name = "{{ janus_service_name }}"
 admin_secret = "{{ janus_admin_secret }}"
 admin_port = {{ janus_admin_port }}
+
+{% if hubs_page_origin %}
+[pages]
+hubs_page_origin = "{{ hubs_page_origin }}"
+spoke_page_origin = "{{ spoke_page_origin }}"
+{% if page_origin_insecure_ssl %}
+insecure_ssl = "{{ page_origin_insecure_ssl }}"
+{% endif %}
+{% endif %}
