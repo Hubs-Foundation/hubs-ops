@@ -77,7 +77,7 @@ resource "aws_security_group_rule" "ret-egress" {
   from_port = "${var.ret_http_port}"
   to_port = "${var.ret_http_port}"
   protocol = "tcp"
-  security_group_id = "${aws_security_group.ret.id}"
+  security_group_id = "${aws_security_group.ret-alb.id}"
   source_security_group_id = "${aws_security_group.ret.id}"
 }
 
