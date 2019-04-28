@@ -99,6 +99,46 @@ resource "aws_alb" "ret" {
   lifecycle { create_before_destroy = true }
 }
 
+resource "aws_alb_listener_rule" "ret" {
+  listener_arn = "${aws_alb_listener.ret-ssl.arn}"
+  count = "${length(var.ret_pools)}"
+  
+  action {
+    type = "forward"
+    target_group_arn = "${element(aws_alb_target_group.ret.*.arn, count.index)}"
+  }
+
+  condition {
+    field = "path-pattern"
+    values = ["/"]
+  }
+
+  # Condition managed by tooling
+  lifecycle { 
+    ignore_changes = [ "condition" ]
+  }
+}
+
+resource "aws_alb_listener_rule" "ret-smoke" {
+  listener_arn = "${aws_alb_listener.ret-ssl.arn}"
+  count = "${length(var.ret_pools)}"
+  
+  action {
+    type = "forward"
+    target_group_arn = "${element(aws_alb_target_group.ret-smoke.*.arn, count.index)}"
+  }
+
+  condition {
+    field = "path-pattern"
+    values = ["/"]
+  }
+
+  # Condition managed by tooling
+  lifecycle { 
+    ignore_changes = [ "condition" ]
+  }
+}
+
 resource "aws_alb_target_group" "ret" {
   count = "${length(var.ret_pools)}"
   name = "${var.shared["env"]}-${var.ret_pools[count.index]}-ret"
