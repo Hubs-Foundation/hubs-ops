@@ -376,7 +376,6 @@ resource "aws_iam_role_policy_attachment" "bastion-base-policy" {
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
 
-# TODO kill
 resource "aws_iam_instance_profile" "ret" {
   name = "${var.shared["env"]}-ret"
   role = "${aws_iam_role.ret.id}"
