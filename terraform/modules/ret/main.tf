@@ -62,12 +62,22 @@ resource "aws_security_group" "ret-alb" {
   }
 }
 
+# TODO kill
 resource "aws_security_group_rule" "ret-alb-egress" {
   type = "egress"
   from_port = "${var.ret_http_port}"
   to_port = "${var.ret_http_port}"
   protocol = "tcp"
   security_group_id = "${aws_security_group.ret-alb.id}"
+  source_security_group_id = "${aws_security_group.ret.id}"
+}
+
+resource "aws_security_group_rule" "ret-egress" {
+  type = "egress"
+  from_port = "${var.ret_http_port}"
+  to_port = "${var.ret_http_port}"
+  protocol = "tcp"
+  security_group_id = "${aws_security_group.ret.id}"
   source_security_group_id = "${aws_security_group.ret.id}"
 }
 
@@ -421,6 +431,7 @@ sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url http
 EOF
 }
 
+# TODO kill
 resource "aws_autoscaling_group" "ret" {
   name = "${var.shared["env"]}-ret"
   launch_configuration = "${aws_launch_configuration.ret.id}"

@@ -1,5 +1,5 @@
-output "ret_target_group_id" {
-  value = "${aws_alb_target_group.ret-alb-group-http.arn}"
+output "ret_target_group_ids" {
+  value = "${aws_alb_target_group.ret.*.arn}"
 }
 
 output "ret_security_group_id" {
@@ -7,5 +7,5 @@ output "ret_security_group_id" {
 }
 
 output "ret_alb_id" {
-  value = "${aws_alb.ret-alb.id}"
+  value = "${aws_alb.ret.id}"
 }
