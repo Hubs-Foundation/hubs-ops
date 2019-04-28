@@ -71,6 +71,7 @@ resource "aws_security_group_rule" "ret-alb-egress" {
   source_security_group_id = "${aws_security_group.ret.id}"
 }
 
+# TODO kill
 resource "aws_alb" "ret-alb" {
   name = "${var.shared["env"]}-ret-alb"
   security_groups = ["${aws_security_group.ret-alb.id}"]
@@ -79,6 +80,7 @@ resource "aws_alb" "ret-alb" {
   lifecycle { create_before_destroy = true }
 }
 
+# TODO reassign
 resource "aws_route53_record" "ret-alb-dns" {
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
   name = "${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
@@ -173,6 +175,7 @@ resource "aws_alb_target_group" "ret-smoke" {
   }
 }
 
+# TODO kill
 resource "aws_alb_target_group" "ret-alb-group-http" {
   name = "${var.shared["env"]}-ret-alb-group-http"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
@@ -189,6 +192,7 @@ resource "aws_alb_target_group" "ret-alb-group-http" {
   }
 }
 
+# TODO kill
 resource "aws_alb_listener" "ret-ssl-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-alb.arn}"
   port = 443
@@ -204,12 +208,14 @@ resource "aws_alb_listener" "ret-ssl-alb-listener" {
   }
 }
 
+# TODO kill
 resource "aws_lb_listener_certificate" "ret-ssl-public-alb-listener-cert" {
   count = "${var.public_domain_enabled}"
   listener_arn = "${aws_alb_listener.ret-ssl-alb-listener.arn}"
   certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-public-cert.arn}"
 }
 
+# TODO kill
 resource "aws_alb_listener" "ret-clear-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-alb.arn}"
   port = 80
@@ -370,50 +376,13 @@ resource "aws_iam_role_policy_attachment" "bastion-base-policy" {
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
 
-resource "aws_iam_policy" "ret-alb-register-policy" {
-  name = "${var.shared["env"]}-ret-alb-register-policy"
-
-  # Apparently these cannot be bound to resource ARNs.
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "elasticloadbalancing:RegisterTargets"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "elasticloadbalancing:DescribeTargetHealth"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "elasticloadbalancing:DeregisterTargets"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "ret-alb-register-policy" {
-  role = "${aws_iam_role.ret.name}"
-  policy_arn = "${aws_iam_policy.ret-alb-register-policy.arn}"
-}
-
+# TODO kill
 resource "aws_iam_instance_profile" "ret" {
   name = "${var.shared["env"]}-ret"
   role = "${aws_iam_role.ret.id}"
 }
 
+# TODO kill
 resource "aws_launch_configuration" "ret" {
   image_id = "${data.aws_ami.hab-census-ami.id}"
   instance_type = "${var.ret_instance_type}"
@@ -637,6 +606,7 @@ resource "aws_route53_record" "ret-assets-dns" {
   }
 }
 
+# TODO kill
 resource "aws_alb" "ret-smoke-alb" {
   name = "${var.shared["env"]}-ret-smoke-alb"
   security_groups = ["${aws_security_group.ret-alb.id}"]
@@ -645,6 +615,7 @@ resource "aws_alb" "ret-smoke-alb" {
   lifecycle { create_before_destroy = true }
 }
 
+# TODO reassign
 resource "aws_route53_record" "ret-smoke-alb-dns" {
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
   name = "smoke-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
@@ -657,6 +628,7 @@ resource "aws_route53_record" "ret-smoke-alb-dns" {
   }
 }
 
+# TODO kill
 resource "aws_alb_target_group" "ret-smoke-alb-group-http" {
   name = "${var.shared["env"]}-ret-smoke-alb-group-http"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
@@ -673,6 +645,7 @@ resource "aws_alb_target_group" "ret-smoke-alb-group-http" {
   }
 }
 
+# TODO kill
 resource "aws_alb_listener" "ret-smoke-ssl-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-smoke-alb.arn}"
   port = 443
@@ -688,6 +661,7 @@ resource "aws_alb_listener" "ret-smoke-ssl-alb-listener" {
   }
 }
 
+# TODO kill
 resource "aws_alb_listener" "ret-smoke-clear-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-smoke-alb.arn}"
   port = 80
@@ -700,6 +674,7 @@ resource "aws_alb_listener" "ret-smoke-clear-alb-listener" {
   }
 }
 
+# TODO kill
 resource "aws_launch_configuration" "ret-smoke" {
   image_id = "${data.aws_ami.hab-census-ami.id}"
   instance_type = "${var.ret_instance_type}"
@@ -743,6 +718,7 @@ sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url http
 EOF
 }
 
+# TODO kill
 resource "aws_autoscaling_group" "ret-smoke" {
   name = "${var.shared["env"]}-ret-smoke"
   launch_configuration = "${aws_launch_configuration.ret-smoke.id}"
