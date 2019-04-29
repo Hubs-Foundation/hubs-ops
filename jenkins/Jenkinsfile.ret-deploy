@@ -1,0 +1,30 @@
+import groovy.json.JsonOutput
+
+pipeline {
+  agent any
+
+  stages {
+    stage('deploy') {
+      steps {
+        script {
+            def retPool = env.RET_POOL
+            def slackURL = 'https://hooks.slack.com/services/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'
+            def text = "Deploying reticulum `${env.RET_VERSION}` to `${retPool}`"
+            def payload = JsonOutput.toJson([text      : text, channel   : "#mr-push", username  : "pushbot", icon_emoji: ":robot_face:"])
+            sh "curl -X POST --data-urlencode \'payload=${payload}\' ${slackURL}"
+        }
+
+        sh "bin/ret_alb_to_pool.sh '${env.RET_DEV_POOL_HOST}' '${env.RET_POOL}' dev"
+
+        script {
+            retPool = env.RET_POOL
+            retPoolIcon = retPool == 'earth' ? ':earth_americas:' : ':new_moon:'
+            slackURL = 'https://hooks.slack.com/services/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'
+            text = "${retPoolIcon} reticulum ${env.RET_VERSION} live on `${retPool}`"
+            payload = JsonOutput.toJson([text      : text, channel   : "#mr-push", username  : "pushbot", icon_emoji: ":robot_face:"])
+            sh "curl -X POST --data-urlencode \'payload=${payload}\' ${slackURL}"
+        }
+      }
+    }
+  }
+}
