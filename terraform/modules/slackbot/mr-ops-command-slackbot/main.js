@@ -37,6 +37,11 @@ function processEvent(event, callback) {
         const s3url = commandText.split(" ")[3].trim();
         const url = `https:\/\/ci-dev.reticulum.io/buildByToken/buildWithParameters?job=spoke-deploy&S3URL=${s3url}&token=${jtoken}&SOURCE=${user}&BUILD_VERSION=${buildVersion}`;
         https.get(url, (res) => { callback(null, "Spoke deploy started. See #mr-push."); });
+    } else if (commandText.startsWith("ret deploy ")) {
+        const retVersion = commandText.split(" ")[2].trim();
+        const retPool = commandText.split(" ")[3].trim();
+        const url = `https:\/\/ci-dev.reticulum.io/buildByToken/buildWithParameters?job=ret-deploy&RET_VERSION=${retVersion}&RET_POOL=${retPool}&token=${jtoken}&SOURCE=${user}`;
+        https.get(url, (res) => { callback(null, "Reticulum deploy started. See #mr-push."); });
     } else if (commandText.startsWith("hubs support on")) {
         const options = {
             hostname: 'hubs.mozilla.com',
@@ -68,7 +73,7 @@ function processEvent(event, callback) {
         req.write("{ }");
         req.end();
     } else {
-        callback(null, `Invalid command, try \`hab promote <package>, hubs deploy <version> <s3 target>, hubs support on, hubs support off\``);
+        callback(null, `Invalid command, try \`hab promote <package>, ret deploy <version> <pool>, hubs deploy <version> <s3 target>, hubs support on, hubs support off\``);
     }
 }
 
