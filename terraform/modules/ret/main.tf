@@ -87,8 +87,8 @@ resource "aws_route53_record" "ret-alb-dns" {
   type = "A"
 
   alias {
-    name = "${aws_alb.ret-alb.dns_name}"
-    zone_id = "${aws_alb.ret-alb.zone_id}"
+    name = "${aws_alb.ret.dns_name}"
+    zone_id = "${aws_alb.ret.zone_id}"
     evaluate_target_health = true
   }
 }
@@ -622,8 +622,8 @@ resource "aws_route53_record" "ret-smoke-alb-dns" {
   type = "A"
 
   alias {
-    name = "${aws_alb.ret-smoke-alb.dns_name}"
-    zone_id = "${aws_alb.ret-smoke-alb.zone_id}"
+    name = "${aws_alb.ret.dns_name}"
+    zone_id = "${aws_alb.ret.zone_id}"
     evaluate_target_health = true
   }
 }
