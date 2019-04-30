@@ -18,10 +18,6 @@ variable "ret_domain" {
   description = "Domain name being used for reticulum server (ex reticulum.io)"
 }
 
-variable "reticulum_channel" {
-  description = "Distribution channel for reticulum on non-smoke servers"
-}
-
 variable "reticulum_restart_strategy" {
   description = "Habitat restart strategy for Reticulum"
 }
