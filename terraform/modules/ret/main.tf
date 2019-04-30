@@ -26,6 +26,12 @@ data "aws_acm_certificate" "ret-alb-listener-public-cert" {
   most_recent = true
 }
 
+data "aws_acm_certificate" "ret-alb-listener-smoke-public-cert" {
+  domain = "smoke-${var.public_domain}"
+  statuses = ["ISSUED"]
+  most_recent = true
+}
+
 data "aws_acm_certificate" "ret-alb-listener-cert-east" {
   provider = "aws.east"
   domain = "*.${var.ret_domain}"
@@ -184,6 +190,12 @@ resource "aws_lb_listener_certificate" "ret-ssl-cert" {
   count = "${var.public_domain_enabled}"
   listener_arn = "${aws_alb_listener.ret-ssl.arn}"
   certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-public-cert.arn}"
+}
+
+resource "aws_lb_listener_certificate" "ret-smoke-ssl-cert" {
+  count = "${var.public_domain_enabled}"
+  listener_arn = "${aws_alb_listener.ret-ssl.arn}"
+  certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-smoke-public-cert.arn}"
 }
 
 resource "aws_alb_listener" "ret-clear" {
