@@ -33,3 +33,8 @@ variable "public_domain_enabled" {
 variable "public_domain" {
   description = "Domain to use for public access (ex yoursite.com)"
 }
+
+variable "ret_pools" {
+  default = ["earth", "arbre"]
+}
+

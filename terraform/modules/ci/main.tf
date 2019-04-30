@@ -124,6 +124,13 @@ resource "aws_iam_role_policy_attachment" "ci-backup-s3-policy" {
   policy_arn = "${aws_iam_policy.ci-backup-s3-policy.arn}"
 }
 
+resource "aws_iam_role_policy_attachment" "alb-rule-editor-policy" {
+  role = "${aws_iam_role.ci.name}"
+  count = "${var.enabled}"
+
+  policy_arn = "${aws_iam_policy.alb-rule-editor-policy.arn}"
+}
+
 resource "aws_iam_policy" "ci-backup-s3-policy" {
   name = "${var.shared["env"]}-ci-backup-s3-policy"
   count = "${var.enabled}"
@@ -147,6 +154,30 @@ resource "aws_iam_policy" "ci-backup-s3-policy" {
           "Effect": "Allow",
           "Action": "s3:ListBucket",
           "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.backups_bucket_id}"
+      }
+    ]
+  }
+EOF
+}
+
+resource "aws_iam_policy" "alb-rule-editor-policy" {
+  name = "${var.shared["env"]}-alb-rule-editor-policy"
+  count = "${var.enabled}"
+
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+          "Effect": "Allow",
+          "Action": [
+            "elasticloadbalancing:DescribeLoadBalancers",
+            "elasticloadbalancing:DescribeListeners",
+            "elasticloadbalancing:ModifyRule",
+            "elasticloadbalancing:DescribeRules",
+            "elasticloadbalancing:SetRulePriorities"
+          ],
+          "Resource": "*"
       }
     ]
   }
@@ -398,6 +429,10 @@ resource "aws_cloudfront_distribution" "ci-external" {
     acm_certificate_arn = "${data.aws_acm_certificate.ret-wildcard-cert-east.arn}"
     ssl_support_method = "sni-only"
     minimum_protocol_version = "TLSv1"
+  }
+
+  lifecycle {
+    ignore_changes = ["web_acl_id"] # Managed manually
   }
 }
 

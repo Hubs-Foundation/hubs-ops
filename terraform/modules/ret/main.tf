@@ -71,6 +71,7 @@ resource "aws_security_group_rule" "ret-alb-egress" {
   source_security_group_id = "${aws_security_group.ret.id}"
 }
 
+# TODO kill
 resource "aws_alb" "ret-alb" {
   name = "${var.shared["env"]}-ret-alb"
   security_groups = ["${aws_security_group.ret-alb.id}"]
@@ -79,18 +80,102 @@ resource "aws_alb" "ret-alb" {
   lifecycle { create_before_destroy = true }
 }
 
+# TODO reassign
 resource "aws_route53_record" "ret-alb-dns" {
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
   name = "${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
   type = "A"
 
   alias {
-    name = "${aws_alb.ret-alb.dns_name}"
-    zone_id = "${aws_alb.ret-alb.zone_id}"
+    name = "${aws_alb.ret.dns_name}"
+    zone_id = "${aws_alb.ret.zone_id}"
     evaluate_target_health = true
   }
 }
 
+resource "aws_alb" "ret" {
+  name = "${var.shared["env"]}-ret"
+  security_groups = ["${aws_security_group.ret-alb.id}"]
+  subnets = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
+
+  lifecycle { create_before_destroy = true }
+}
+
+resource "aws_alb_listener_rule" "ret" {
+  listener_arn = "${aws_alb_listener.ret-ssl.arn}"
+  count = "${length(var.ret_pools)}"
+  
+  action {
+    type = "forward"
+    target_group_arn = "${element(aws_alb_target_group.ret.*.arn, count.index)}"
+  }
+
+  condition {
+    field = "path-pattern"
+    values = ["/"]
+  }
+
+  # Condition managed by tooling
+  lifecycle { 
+    ignore_changes = [ "condition" ]
+  }
+}
+
+resource "aws_alb_listener_rule" "ret-smoke" {
+  listener_arn = "${aws_alb_listener.ret-ssl.arn}"
+  count = "${length(var.ret_pools)}"
+  
+  action {
+    type = "forward"
+    target_group_arn = "${element(aws_alb_target_group.ret-smoke.*.arn, count.index)}"
+  }
+
+  condition {
+    field = "path-pattern"
+    values = ["/"]
+  }
+
+  # Condition managed by tooling
+  lifecycle { 
+    ignore_changes = [ "condition" ]
+  }
+}
+
+resource "aws_alb_target_group" "ret" {
+  count = "${length(var.ret_pools)}"
+  name = "${var.shared["env"]}-${var.ret_pools[count.index]}-ret"
+  vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
+  port = "${var.ret_http_port}"
+  protocol = "HTTP"
+  deregistration_delay = 0
+
+  health_check {
+    path = "/health"
+    healthy_threshold = 2
+    unhealthy_threshold = 2
+    interval = 10
+    timeout = 5
+  }
+}
+
+resource "aws_alb_target_group" "ret-smoke" {
+  count = "${length(var.ret_pools)}"
+  name = "${var.shared["env"]}-${var.ret_pools[count.index]}-smoke-ret"
+  vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
+  port = "${var.ret_http_port}"
+  protocol = "HTTP"
+  deregistration_delay = 0
+
+  health_check {
+    path = "/health"
+    healthy_threshold = 2
+    unhealthy_threshold = 2
+    interval = 10
+    timeout = 5
+  }
+}
+
+# TODO kill
 resource "aws_alb_target_group" "ret-alb-group-http" {
   name = "${var.shared["env"]}-ret-alb-group-http"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
@@ -107,6 +192,7 @@ resource "aws_alb_target_group" "ret-alb-group-http" {
   }
 }
 
+# TODO kill
 resource "aws_alb_listener" "ret-ssl-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-alb.arn}"
   port = 443
@@ -122,12 +208,14 @@ resource "aws_alb_listener" "ret-ssl-alb-listener" {
   }
 }
 
+# TODO kill
 resource "aws_lb_listener_certificate" "ret-ssl-public-alb-listener-cert" {
   count = "${var.public_domain_enabled}"
   listener_arn = "${aws_alb_listener.ret-ssl-alb-listener.arn}"
   certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-public-cert.arn}"
 }
 
+# TODO kill
 resource "aws_alb_listener" "ret-clear-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-alb.arn}"
   port = 80
@@ -137,6 +225,44 @@ resource "aws_alb_listener" "ret-clear-alb-listener" {
   default_action {
     target_group_arn = "${aws_alb_target_group.ret-alb-group-http.arn}"
     type = "forward"
+  }
+}
+
+resource "aws_alb_listener" "ret-ssl" {
+  load_balancer_arn = "${aws_alb.ret.arn}"
+  port = 443
+
+  protocol = "HTTPS"
+  ssl_policy = "ELBSecurityPolicy-2015-05"
+
+  certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert.arn}"
+
+  default_action {
+    target_group_arn = "${element(aws_alb_target_group.ret.*.arn, 0)}"
+    type = "forward"
+  }
+}
+
+resource "aws_lb_listener_certificate" "ret-ssl-cert" {
+  count = "${var.public_domain_enabled}"
+  listener_arn = "${aws_alb_listener.ret-ssl.arn}"
+  certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-public-cert.arn}"
+}
+
+resource "aws_alb_listener" "ret-clear" {
+  load_balancer_arn = "${aws_alb.ret.arn}"
+  port = 80
+
+  protocol = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port = "443"
+      protocol = "HTTPS"
+      status_code = "HTTP_301"
+    }
   }
 }
 
@@ -250,50 +376,12 @@ resource "aws_iam_role_policy_attachment" "bastion-base-policy" {
   policy_arn = "${data.terraform_remote_state.base.base_policy_arn}"
 }
 
-resource "aws_iam_policy" "ret-alb-register-policy" {
-  name = "${var.shared["env"]}-ret-alb-register-policy"
-
-  # Apparently these cannot be bound to resource ARNs.
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "elasticloadbalancing:RegisterTargets"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "elasticloadbalancing:DescribeTargetHealth"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "elasticloadbalancing:DeregisterTargets"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "ret-alb-register-policy" {
-  role = "${aws_iam_role.ret.name}"
-  policy_arn = "${aws_iam_policy.ret-alb-register-policy.arn}"
-}
-
 resource "aws_iam_instance_profile" "ret" {
   name = "${var.shared["env"]}-ret"
   role = "${aws_iam_role.ret.id}"
 }
 
+# TODO kill
 resource "aws_launch_configuration" "ret" {
   image_id = "${data.aws_ami.hab-census-ami.id}"
   instance_type = "${var.ret_instance_type}"
@@ -333,6 +421,7 @@ sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url http
 EOF
 }
 
+# TODO kill
 resource "aws_autoscaling_group" "ret" {
   name = "${var.shared["env"]}-ret"
   launch_configuration = "${aws_launch_configuration.ret.id}"
@@ -517,6 +606,7 @@ resource "aws_route53_record" "ret-assets-dns" {
   }
 }
 
+# TODO kill
 resource "aws_alb" "ret-smoke-alb" {
   name = "${var.shared["env"]}-ret-smoke-alb"
   security_groups = ["${aws_security_group.ret-alb.id}"]
@@ -525,18 +615,20 @@ resource "aws_alb" "ret-smoke-alb" {
   lifecycle { create_before_destroy = true }
 }
 
+# TODO reassign
 resource "aws_route53_record" "ret-smoke-alb-dns" {
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
   name = "smoke-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
   type = "A"
 
   alias {
-    name = "${aws_alb.ret-smoke-alb.dns_name}"
-    zone_id = "${aws_alb.ret-smoke-alb.zone_id}"
+    name = "${aws_alb.ret.dns_name}"
+    zone_id = "${aws_alb.ret.zone_id}"
     evaluate_target_health = true
   }
 }
 
+# TODO kill
 resource "aws_alb_target_group" "ret-smoke-alb-group-http" {
   name = "${var.shared["env"]}-ret-smoke-alb-group-http"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
@@ -553,6 +645,7 @@ resource "aws_alb_target_group" "ret-smoke-alb-group-http" {
   }
 }
 
+# TODO kill
 resource "aws_alb_listener" "ret-smoke-ssl-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-smoke-alb.arn}"
   port = 443
@@ -568,6 +661,7 @@ resource "aws_alb_listener" "ret-smoke-ssl-alb-listener" {
   }
 }
 
+# TODO kill
 resource "aws_alb_listener" "ret-smoke-clear-alb-listener" {
   load_balancer_arn = "${aws_alb.ret-smoke-alb.arn}"
   port = 80
@@ -580,6 +674,7 @@ resource "aws_alb_listener" "ret-smoke-clear-alb-listener" {
   }
 }
 
+# TODO kill
 resource "aws_launch_configuration" "ret-smoke" {
   image_id = "${data.aws_ami.hab-census-ami.id}"
   instance_type = "${var.ret_instance_type}"
@@ -623,6 +718,7 @@ sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url http
 EOF
 }
 
+# TODO kill
 resource "aws_autoscaling_group" "ret-smoke" {
   name = "${var.shared["env"]}-ret-smoke"
   launch_configuration = "${aws_launch_configuration.ret-smoke.id}"
@@ -638,6 +734,133 @@ resource "aws_autoscaling_group" "ret-smoke" {
   tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }
   tag { key = "host-type", value = "${var.shared["env"]}-ret", propagate_at_launch = true }
   tag { key = "hab-ring", value = "${var.shared["env"]}", propagate_at_launch = true }
+  tag { key = "smoke", value = "true", propagate_at_launch = true }
+}
+
+resource "aws_launch_configuration" "ret-pool" {
+  count = "${length(var.ret_pools)}"
+  image_id = "${data.aws_ami.hab-census-ami.id}"
+  instance_type = "${var.ret_instance_type}"
+  security_groups = [
+    "${aws_security_group.ret.id}",
+    "${data.terraform_remote_state.ret-db.ret_db_consumer_security_group_id}",
+    "${data.terraform_remote_state.hab.hab_ring_security_group_id}",
+  ]
+  key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
+  iam_instance_profile = "${aws_iam_instance_profile.ret.id}"
+  associate_public_ip_address = false
+  lifecycle { create_before_destroy = true }
+  root_block_device { volume_size = 128 }
+  user_data = <<EOF
+#!/usr/bin/env bash
+while ! nc -z localhost 9632 ; do sleep 1; done
+systemctl restart systemd-sysctl.service
+
+sudo mkdir -p /hab/user/reticulum/config
+
+sudo mkdir /uploads
+sudo echo "${aws_efs_mount_target.uploads-fs.0.dns_name}:/       /uploads        nfs     nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=3,noresvport" >> /etc/fstab
+sudo mount /uploads
+sudo chown hab:hab /uploads
+
+sudo cat > /hab/user/reticulum/config/user.toml << EOTOML
+[ret]
+pool = "${var.ret_pools[count.index]}"
+
+[habitat]
+ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+
+[pages]
+hubs_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/hubs/pages/live"
+spoke_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/spoke/pages/live"
+EOTOML
+
+sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
+sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+EOF
+}
+
+resource "aws_autoscaling_group" "ret-pool" {
+  count = "${length(var.ret_pools)}"
+  name = "${var.shared["env"]}-${var.ret_pools[count.index]}-ret-pool"
+  launch_configuration = "${element(aws_launch_configuration.ret-pool.*.id, count.index)}"
+  availability_zones = ["${data.aws_availability_zones.all.names}"]
+  vpc_zone_identifier = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
+  target_group_arns = ["${element(aws_alb_target_group.ret.*.arn, count.index)}"]
+
+  min_size = "${var.min_ret_servers}"
+  max_size = "${var.max_ret_servers}"
+
+  lifecycle { create_before_destroy = true }
+  tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }
+  tag { key = "host-type", value = "${var.shared["env"]}-ret", propagate_at_launch = true }
+  tag { key = "ret-pool", value = "${var.ret_pools[count.index]}", propagate_at_launch = true }
+  tag { key = "hab-ring", value = "${var.shared["env"]}", propagate_at_launch = true }
+}
+
+resource "aws_launch_configuration" "ret-smoke-pool" {
+  count = "${length(var.ret_pools)}"
+  image_id = "${data.aws_ami.hab-census-ami.id}"
+  instance_type = "${var.ret_instance_type}"
+  security_groups = [
+    "${aws_security_group.ret.id}",
+    "${data.terraform_remote_state.ret-db.ret_db_consumer_security_group_id}",
+    "${data.terraform_remote_state.hab.hab_ring_security_group_id}",
+  ]
+  key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
+  iam_instance_profile = "${aws_iam_instance_profile.ret.id}"
+  associate_public_ip_address = false
+  lifecycle { create_before_destroy = true }
+  root_block_device { volume_size = 128 }
+  user_data = <<EOF
+#!/usr/bin/env bash
+while ! nc -z localhost 9632 ; do sleep 1; done
+systemctl restart systemd-sysctl.service
+
+sudo mkdir -p /hab/user/reticulum/config
+
+sudo mkdir /uploads
+sudo echo "${aws_efs_mount_target.uploads-fs.0.dns_name}:/       /uploads        nfs     nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=3,noresvport" >> /etc/fstab
+sudo mount /uploads
+sudo chown hab:hab /uploads
+
+sudo cat > /hab/user/reticulum/config/user.toml << EOTOML
+[ret]
+pool = "${var.ret_pools[count.index]}"
+
+[phx]
+url_host_prefix = "smoke-"
+static_url_host_prefix = "smoke-"
+
+[habitat]
+ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+
+[pages]
+hubs_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/hubs/pages/latest"
+spoke_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/spoke/pages/latest"
+EOTOML
+
+sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
+sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+EOF
+}
+
+resource "aws_autoscaling_group" "ret-smoke-pool" {
+  count = "${length(var.ret_pools)}"
+  name = "${var.shared["env"]}-${var.ret_pools[count.index]}-ret-smoke-pool"
+  launch_configuration = "${element(aws_launch_configuration.ret-smoke-pool.*.id, count.index)}"
+  availability_zones = ["${data.aws_availability_zones.all.names}"]
+  vpc_zone_identifier = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
+  target_group_arns = ["${element(aws_alb_target_group.ret-smoke.*.arn, count.index)}"]
+
+  min_size = "1"
+  max_size = "1"
+
+  lifecycle { create_before_destroy = true }
+  tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }
+  tag { key = "host-type", value = "${var.shared["env"]}-ret", propagate_at_launch = true }
+  tag { key = "hab-ring", value = "${var.shared["env"]}", propagate_at_launch = true }
+  tag { key = "ret-pool", value = "${var.ret_pools[count.index]}", propagate_at_launch = true }
   tag { key = "smoke", value = "true", propagate_at_launch = true }
 }
 
