@@ -39,13 +39,13 @@ data "aws_acm_certificate" "ret-alb-listener-cert-east" {
   most_recent = true
 }
 
-data "aws_ami" "hab-census-ami" {
+data "aws_ami" "ret-ami" {
   most_recent = true
   owners = ["self"]
 
   filter {
     name = "name"
-    values = ["hab-census-*"]
+    values = ["ret-*"]
   }
 }
 
@@ -528,7 +528,7 @@ resource "aws_route53_record" "ret-smoke-alb-dns" {
 
 resource "aws_launch_configuration" "ret-pool" {
   count = "${length(var.ret_pools)}"
-  image_id = "${data.aws_ami.hab-census-ami.id}"
+  image_id = "${data.aws_ami.ret-ami.id}"
   instance_type = "${var.ret_instance_type}"
   security_groups = [
     "${aws_security_group.ret.id}",
@@ -564,6 +564,11 @@ hubs_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terr
 spoke_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/spoke/pages/live"
 EOTOML
 
+aws s3 cp s3://${aws_s3_bucket.ret-bucket.id}/reticulum-files.tar.gz.gpg .
+gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/reticulum/files/gpg-file-key.txt reticulum-files.tar.gz.gpg | tar xz -C /hab/svc/reticulum/files
+rm reticulum-files.tar.gz.gpg
+chown hab:hab /hab/svc/reticulum/files/*
+
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
@@ -589,7 +594,7 @@ resource "aws_autoscaling_group" "ret-pool" {
 
 resource "aws_launch_configuration" "ret-smoke-pool" {
   count = "${length(var.ret_pools)}"
-  image_id = "${data.aws_ami.hab-census-ami.id}"
+  image_id = "${data.aws_ami.ret-ami.id}"
   instance_type = "${var.ret_instance_type}"
   security_groups = [
     "${aws_security_group.ret.id}",
@@ -628,6 +633,11 @@ ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 hubs_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/hubs/pages/latest"
 spoke_page_origin = "https://s3-${var.shared["region"]}.amazonaws.com/${data.terraform_remote_state.base.assets_bucket_id}/spoke/pages/latest"
 EOTOML
+
+aws s3 cp s3://${aws_s3_bucket.ret-bucket.id}/reticulum-files.tar.gz.gpg .
+gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/reticulum/files/gpg-file-key.txt reticulum-files.tar.gz.gpg | tar xz -C /hab/svc/reticulum/files
+rm reticulum-files.tar.gz.gpg
+chown hab:hab /hab/svc/reticulum/files/*
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable

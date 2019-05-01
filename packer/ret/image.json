@@ -1,0 +1,124 @@
+{
+  "variables": {
+    "aws_access_key": "",
+    "aws_secret_key": ""
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "region": "us-west-1",
+    "associate_public_ip_address": true,
+    "iam_instance_profile": "dev-packer",
+    "subnet_id": "subnet-abacbdf3",
+    "security_group_id": "sg-37a2c751",
+    "source_ami_filter": {
+      "filters": {
+        "virtualization-type": "hvm",
+        "name": "ubuntu/images/*ubuntu-bionic-18.04-amd64-server-*",
+        "root-device-type": "ebs"
+      },
+      "owners": ["099720109477"],
+      "most_recent": true
+    },
+    "instance_type": "m3.medium",
+    "ssh_username": "ubuntu",
+    "ami_name": "ret-{{timestamp}}"
+  }],
+  "provisioners": [
+    { "type": "file", "source": "../shared/files/hostname-adjectives", "destination": "hostname-adjectives" },
+    { "type": "file", "source": "../shared/files/hostname-nouns", "destination": "hostname-nouns" },
+    { "type": "file", "source": "../shared/files/set_hostname.sh", "destination": "set_hostname.sh" },
+    { "type": "file", "source": "../shared/files/set_host_type_prompt.sh", "destination": "set_host_type_prompt.sh" },
+    { "type": "file", "source": "../shared/files/set-hostname.service", "destination": "set-hostname.service" },
+    { "type": "file", "source": "../shared/files/save_service_files", "destination": "save_service_files" },
+    { "type": "file", "source": "../shared/files/coredump.conf", "destination": "coredump.conf" },
+    { "type": "file", "source": "../shared/files/sysctl.core.conf", "destination": "sysctl.core.conf" },
+    { "type": "file", "source": "../shared/files/limits.core.conf", "destination": "limits.core.conf" },
+    { "type": "file", "source": "../shared/files/sysctl.files.conf", "destination": "sysctl.files.conf" },
+    { "type": "file", "source": "../shared/files/limits.files.conf", "destination": "limits.files.conf" },
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
+      "inline": [
+        "apt-get update",
+        "apt-get update",
+        "apt-get update",
+        "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y",
+        "DEBIAN_FRONTEND=noninteractive apt-get install -y unattended-upgrades python3 awscli jq sysstat nfs-common gnupg2",
+        "update-alternatives --install /usr/bin/python python /usr/bin/python3 1",
+        "mv coredump.conf /etc/systemd",
+        "mv sysctl.core.conf /etc/sysctl.d/60-core.conf",
+        "chown root:root /etc/sysctl.d/60-core.conf",
+        "chmod 0644 /etc/sysctl.d/60-core.conf",
+        "mv limits.core.conf /etc/security/limits.d/core.conf",
+        "chown root:root /etc/security/limits.d/core.conf",
+        "mv sysctl.files.conf /etc/sysctl.d/60-files.conf",
+        "chown root:root /etc/sysctl.d/60-files.conf",
+        "chmod 0644 /etc/sysctl.d/60-files.conf",
+        "mv limits.files.conf /etc/security/limits.d/files.conf",
+        "chown root:root /etc/security/limits.d/files.conf",
+        "mkdir -p /var/lib/coredump",
+        "chmod a+wx /var/lib/coredump",
+        "perl -p -i -e 's/false/true/g' /etc/default/sysstat",
+        "echo 'DefaultLimitCORE=infinity' >> /etc/systemd/system.conf",
+        "echo 'DefaultLimitNOFILE=infinity' >> /etc/systemd/system.conf",
+        "echo 'DefaultLimitMEMLOCK=infinity' >> /etc/systemd/system.conf",
+        "perl -p -i -e 's/preserve_hostname: false/preserve_hostname: true/g' /etc/cloud/cloud.cfg",
+        "mv hostname-nouns /usr/share/dict",
+        "mv hostname-adjectives /usr/share/dict",
+        "mv set_host_type_prompt.sh /usr/bin",
+        "mv set_hostname.sh /usr/bin",
+        "mv set-hostname.service /lib/systemd/system",
+        "mv save_service_files /usr/bin",
+        "chown root:root /lib/systemd/system/set-hostname.service",
+        "systemctl enable set-hostname",
+        "chown root:root /usr/share/dict/hostname-nouns",
+        "chown root:root /usr/share/dict/hostname-adjectives",
+        "chown root:root /usr/bin/set_hostname.sh",
+        "chown root:root /usr/bin/set_host_type_prompt.sh",
+        "chown root:root /usr/bin/save_service_files",
+        "chmod +x /usr/bin/set_host_type_prompt.sh",
+        "chmod +x /usr/bin/set_hostname.sh",
+        "chmod +x /usr/bin/save_service_files",
+        "echo \". /usr/bin/set_host_type_prompt.sh\" >> /home/ubuntu/.bashrc",
+        "echo \". /usr/bin/set_host_type_prompt.sh\" >> /root/.bashrc"
+      ]
+    },
+    { "type": "file", "source": "../shared/files/hab-with-census.service", "destination": "hab.service" },
+    { "type": "file", "source": "../shared/files/hab-discover-peer", "destination": "hab-discover-peer" },
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
+      "inline": [
+        "curl -L \"https://api.bintray.com/content/habitat/stable/linux/x86_64/hab-0.73.0-20190115004751-x86_64-linux.tar.gz?bt_package=hab-x86_64-linux\" | tar xvz",
+        "find . -name 'hab' -exec mv {} /usr/bin \\;",
+        "chmod +x /usr/bin/hab",
+        "mv hab.service /lib/systemd/system",
+        "chown root:root /lib/systemd/system/hab.service",
+        "systemctl enable hab",
+        "mv hab-discover-peer /usr/bin",
+        "chown root:root /usr/bin/hab-discover-peer",
+        "chmod +x /usr/bin/hab-discover-peer",
+        "mkdir -p /hab/cache",
+        "groupadd -g 1001 hab",
+        "useradd -u 1001 -g 1001 hab"
+      ]
+    },
+    { "type": "file", "source": "secrets", "destination": "." },
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
+      "inline": [
+        "mv secrets/hab-keys /hab/cache/keys",
+        "chown -R root:root /hab/cache/keys",
+        "chmod -R 0600 /hab/cache/keys",
+        "mkdir -p /hab/svc/reticulum/files",
+        "mv secrets/reticulum/* /hab/svc/reticulum/files",
+        "chown -R hab:hab /hab/svc",
+        "chmod -R 0600 /hab/svc/reticulum/files/*",
+        "rm -rf secrets"
+      ]
+    }
+  ]
+}
