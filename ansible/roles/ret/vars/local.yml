@@ -51,7 +51,7 @@ janus_admin_secret: "secret"
 erlang_node_cookie: "4hLcgv+k1GO+fgV43dJ+LHkmFRoCqdxyo/xV93MFVff9XF0+sTR4OAQydT3fxBtD"
 phoenix_secret_key: "5sB9mzMMgLdsQZoPF6qOPP1x5PNxlzXi+xbP8Zvqgw2aAz0xlw6qIZjWrCduqORa"
 phoenix_admin_access_key: "admin"
-phoenix_port: 4001
+phoenix_port: 4000
 run_hostname_dns_suffix: ""
 alb_target_group_arn: ""
 smoke_alb_target_group_arn: ""
