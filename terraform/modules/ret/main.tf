@@ -215,6 +215,18 @@ resource "aws_alb_listener" "ret-clear" {
   }
 }
 
+resource "aws_s3_bucket" "ret-bucket" {
+  bucket = "ret.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "private"
+}
+
+resource "aws_s3_bucket_public_access_block" "ret-bucket-block" {
+  bucket = "${aws_s3_bucket.ret-bucket.id}"
+
+  block_public_acls   = true
+  block_public_policy = true
+}
+
 resource "aws_security_group" "ret" {
   name = "${var.shared["env"]}-ret"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
@@ -318,6 +330,11 @@ resource "aws_security_group" "ret" {
 resource "aws_iam_role" "ret" {
   name = "${var.shared["env"]}-ret"
   assume_role_policy = "${var.shared["ec2_role_policy"]}"
+}
+
+resource "aws_iam_role_policy_attachment" "ret-role-attach" {
+  role = "${aws_iam_role.ret.name}"
+  policy_arn = "${aws_iam_policy.ret-bucket-policy.arn}"
 }
 
 resource "aws_iam_role_policy_attachment" "bastion-base-policy" {
@@ -791,6 +808,23 @@ resource "aws_s3_bucket" "upload-backup-bucket" {
 resource "aws_iam_role_policy_attachment" "ret-upload-backup-role-attach" {
   role = "${aws_iam_role.ret.name}"
   policy_arn = "${aws_iam_policy.ret-upload-backup-policy.arn}"
+}
+
+resource "aws_iam_policy" "ret-bucket-policy" {
+  name = "${var.shared["env"]}-ret-bucket-policy"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+        "Effect": "Allow",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.ret-bucket.id}/*"
+    }
+  ]
+}
+EOF
 }
 
 resource "aws_iam_policy" "ret-upload-backup-policy" {
