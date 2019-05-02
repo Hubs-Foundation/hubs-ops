@@ -29,7 +29,7 @@ EC2_INFO=$(aws ec2 --region $REGION describe-instances)
 BASTION_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.State ; .Name == \"running\"))) | map(select(any(.Tags // [] | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-bastion\"))) | .[] | .PublicIpAddress" | shuf | head -n1)
 
 if [[ $ENVIRONMENT == "local" ]] ; then
-  ansible-playbook --ask-vault-pass -i "127.0.0.1," --extra-vars "env=${ENVIRONMENT} connection=local secrets_path=${HUBS_OPS_SECRETS_PATH}" -u ubuntu "migrate_db.yml"
+  ansible-playbook -i "127.0.0.1," --extra-vars "env=${ENVIRONMENT} connection=local" -u ubuntu "migrate_db.yml"
 else
   TARGET_IP=$(echo $EC2_INFO | jq -r ".Reservations | map(.Instances) | flatten | map(select(any(.State ; .Name == \"running\"))) | map(select(any(.Tags // [] | from_entries ; .[\"host-type\"] == \"${ENVIRONMENT}-util\"))) | .[] | .PrivateIpAddress" | shuf | head -n1)
 

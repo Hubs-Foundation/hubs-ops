@@ -4,6 +4,7 @@
   - name: Include environment specific secrets
     include_vars:
       file: "{{ secrets_path }}/roles/migrate/vars/{{ env }}.yml"
+    when: env != 'local'
 
   - name: Include environment specific vars
     include_vars:
