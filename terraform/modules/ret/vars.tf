@@ -2,8 +2,12 @@ variable "ret_instance_type" {
   description = "Reticulum server instance type"
 }
 
-variable "ret_http_port" {
-  description = "Reticulum HTTP service listener port"
+variable "ret_https_port" {
+  description = "Reticulum HTTPS service listener port"
+}
+
+variable "ret_public_https_port" {
+  description = "Reticulum HTTPS public port"
 }
 
 variable "min_ret_servers" {
