@@ -23,7 +23,7 @@ pipeline {
             retPool = env.RET_POOL
             retPoolIcon = retPool == 'earth' ? ':earth_americas:' : ':new_moon:'
             slackURL = 'https://hooks.slack.com/services/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'
-            text = ("${retPoolIcon} reticulum ${env.RET_VERSION} live on `${retPool}`\n" +
+            text = ("${retPoolIcon} reticulum `${env.RET_VERSION}` live on `${retPool}`\n" +
               "<https://hubs.mozilla.com/0zuesf6c6mf/smoke-test?required_ret_version=${env.RET_VERSION}&required_ret_pool=${retPool}|Monitor Deploy>")
             payload = JsonOutput.toJson([text      : text, channel   : "#mr-push", username  : "pushbot", icon_emoji: ":robot_face:"])
             sh "curl -X POST --data-urlencode \'payload=${payload}\' ${slackURL}"
