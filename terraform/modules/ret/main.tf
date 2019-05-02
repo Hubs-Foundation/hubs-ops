@@ -68,10 +68,10 @@ resource "aws_security_group" "ret-alb" {
   }
 }
 
-resource "aws_security_group_rule" "ret-alb-egress" {
+resource "aws_security_group_rule" "ret-alb-egress-ssl" {
   type = "egress"
-  from_port = "${var.ret_http_port}"
-  to_port = "${var.ret_http_port}"
+  from_port = "${var.ret_https_port}"
+  to_port = "${var.ret_https_port}"
   protocol = "tcp"
   security_group_id = "${aws_security_group.ret-alb.id}"
   source_security_group_id = "${aws_security_group.ret.id}"
@@ -97,13 +97,13 @@ resource "aws_alb" "ret" {
   lifecycle { create_before_destroy = true }
 }
 
-resource "aws_alb_listener_rule" "ret" {
+resource "aws_alb_listener_rule" "ret-ssl" {
   listener_arn = "${aws_alb_listener.ret-ssl.arn}"
   count = "${length(var.ret_pools)}"
   
   action {
     type = "forward"
-    target_group_arn = "${element(aws_alb_target_group.ret.*.arn, count.index)}"
+    target_group_arn = "${element(aws_alb_target_group.ret-ssl.*.arn, count.index)}"
   }
 
   condition {
@@ -117,13 +117,13 @@ resource "aws_alb_listener_rule" "ret" {
   }
 }
 
-resource "aws_alb_listener_rule" "ret-smoke" {
+resource "aws_alb_listener_rule" "ret-smoke-ssl" {
   listener_arn = "${aws_alb_listener.ret-ssl.arn}"
   count = "${length(var.ret_pools)}"
   
   action {
     type = "forward"
-    target_group_arn = "${element(aws_alb_target_group.ret-smoke.*.arn, count.index)}"
+    target_group_arn = "${element(aws_alb_target_group.ret-smoke-ssl.*.arn, count.index)}"
   }
 
   condition {
@@ -137,16 +137,17 @@ resource "aws_alb_listener_rule" "ret-smoke" {
   }
 }
 
-resource "aws_alb_target_group" "ret" {
+resource "aws_alb_target_group" "ret-ssl" {
   count = "${length(var.ret_pools)}"
-  name = "${var.shared["env"]}-${var.ret_pools[count.index]}-ret"
+  name = "${var.shared["env"]}-${var.ret_pools[count.index]}-ret-ssl"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
-  port = "${var.ret_http_port}"
-  protocol = "HTTP"
+  port = "${var.ret_https_port}"
+  protocol = "HTTPS"
   deregistration_delay = 0
 
   health_check {
     path = "/health"
+    protocol = "HTTPS"
     healthy_threshold = 2
     unhealthy_threshold = 2
     interval = 10
@@ -154,16 +155,17 @@ resource "aws_alb_target_group" "ret" {
   }
 }
 
-resource "aws_alb_target_group" "ret-smoke" {
+resource "aws_alb_target_group" "ret-smoke-ssl" {
   count = "${length(var.ret_pools)}"
-  name = "${var.shared["env"]}-${var.ret_pools[count.index]}-smoke-ret"
+  name = "${var.shared["env"]}-${var.ret_pools[count.index]}-smoke-ret-ssl"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
-  port = "${var.ret_http_port}"
-  protocol = "HTTP"
+  port = "${var.ret_https_port}"
+  protocol = "HTTPS"
   deregistration_delay = 0
 
   health_check {
     path = "/health"
+    protocol = "HTTPS"
     healthy_threshold = 2
     unhealthy_threshold = 2
     interval = 10
@@ -181,7 +183,7 @@ resource "aws_alb_listener" "ret-ssl" {
   certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert.arn}"
 
   default_action {
-    target_group_arn = "${element(aws_alb_target_group.ret.*.arn, 0)}"
+    target_group_arn = "${element(aws_alb_target_group.ret-ssl.*.arn, 0)}"
     type = "forward"
   }
 }
@@ -262,12 +264,20 @@ resource "aws_security_group" "ret" {
     security_groups = ["${data.terraform_remote_state.hab.hab_ring_security_group_id}"]
   }
 
-  # Reticulum HTTP
+  # Reticulum HTTPS
   ingress {
-    from_port = "${var.ret_http_port}"
-    to_port = "${var.ret_http_port}"
+    from_port = "${var.ret_https_port}"
+    to_port = "${var.ret_https_port}"
     protocol = "tcp"
     security_groups = ["${aws_security_group.ret-alb.id}"]
+  }
+
+  # Reticulum Public HTTPS
+  ingress {
+    from_port = "${var.ret_public_https_port}"
+    to_port = "${var.ret_public_https_port}"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   # SSH
@@ -544,6 +554,8 @@ resource "aws_launch_configuration" "ret-pool" {
 #!/usr/bin/env bash
 while ! nc -z localhost 9632 ; do sleep 1; done
 systemctl restart systemd-sysctl.service
+# Forward port 4000 to 443 for reticulum websockets
+sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 4000
 
 sudo mkdir -p /hab/user/reticulum/config
 
@@ -580,7 +592,7 @@ resource "aws_autoscaling_group" "ret-pool" {
   launch_configuration = "${element(aws_launch_configuration.ret-pool.*.id, count.index)}"
   availability_zones = ["${data.aws_availability_zones.all.names}"]
   vpc_zone_identifier = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
-  target_group_arns = ["${element(aws_alb_target_group.ret.*.arn, count.index)}"]
+  target_group_arns = ["${element(aws_alb_target_group.ret-ssl.*.arn, count.index)}"]
 
   min_size = "${var.min_ret_servers}"
   max_size = "${var.max_ret_servers}"
@@ -610,6 +622,8 @@ resource "aws_launch_configuration" "ret-smoke-pool" {
 #!/usr/bin/env bash
 while ! nc -z localhost 9632 ; do sleep 1; done
 systemctl restart systemd-sysctl.service
+# Forward port 4000 to 443 for reticulum websockets
+sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 4000
 
 sudo mkdir -p /hab/user/reticulum/config
 
@@ -650,7 +664,7 @@ resource "aws_autoscaling_group" "ret-smoke-pool" {
   launch_configuration = "${element(aws_launch_configuration.ret-smoke-pool.*.id, count.index)}"
   availability_zones = ["${data.aws_availability_zones.all.names}"]
   vpc_zone_identifier = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
-  target_group_arns = ["${element(aws_alb_target_group.ret-smoke.*.arn, count.index)}"]
+  target_group_arns = ["${element(aws_alb_target_group.ret-smoke-ssl.*.arn, count.index)}"]
 
   min_size = "1"
   max_size = "1"

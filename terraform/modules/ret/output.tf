@@ -1,5 +1,5 @@
 output "ret_target_group_ids" {
-  value = "${aws_alb_target_group.ret.*.arn}"
+  value = "${aws_alb_target_group.ret-ssl.*.arn}"
 }
 
 output "ret_security_group_id" {
