@@ -579,7 +579,10 @@ EOTOML
 aws s3 cp s3://${aws_s3_bucket.ret-bucket.id}/reticulum-files.tar.gz.gpg .
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/reticulum/files/gpg-file-key.txt reticulum-files.tar.gz.gpg | tar xz -C /hab/svc/reticulum/files
 rm reticulum-files.tar.gz.gpg
+pushd /hab/svc/reticulum/files
+cat ssl.pem | tail -n+39 > ssl-chain.pem ; cat ssl.pem | head -n39 > ssl.pem.new ; mv ssl.pem.new ssl.pem
 chown hab:hab /hab/svc/reticulum/files/*
+popd
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
@@ -651,7 +654,10 @@ EOTOML
 aws s3 cp s3://${aws_s3_bucket.ret-bucket.id}/reticulum-files.tar.gz.gpg .
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/reticulum/files/gpg-file-key.txt reticulum-files.tar.gz.gpg | tar xz -C /hab/svc/reticulum/files
 rm reticulum-files.tar.gz.gpg
+pushd /hab/svc/reticulum/files
+cat ssl.pem | tail -n+39 > ssl-chain.pem ; cat ssl.pem | head -n39 > ssl.pem.new ; mv ssl.pem.new ssl.pem
 chown hab:hab /hab/svc/reticulum/files/*
+popd
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
