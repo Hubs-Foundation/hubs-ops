@@ -3,7 +3,7 @@
 - hosts: all
   gather_facts: false
   become: true
-  become_user: "{{ 'hab' if connection == 'local' else 'root' }}"
+  become_user: "root"
   connection: "{{ connection }}"
   roles:
   - role: postgrest
