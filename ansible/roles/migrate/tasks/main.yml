@@ -20,6 +20,13 @@
     git:
       repo: "{{ ops_repo }}"
       dest: "{{ work_dir.path }}"
+    when: env != 'local'
+
+  - name: Copy migrations
+    copy:
+      src: "../db"
+      dest: "{{ work_dir.path }}"
+    when: env == 'local'
 
   - name: "Write configs"
     template:
