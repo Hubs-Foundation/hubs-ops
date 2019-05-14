@@ -30,7 +30,7 @@ create or replace view ret0_dw.accounts as (
 
 create or replace view ret0_dw.avatars as (
   (
-    select ret0_dw.sha1(a.avatar_sid) as avatar_id, a.inserted_at, a.updated_at, ret0_dw.sha1(b.avatar_sid) as parent_avatar_id, a.allow_remixing, a.allow_promotion, a.state
+    select ret0_dw.sha1(a.avatar_sid) as avatar_id, a.inserted_at, a.updated_at, ret0_dw.sha1(b.avatar_sid) as parent_avatar_id, a.allow_remixing, a.allow_promotion, a.state::text as state
     from avatars a left outer join avatars b on a.parent_avatar_id = b.avatar_id
   )
 );
@@ -38,7 +38,7 @@ create or replace view ret0_dw.avatars as (
 create or replace view ret0_dw.hub_bindings as (
   (
     select ret0_dw.sha1(hub_binding_id) as hub_binding_id, hub_bindings.inserted_at, hub_bindings.updated_at, ret0_dw.sha1(hubs.hub_sid) as hub_id,
-    type, ret0_dw.sha1(community_id) as community_id, ret0_dw.sha1(channel_id) as channel_id
+    type::text as type, ret0_dw.sha1(community_id) as community_id, ret0_dw.sha1(channel_id) as channel_id
     from hub_bindings inner join hubs on hub_bindings.hub_id = hubs.hub_id
   )
 );
@@ -64,7 +64,7 @@ create or replace view ret0_dw.room_objects as (
 
 create or replace view ret0_dw.scenes as (
   (
-    select ret0_dw.sha1(scene_sid) as scene_id, state, ret0_dw.sha1(account_id) as account_id, inserted_at, updated_at, allow_remixing, allow_promotion from scenes
+    select ret0_dw.sha1(scene_sid) as scene_id, state::text as state, ret0_dw.sha1(account_id) as account_id, inserted_at, updated_at, allow_remixing, allow_promotion from scenes
   )
 );
 
@@ -89,3 +89,6 @@ create or replace view ret0_dw.web_push_subscriptions as (
     from web_push_subscriptions inner join hubs on hubs.hub_id = web_push_subscriptions.hub_id
   )
 );
+
+
+grant select on all tables in schema ret0_dw to ret_dw;
