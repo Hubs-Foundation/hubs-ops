@@ -15,5 +15,5 @@ terragrunt = {
 instance_class = "db.m4.large"
 allocated_storage = "100"
 storage_type = "gp2"
-dw_instance_class = "db.m4.large"
+dw_instance_class = "db.t3.medium"
 
