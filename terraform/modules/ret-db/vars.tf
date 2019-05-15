@@ -11,7 +11,7 @@ variable "allocated_storage" {
 }
 
 variable "password" {
-  description = "Password for database admin. This can be found in an encrypted ansible vault roles/ret/vars/[dev|prod].yml file in the var ret_db_password."
+  description = "Password for database admin. This can be found in an encrypted ansible vault roles/migrate/vars/[dev|prod].yml file in the var db_password."
 }
 
 variable "dw_password" {
