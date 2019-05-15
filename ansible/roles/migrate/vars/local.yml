@@ -1,4 +1,14 @@
 ---
 
 db_url: jdbc:postgresql://localhost:5432/ret_dev
+db_replica_host: localhost
+db_replica_port: 5432
+db_replica_user: postgres
+db_dw_user_password: postgres
+db_replica_dbname: ret_dev
 db_password: postgres
+dw_db_host: "localhost"
+dw_db_port: 5432
+dw_db_user: postgres
+dw_db_password: postgres
+dw_db_remote_user_password: postgres

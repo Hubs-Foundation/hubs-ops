@@ -5,6 +5,7 @@ data "aws_availability_zones" "all" {}
 
 data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+data "terraform_remote_state" "util" { backend = "s3", config = { key = "util/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
 resource "aws_security_group" "ret-db" {
   name = "${var.shared["env"]}-ret-db"
@@ -18,16 +19,23 @@ resource "aws_security_group" "ret-db" {
   }
 }
 
-# Mozilla inbound redash
 resource "aws_security_group" "ret-dw" {
   name = "${var.shared["env"]}-ret-dw"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
 
+  # Mozilla inbound redash
   ingress {
     from_port = "5432"
     to_port = "5432"
     protocol = "tcp"
     cidr_blocks = ["52.36.66.76/32", "35.203.170.234/32", "104.196.252.116/32"]
+  }
+
+  ingress {
+    from_port = "5432"
+    to_port = "5432"
+    protocol = "tcp"
+    security_groups = ["${data.terraform_remote_state.util.util_security_group_id}"]
   }
 }
 
@@ -42,6 +50,16 @@ resource "aws_security_group_rule" "ret-db-consumer-egress" {
   to_port = "5432"
   protocol = "tcp"
   security_group_id = "${aws_security_group.ret-db-consumer.id}"
+  source_security_group_id = "${aws_security_group.ret-db.id}"
+}
+
+
+resource "aws_security_group_rule" "ret-dw-egress" {
+  type = "egress"
+  from_port = "5432"
+  to_port = "5432"
+  protocol = "tcp"
+  security_group_id = "${aws_security_group.ret-dw.id}"
   source_security_group_id = "${aws_security_group.ret-db.id}"
 }
 
@@ -180,7 +198,7 @@ resource "aws_db_instance" "ret-dw" {
   parameter_group_name = "${aws_db_parameter_group.ret-dw-parameter-group.name}"
   password = "${var.dw_password}"
   port = 5432
-  publicly_accessible = false
+  publicly_accessible = true
   storage_encrypted = false
   storage_type = "${var.storage_type}"
   username = "postgres"

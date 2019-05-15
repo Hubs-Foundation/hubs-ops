@@ -45,6 +45,19 @@
       chdir: "{{ work_dir.path }}/db/{{ item }}"
     loop: "{{ schemas }}"
 
+  - name: Copy FDW script
+    copy:
+      src: "update_dw_fdw.sh"
+      dest: "{{ work_dir.path }}/update_dw_fdw.sh"
+
+  - name: Make FDW script executable
+    file:
+      dest: "{{ work_dir.path }}/update_dw_fdw.sh"
+      mode: "a+x"
+
+  - name: Run FDW script
+    shell: "{{ work_dir.path }}/update_dw_fdw.sh \"{{ dw_db_host }}\" \"{{ dw_db_port }}\" \"{{ dw_db_user }}\" \"{{ dw_db_password }}\" \"{{ dw_db_remote_user_password }}\" \"ret_dw\" \"{{ db_replica_host }}\" \"{{ db_replica_port }}\" \"ret_dw\" \"{{ db_dw_user_password }}\" \"{{ db_replica_dbname }}\""
+
   always:
   - name: Remove work directory
     file:
