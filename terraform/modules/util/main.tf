@@ -8,6 +8,7 @@ data "terraform_remote_state" "vpc" { backend = "s3", config = { key = "vpc/terr
 data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bastion/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "ret-db" { backend = "s3", config = { key = "ret-db/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+data "terraform_remote_state" "ret" { backend = "s3", config = { key = "ret/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
 data "aws_ami" "docker-base-ami" {
   most_recent = true
@@ -60,6 +61,14 @@ resource "aws_security_group" "util" {
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  # NFS upload-fs
+  egress {
+    from_port = "2049"
+    to_port = "2049"
+    protocol = "tcp"
+    security_groups = ["${data.terraform_remote_state.ret.ret_upload_fs_security_group_id}"]
+  }
 }
 
 resource "aws_iam_role" "util" {
@@ -82,16 +91,49 @@ resource "aws_launch_configuration" "util" {
   instance_type = "${var.util_instance_type}"
   security_groups = [
     "${aws_security_group.util.id}",
-    "${data.terraform_remote_state.ret-db.ret_db_consumer_security_group_id}"
+    "${data.terraform_remote_state.ret-db.ret_db_consumer_security_group_id}",
+    "${data.terraform_remote_state.ret.ret_upload_fs_connect_security_group_id}"
   ]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.util.id}"
   associate_public_ip_address = false
   lifecycle { create_before_destroy = true }
-  root_block_device { volume_size = 64 }
+  root_block_device { volume_size = 256 }
   user_data = <<EOF
 #!/usr/bin/env bash
 systemctl restart systemd-sysctl.service
+sudo mkdir /uploads
+sudo echo "${data.terraform_remote_state.ret.ret_upload_mount_target_dns_name}:/       /uploads        nfs     ro,nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=3,noresvport" >> /etc/fstab
+sudo mount /uploads
+
+sudo cat > /usr/bin/backup-uploads-to-s3.sh << EOBACKUP
+#!/usr/bin/env bash
+
+BUCKET=\$1
+DATE=`date '+%Y%m%d%H%M%S'`
+EXIT_CODE=0
+
+cleanup () {
+  rm /tmp/uploads-\$DATE.tar.xz
+  exit $EXIT_CODE
+}
+
+trap cleanup EXIT ERR INT TERM
+
+tar cfvJ /tmp/uploads-\$DATE.tar.xz /uploads
+aws s3 cp /tmp/uploads-\$DATE.tar.xz s3://\$BUCKET/backups/uploads/\$DATE.tar.xz
+
+EXIT_CODE=\$?
+EOBACKUP
+
+chmod a+x /usr/bin/backup-uploads-to-s3.sh
+
+sudo cat > /etc/cron.d/uploads-backup << EOCRON
+0 10 * * * root /usr/bin/backup-uploads-to-s3.sh ${data.terraform_remote_state.ret.ret_upload_backup_bucket_id}
+EOCRON
+
+/etc/init.d/cron reload
+
 EOF
 }
 
@@ -107,5 +149,10 @@ resource "aws_autoscaling_group" "util" {
   lifecycle { create_before_destroy = true }
   tag { key = "env", value = "${var.shared["env"]}", propagate_at_launch = true }
   tag { key = "host-type", value = "${var.shared["env"]}-util", propagate_at_launch = true }
+}
+
+resource "aws_iam_role_policy_attachment" "ret-upload-backup-role-attach" {
+  role = "${aws_iam_role.util.name}"
+  policy_arn = "${data.terraform_remote_state.ret.ret_upload_backup_bucket_policy_arn}"
 }
 
