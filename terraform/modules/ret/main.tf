@@ -817,13 +817,27 @@ resource "aws_security_group" "upload-fs" {
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
 }
 
-resource "aws_security_group_rule" "ret-upload-fs-ingress" {
+resource "aws_security_group" "upload-fs-connect" {
+  name = "${var.shared["env"]}-upload-fs-connect"
+  vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
+}
+
+resource "aws_security_group_rule" "ret-upload-fs-ret-ingress" {
   type = "ingress"
   from_port = "2049"
   to_port = "2049"
   protocol = "tcp"
   security_group_id = "${aws_security_group.upload-fs.id}"
   source_security_group_id = "${aws_security_group.ret.id}"
+}
+
+resource "aws_security_group_rule" "ret-upload-fs-connect-ingress" {
+  type = "ingress"
+  from_port = "2049"
+  to_port = "2049"
+  protocol = "tcp"
+  security_group_id = "${aws_security_group.upload-fs.id}"
+  source_security_group_id = "${aws_security_group.upload-fs-connect.id}"
 }
 
 resource "random_id" "bucket-identifier" {
@@ -833,11 +847,16 @@ resource "random_id" "bucket-identifier" {
 resource "aws_s3_bucket" "upload-backup-bucket" {
   bucket = "ret-upload-backup-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
   acl = "private"
-}
 
-resource "aws_iam_role_policy_attachment" "ret-upload-backup-role-attach" {
-  role = "${aws_iam_role.ret.name}"
-  policy_arn = "${aws_iam_policy.ret-upload-backup-policy.arn}"
+  lifecycle_rule {
+    id      = "backups"
+    prefix = "backups/"
+    enabled = true
+
+    expiration {
+      days = 90
+    }
+  }
 }
 
 resource "aws_iam_policy" "ret-bucket-policy" {
