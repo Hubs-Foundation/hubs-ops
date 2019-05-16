@@ -57,7 +57,7 @@ create or replace view ret0_dw.projects as (
 
 create or replace view ret0_dw.room_objects as (
   (
-    select ret0_dw.sha1(room_object_id) as room_object_id, ret0_dw.sha1(hubs.hub_sid) as hub_id, ret0_dw.sha1(account_id) as account_id, room_objects.inserted_at, room_objects.updated_at
+    select ret0_dw.sha1(room_object_id) as room_object_id, ret0_dw.sha1(hubs.hub_sid) as hub_id, ret0_dw.sha1(room_objects.account_id) as account_id, room_objects.inserted_at, room_objects.updated_at
     from room_objects inner join hubs on hubs.hub_id = room_objects.hub_id
   )
 );
