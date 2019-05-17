@@ -114,14 +114,14 @@ DATE=\`date '+%Y%m%d%H%M%S'\`
 EXIT_CODE=0
 
 cleanup () {
-  rm /tmp/uploads-\$DATE.tar.xz
+  rm uploads-\$DATE.tar.xz
   exit $EXIT_CODE
 }
 
 trap cleanup EXIT ERR INT TERM
 
-tar cfvJ /tmp/uploads-\$DATE.tar.xz /uploads
-aws s3 cp /tmp/uploads-\$DATE.tar.xz s3://\$BUCKET/backups/uploads/\$DATE.tar.xz
+tar cfvJ uploads-\$DATE.tar.xz /uploads
+aws s3 cp uploads-\$DATE.tar.xz s3://\$BUCKET/backups/uploads/\$DATE.tar.xz
 
 EXIT_CODE=\$?
 EOBACKUP
@@ -129,7 +129,7 @@ EOBACKUP
 chmod a+x /usr/bin/backup-uploads-to-s3.sh
 
 sudo cat > /etc/cron.d/uploads-backup << EOCRON
-0 10 * * * root /usr/bin/backup-uploads-to-s3.sh ${data.terraform_remote_state.ret.ret_upload_backup_bucket_id}
+0 10 * * * root cd /root ; /usr/bin/backup-uploads-to-s3.sh ${data.terraform_remote_state.ret.ret_upload_backup_bucket_id}
 EOCRON
 
 /etc/init.d/cron reload
