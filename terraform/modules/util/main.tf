@@ -110,7 +110,7 @@ sudo cat > /usr/bin/backup-uploads-to-s3.sh << EOBACKUP
 #!/usr/bin/env bash
 
 BUCKET=\$1
-DATE=`date '+%Y%m%d%H%M%S'`
+DATE=\`date '+%Y%m%d%H%M%S'\`
 EXIT_CODE=0
 
 cleanup () {
