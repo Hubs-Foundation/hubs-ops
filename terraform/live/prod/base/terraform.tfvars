@@ -14,3 +14,7 @@ link_redirector_enabled = true
 link_redirector_domains = ["hub.link", "hubs.link"]
 link_redirector_target = "https://hubs.mozilla.com/link"
 link_redirector_target_hostname = "hubs.mozilla.com"
+root_redirector_enabled = true
+root_redirector_domains = ["get.hubs.app"]
+root_redirector_target = "https://hubs.mozilla.com"
+root_redirector_target_hostname = "hubs.mozilla.com"

@@ -16,3 +16,20 @@ variable "link_redirector_target" {
 variable "link_redirector_target_hostname" {
   description = "Target hostname to redirect to for link redirector"
 }
+
+variable "root_redirector_domains" {
+  description = "Domain names being used for root redirector"
+  type = "list"
+}
+
+variable "root_redirector_enabled" {
+  description = "If root redirector is enabled"
+}
+
+variable "root_redirector_target" {
+  description = "Target URL to redirect to for root redirector"
+}
+
+variable "root_redirector_target_hostname" {
+  description = "Target hostname to redirect to for root redirector"
+}

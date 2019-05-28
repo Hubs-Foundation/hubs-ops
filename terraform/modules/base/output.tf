@@ -58,3 +58,6 @@ output "link_redirector_website_endpoint" {
   value ="${aws_s3_bucket.link-redirector-bucket.website_endpoint}"
 }
 
+output "root_redirector_website_endpoint" {
+  value ="${aws_s3_bucket.root-redirector-bucket.website_endpoint}"
+}

@@ -14,3 +14,7 @@ link_redirector_enabled = false
 link_redirector_domains = []
 link_redirector_target = "https://hubs.mozilla.com/link"
 link_redirector_target_hostname = "hubs.mozilla.com"
+root_redirector_enabled = false
+root_redirector_domains = []
+root_redirector_target = "https://hubs.mozilla.com"
+root_redirector_target_hostname = "hubs.mozilla.com"

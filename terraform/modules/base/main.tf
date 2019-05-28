@@ -224,6 +224,101 @@ resource "aws_cloudfront_distribution" "link-redirector" {
   }
 }
 
+# / redirector (public read)
+resource "aws_s3_bucket" "root-redirector-bucket" {
+  bucket = "root-redirector.${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers = ["Date", "ETag"]
+    max_age_seconds = 31536000
+  }
+
+  website {
+      index_document = "index.html"
+      error_document = "error.html"
+
+      routing_rules = <<EOF
+    [{
+        "Redirect": {
+            "ReplaceKeyPrefixWith": "/",
+            "Protocol": "https",
+            "HostName": "${var.root_redirector_target_hostname}"
+        }
+    }]
+    EOF
+  }
+}
+
+resource "aws_s3_bucket_object" "redirector-root-index" {
+  count = "${var.root_redirector_enabled}"
+  bucket = "${aws_s3_bucket.root-redirector-bucket.id}"
+  key = "index.html"
+  content = "<html></html>"
+  acl = "public-read"
+  website_redirect = "${var.root_redirector_target}"
+}
+
+data "aws_acm_certificate" "root-redirector-cert-east" {
+  provider = "aws.east"
+  count = "${var.root_redirector_enabled}"
+  domain = "${var.root_redirector_domains[0]}"
+  statuses = ["ISSUED"]
+  most_recent = true
+}
+
+resource "aws_cloudfront_distribution" "root-redirector" {
+  enabled = true
+  count = "${var.root_redirector_enabled}"
+
+  origin {
+    origin_id = "root-redirector-${var.shared["env"]}"
+    domain_name = "${aws_s3_bucket.root-redirector-bucket.website_endpoint}"
+
+    custom_origin_config {
+      http_port = 80
+      https_port = 443
+      origin_ssl_protocols = ["SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"]
+      origin_protocol_policy = "http-only"
+    }
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  aliases = "${var.root_redirector_domains}"
+
+  default_cache_behavior {
+    allowed_methods = ["GET", "HEAD", "OPTIONS"]
+    cached_methods = ["GET", "HEAD"]
+    target_origin_id = "root-redirector-${var.shared["env"]}"
+
+    forwarded_values {
+      query_string = false
+      headers = []
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl = 86400
+    default_ttl = 86400
+    max_ttl = 86400
+  }
+
+  price_class = "PriceClass_All"
+
+  viewer_certificate {
+    acm_certificate_arn = "${data.aws_acm_certificate.root-redirector-cert-east.arn}"
+    ssl_support_method = "sni-only"
+    minimum_protocol_version = "TLSv1"
+  }
+}
 
 resource "aws_security_group" "cloudfront-http" {
   name = "${var.shared["env"]}-cloudfront-http"
