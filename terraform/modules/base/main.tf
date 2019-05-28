@@ -244,7 +244,7 @@ resource "aws_s3_bucket" "root-redirector-bucket" {
       routing_rules = <<EOF
     [{
         "Redirect": {
-            "ReplaceKeyPrefixWith": "/",
+            "ReplaceKeyPrefixWith": "",
             "Protocol": "https",
             "HostName": "${var.root_redirector_target_hostname}"
         }
