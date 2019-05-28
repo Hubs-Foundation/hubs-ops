@@ -238,18 +238,7 @@ resource "aws_s3_bucket" "root-redirector-bucket" {
   }
 
   website {
-      index_document = "index.html"
-      error_document = "error.html"
-
-      routing_rules = <<EOF
-    [{
-        "Redirect": {
-            "ReplaceKeyPrefixWith": "",
-            "Protocol": "https",
-            "HostName": "${var.root_redirector_target_hostname}"
-        }
-    }]
-    EOF
+      redirect_all_requests_to = "https://${var.root_redirector_target_hostname}"
   }
 }
 
@@ -268,6 +257,24 @@ data "aws_acm_certificate" "root-redirector-cert-east" {
   domain = "${var.root_redirector_domains[0]}"
   statuses = ["ISSUED"]
   most_recent = true
+}
+
+data "aws_route53_zone" "root-redirector-zones" {
+  count = "${length(var.root_redirector_domains)}"
+  name = "${element(var.root_redirector_domains, count.index)}"
+}
+
+resource "aws_route53_record" "root-redirector-dns" {
+  count = "${length(var.root_redirector_domains)}"
+  zone_id = "${element(data.aws_route53_zone.root-redirector-zones.*.zone_id, count.index)}"
+  name = "${element(data.aws_route53_zone.root-redirector-zones.*.name, count.index)}"
+  type = "A"
+
+  alias {
+    name = "${aws_cloudfront_distribution.root-redirector.domain_name}"
+    zone_id = "${aws_cloudfront_distribution.root-redirector.hosted_zone_id}"
+    evaluate_target_health = false
+  }
 }
 
 resource "aws_cloudfront_distribution" "root-redirector" {
