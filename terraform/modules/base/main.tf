@@ -224,6 +224,120 @@ resource "aws_cloudfront_distribution" "link-redirector" {
   }
 }
 
+# /photos redirector (public read)
+resource "aws_s3_bucket" "photos-redirector-bucket" {
+  bucket = "photos-redirector.${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers = ["Date", "ETag"]
+    max_age_seconds = 31536000
+  }
+
+  website {
+      index_document = "index.html"
+      error_document = "error.html"
+
+      routing_rules = <<EOF
+    [{
+        "Redirect": {
+            "ReplaceKeyPrefixWith": "photos/",
+            "Protocol": "https",
+            "HostName": "${var.photos_redirector_target_hostname}"
+        }
+    }]
+    EOF
+  }
+}
+
+resource "aws_s3_bucket_object" "redirector-index" {
+  count = "${var.photos_redirector_enabled}"
+  bucket = "${aws_s3_bucket.photos-redirector-bucket.id}"
+  key = "index.html"
+  content = "<html></html>"
+  acl = "public-read"
+  website_redirect = "${var.photos_redirector_target}"
+}
+
+data "aws_acm_certificate" "photos-redirector-cert-east" {
+  provider = "aws.east"
+  count = "${var.photos_redirector_enabled}"
+  domain = "${var.photos_redirector_domains[0]}"
+  statuses = ["ISSUED"]
+  most_recent = true
+}
+
+data "aws_route53_zone" "photos-redirector-zones" {
+  count = "${length(var.photos_redirector_domains)}"
+  name = "${element(var.photos_redirector_domains, count.index)}"
+}
+
+resource "aws_route53_record" "photos-redirector-dns" {
+  count = "${length(var.photos_redirector_domains)}"
+  zone_id = "${element(data.aws_route53_zone.photos-redirector-zones.*.zone_id, count.index)}"
+  name = "${element(data.aws_route53_zone.photos-redirector-zones.*.name, count.index)}"
+  type = "A"
+
+  alias {
+    name = "${aws_cloudfront_distribution.photos-redirector.domain_name}"
+    zone_id = "${aws_cloudfront_distribution.photos-redirector.hosted_zone_id}"
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_cloudfront_distribution" "photos-redirector" {
+  enabled = true
+  count = "${var.photos_redirector_enabled}"
+
+  origin {
+    origin_id = "photos-redirector-${var.shared["env"]}"
+    domain_name = "${aws_s3_bucket.photos-redirector-bucket.website_endpoint}"
+
+    custom_origin_config {
+      http_port = 80
+      https_port = 443
+      origin_ssl_protocols = ["SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"]
+      origin_protocol_policy = "http-only"
+    }
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  aliases = "${var.photos_redirector_domains}"
+
+  default_cache_behavior {
+    allowed_methods = ["GET", "HEAD", "OPTIONS"]
+    cached_methods = ["GET", "HEAD"]
+    target_origin_id = "photos-redirector-${var.shared["env"]}"
+
+    forwarded_values {
+      query_string = false
+      headers = []
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl = 86400
+    default_ttl = 86400
+    max_ttl = 86400
+  }
+
+  price_class = "PriceClass_All"
+
+  viewer_certificate {
+    acm_certificate_arn = "${data.aws_acm_certificate.photos-redirector-cert-east.arn}"
+    ssl_support_method = "sni-only"
+    minimum_protocol_version = "TLSv1"
+  }
+}
+
 # / redirector (public read)
 resource "aws_s3_bucket" "root-redirector-bucket" {
   bucket = "root-redirector.${var.shared["env"]}-${random_id.bucket-identifier.hex}"

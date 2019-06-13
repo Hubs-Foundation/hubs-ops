@@ -17,6 +17,23 @@ variable "link_redirector_target_hostname" {
   description = "Target hostname to redirect to for link redirector"
 }
 
+variable "photos_redirector_domains" {
+  description = "Domain names being used for photos redirector"
+  type = "list"
+}
+
+variable "photos_redirector_enabled" {
+  description = "If photos redirector is enabled"
+}
+
+variable "photos_redirector_target" {
+  description = "Target URL to redirect to for photos redirector"
+}
+
+variable "photos_redirector_target_hostname" {
+  description = "Target hostname to redirect to for photos redirector"
+}
+
 variable "root_redirector_domains" {
   description = "Domain names being used for root redirector"
   type = "list"
