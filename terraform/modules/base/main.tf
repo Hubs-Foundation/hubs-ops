@@ -253,7 +253,7 @@ resource "aws_s3_bucket" "photos-redirector-bucket" {
   }
 }
 
-resource "aws_s3_bucket_object" "redirector-index" {
+resource "aws_s3_bucket_object" "photos-redirector-index" {
   count = "${var.photos_redirector_enabled}"
   bucket = "${aws_s3_bucket.photos-redirector-bucket.id}"
   key = "index.html"

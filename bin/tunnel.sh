@@ -21,7 +21,7 @@ ENVIRONMENT=$4
 
 REGION="us-west-1"
 
-BASTION_IP=$(dig +short bastion-$ENVIRONMENT.reticulum.io | shuf | head -n1)
+BASTION_IP=$(dig +short thirsty-dwarf.reticulum.io | shuf | head -n1)
 echo $BASTION_IP
 
 if [[ $HOST_TYPE_OR_NAME == *"."* ]] ; then
