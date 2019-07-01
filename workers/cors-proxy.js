@@ -26,6 +26,7 @@ addEventListener("fetch", e => {
       responseHeaders.set("Access-Control-Allow-Origin", origin);
       responseHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
       responseHeaders.set("Access-Control-Allow-Headers", "Range");
+      responseHeaders.set("Access-Control-Expose-Headers", "Accept-Ranges, Content-Encoding, Content-Length, Content-Range");
     }
 
     responseHeaders.set("Vary", "Origin");
