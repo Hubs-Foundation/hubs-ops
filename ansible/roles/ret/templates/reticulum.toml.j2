@@ -67,6 +67,19 @@ client_secret = "{{ discord_client_client_secret }}"
 bot_token = "{{ discord_client_bot_token }}"
 {% endif %}
 
+[twitter_client]
+{% if twitter_client_consumer_key is defined %}
+consumer_key = "{{ twitter_client_consumer_key }}"
+{% endif %}
+{% if twitter_client_consumer_secret is defined %}
+consumer_secret = "{{ twitter_client_consumer_secret }}"
+{% endif %}
+{% if twitter_client_access_token is defined %}
+access_token = "{{ twitter_client_access_token }}"
+{% endif %}
+{% if twitter_client_access_token_secret is defined %}
+access_token_secret = "{{ twitter_client_access_token_secret }}"
+{% endif %}
 
 [resolver]
 {% if giphy_api_key is defined %}
