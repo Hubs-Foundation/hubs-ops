@@ -65,15 +65,15 @@ resource "aws_route" "public_gateway_route" {
   gateway_id = "${aws_internet_gateway.mod.id}"
 }
 
-resource "aws_eip" "nat_eip" {
+resource "aws_eip" "nat_gateway_eip" {
   count    = "${length(split(",", var.public_ranges))}"
   depends_on = ["aws_internet_gateway.mod"]
   vpc = true
 }
 
-resource "aws_nat_gateway" "nat_gw" {
+resource "aws_nat_gateway" "nat_gateway" {
   count = "${length(split(",", var.public_ranges))}"
-  allocation_id = "${element(aws_eip.nat_eip.*.id, count.index)}"
+  allocation_id = "${element(aws_eip.nat_gateway_eip.*.id, count.index)}"
   subnet_id = "${element(aws_subnet.public.*.id, count.index)}"
   depends_on = ["aws_internet_gateway.mod"]
 }
@@ -93,7 +93,7 @@ resource "aws_route" "private_nat_gateway_route" {
   route_table_id = "${element(aws_route_table.private.*.id, count.index)}"
   destination_cidr_block = "0.0.0.0/0"
   depends_on = ["aws_route_table.private"]
-  nat_gateway_id = "${element(aws_nat_gateway.nat_gw.*.id, count.index)}"
+  nat_gateway_id = "${element(aws_nat_gateway.nat_gateway.*.id, count.index)}"
 }
 
 # gonna need a custom route association for each range too
