@@ -11,11 +11,11 @@ output "speelycaptor-bucket-id" {
 }
 
 output "speelycaptor-public-bucket-id" {
-  value = "${aws_s3_bucket.speelycaptor-public-bucket.id}"
+  value = "${aws_s3_bucket.speelycaptor-public-bucket.*.id[0]}"
 }
 
 output "speelycaptor-scratch-bucket-id" {
-  value = "${aws_s3_bucket.speelycaptor-scratch-bucket.id}"
+  value = "${aws_s3_bucket.speelycaptor-scratch-bucket.*.id[0]}"
 }
 
 output "speelycaptor-public-scratch-bucket-id" {
@@ -40,4 +40,8 @@ output "speelycaptor-account-id" {
 
 output "speelycaptor-region" {
   value = "${var.shared["region"]}"
+}
+
+output "ffmpeg-lambda-layer-arn" {
+  value = "${data.aws_lambda_layer_version.ffmpeg.arn}"
 }
