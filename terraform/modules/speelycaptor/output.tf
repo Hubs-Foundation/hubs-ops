@@ -10,6 +10,10 @@ output "speelycaptor-bucket-id" {
   value = "${aws_s3_bucket.speelycaptor-bucket.id}"
 }
 
+output "speelycaptor-public-bucket-id" {
+  value = "${aws_s3_bucket.speelycaptor-public-bucket.id}"
+}
+
 output "speelycaptor-scratch-bucket-id" {
   value = "${aws_s3_bucket.speelycaptor-scratch-bucket.id}"
 }
