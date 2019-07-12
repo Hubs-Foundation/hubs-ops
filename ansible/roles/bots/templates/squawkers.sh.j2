@@ -29,7 +29,7 @@ for i in `seq 1 $NUM_SQUAWKER_PROCESSES`; do
       pkill -KILL -P $botid
       kill -KILL $botid
       logrotate -s logrotate.state logrotate.conf
-      ls -t1 | grep puppeteer_dev_profile | tail -n+$NUM_SQUAWKER_PROCESSES | xargs rm -rf 
+      pushd /tmp ; ls -t1 | grep puppeteer_dev_profile | tail -n+$NUM_SQUAWKER_PROCESSES | xargs rm -rf ; popd
     done
   ) &
   sleep $PROCESS_SPAWN_DELAY
