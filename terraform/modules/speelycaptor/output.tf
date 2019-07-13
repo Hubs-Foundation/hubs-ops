@@ -11,7 +11,7 @@ output "speelycaptor-bucket-id" {
 }
 
 output "speelycaptor-public-bucket-id" {
-  value = "${aws_s3_bucket.speelycaptor-public-bucket.*.id[0]}"
+  value = "${element(concat(aws_s3_bucket.speelycaptor-public-bucket.*.id, list("")),0)}"
 }
 
 output "speelycaptor-scratch-bucket-id" {
@@ -19,7 +19,7 @@ output "speelycaptor-scratch-bucket-id" {
 }
 
 output "speelycaptor-public-scratch-bucket-id" {
-  value = "${aws_s3_bucket.speelycaptor-public-scratch-bucket.*.id[0]}"
+  value = "${element(concat(aws_s3_bucket.speelycaptor-public-scratch-bucket.*.id, list("")),0)}"
 }
 
 output "speelycaptor-iam-role" {
@@ -27,7 +27,7 @@ output "speelycaptor-iam-role" {
 }
 
 output "speelycaptor-public-iam-role" {
-  value = "${aws_iam_role.speelycaptor-public-iam-role.*.arn[0]}"
+  value = "${element(concat(aws_iam_role.speelycaptor-public-iam-role.*.id, list("")),0)}"
 }
 
 output "speelycaptor-security-group" {
