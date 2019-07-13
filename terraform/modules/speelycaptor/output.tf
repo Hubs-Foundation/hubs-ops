@@ -27,7 +27,7 @@ output "speelycaptor-iam-role" {
 }
 
 output "speelycaptor-public-iam-role" {
-  value = "${element(concat(aws_iam_role.speelycaptor-public-iam-role.*.id, list("")),0)}"
+  value = "${element(concat(aws_iam_role.speelycaptor-public-iam-role.*.arn, list("")),0)}"
 }
 
 output "speelycaptor-security-group" {
