@@ -90,6 +90,11 @@ resource "aws_iam_policy" "speelycaptor-policy" {
     },
     {
         "Effect": "Allow",
+        "Action": "s3:PutObjectAcl",
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.speelycaptor-scratch-bucket.id}/*"
+    },
+    {
+        "Effect": "Allow",
         "Action": "s3:ListBucket",
         "Resource": "arn:aws:s3:::${aws_s3_bucket.speelycaptor-scratch-bucket.id}"
     },
@@ -136,6 +141,11 @@ resource "aws_iam_policy" "speelycaptor-public-policy" {
     {
         "Effect": "Allow",
         "Action": "s3:PutObject",
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.speelycaptor-public-scratch-bucket.id}/*"
+    },
+    {
+        "Effect": "Allow",
+        "Action": "s3:PutObjectAcl",
         "Resource": "arn:aws:s3:::${aws_s3_bucket.speelycaptor-public-scratch-bucket.id}/*"
     },
     {
