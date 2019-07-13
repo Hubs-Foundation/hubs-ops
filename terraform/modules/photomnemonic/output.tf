@@ -25,3 +25,7 @@ output "photomnemonic-account-id" {
 output "photomnemonic-region" {
   value = "${var.shared["region"]}"
 }
+
+output "vpc-endpoint-dns" {
+  value = "${lookup(aws_vpc_endpoint.photomnemonic.dns_entry[0], "dns_name")}"
+}
