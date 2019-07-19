@@ -120,6 +120,11 @@ twitch_client_id = "{{ twitch_client_id }}"
 photomnemonic_endpoint = "{{ photomnemonic_endpoint }}"
 {% endif %}
 
+[speelycaptor]
+{% if speelycaptor_endpoint is defined %}
+speelycaptor_endpoint = "{{ speelycaptor_endpoint }}"
+{% endif %}
+
 [uploads]
 storage_path = "{{ uploads_storage_path }}"
 ttl = {{ uploads_ttl }}
