@@ -55,6 +55,12 @@ resource "aws_s3_bucket" "builds-bucket" {
   acl = "public-read"
 }
 
+# Lambda shared layer bucket (public read)
+resource "aws_s3_bucket" "shared-layer-bucket" {
+  bucket = "shared-layer.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+}
+
 # Assets bucket (public read)
 resource "aws_s3_bucket" "assets-bucket" {
   bucket = "assets.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
