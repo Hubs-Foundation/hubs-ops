@@ -53,6 +53,46 @@ Resources:
           - sts:AssumeRole
           Sid: ""
       Path: "/"
+  SpeelycaptorRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "speelycaptor-policy"
+      Roles:
+        - !Ref SpeelycaptorRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+          - Effect: Allow
+            Action: s3:PutObjectAcl
+            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+          - Effect: Allow
+            Action: s3:ListBucket
+            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}"
+          - Effect: Allow
+            Action: 
+              - ec2:DescribeInstances
+              - ec2:CreateNetworkInterface
+              - ec2:AttachNetworkInterface
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DeleteNetworkInterface
+              - autoscaling:CompleteLifecycleAction
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
+
   SpeelycaptorInitLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
