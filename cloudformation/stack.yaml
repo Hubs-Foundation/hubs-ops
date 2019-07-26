@@ -1,0 +1,182 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  NamePrefix:
+    Type: String
+    Default: "quack-"
+  CIDR:
+    Type: "String"
+    Default: "10.56.0.0/16"
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref CIDR
+      InstanceTenancy: default
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+        - Key: Name
+          Value: !Sub "${NamePrefix}-vpc"
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${NamePrefix}-igw"
+
+# Speelycaptor
+
+  SpeelycaptorScratchBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Join ["-", [ "speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+  SpeelycaptorInitLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/speelycaptor-public-initialize
+  SpeelycaptorConvertLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/speelycaptor-public-convert
+  SpeelycaptorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+          Sid: ""
+      Path: "/"
+  SpeelycaptorInitLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          hello
+      FunctionName: speelycaptor-public-initialize
+      Handler: index.init
+      MemorySize: 128
+      Role: !GetAtt SpeelycaptorRole.Arn
+      Runtime: nodejs8.10
+      Timeout: 120
+      Environment:
+        Variables:
+          scratchBucketRegion: !Ref "AWS::Region"
+          scratchBucketId: !Ref SpeelycaptorScratchBucket
+    DependsOn:
+      - SpeelycaptorInitLogGroup
+  SpeelycaptorConvertLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          hello
+      FunctionName: speelycaptor-public-convert
+      Handler: index.convert
+      MemorySize: 3000
+      Role: !GetAtt SpeelycaptorRole.Arn
+      Runtime: nodejs8.10
+      Timeout: 120
+      Environment:
+        Variables:
+          scratchBucketRegion: !Ref "AWS::Region"
+          scratchBucketId: !Ref SpeelycaptorScratchBucket
+      Layers:
+        - arn:aws:lambda:us-east-2:558986605633:layer:hubs-serverless:1
+    DependsOn:
+      - SpeelycaptorConvertLogGroup
+      - SpeelycaptorRole
+  SpeelycaptorApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: speelycaptor
+      EndpointConfiguration:
+        Types:
+          - EDGE
+  SpeelycaptorApiGatewayResourceInit:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt SpeelycaptorApiGatewayRestApi.RootResourceId
+      PathPart: init
+      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+  SpeelycaptorApiGatewayResourceConvert:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt SpeelycaptorApiGatewayRestApi.RootResourceId
+      PathPart: convert
+      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+  SpeelycaptorApiGatewayMethodInitGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RequestParameters: {}
+      ResourceId: !Ref SpeelycaptorApiGatewayResourceInit
+      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorInitLambdaFunction.Arn}/invocations'
+      MethodResponses: []
+  SpeelycaptorApiGatewayMethodConvertGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RequestParameters: {}
+      ResourceId: !Ref SpeelycaptorApiGatewayResourceConvert
+      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorConvertLambdaFunction.Arn}/invocations'
+      MethodResponses: []
+  SpeelycaptorApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+      StageName: prod
+    DependsOn:
+      - SpeelycaptorApiGatewayMethodInitGet
+      - SpeelycaptorApiGatewayMethodConvertGet
+  SpeelycaptorApiGatewayUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn: SpeelycaptorApiGatewayDeployment
+    Properties:
+      ApiStages:
+        - ApiId: !Ref SpeelycaptorApiGatewayRestApi
+          Stage: prod
+      Description: Usage plan for speelycaptor prod stage
+      UsagePlanName: speelycaptor
+      Quota:
+        Limit: 1000
+        Period: MONTH
+      Throttle:
+        BurstLimit: 10
+        RateLimit: 5
+  SpeelycaptorInitLambdaPermissionApiGateway:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt SpeelycaptorInitLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${SpeelycaptorApiGatewayRestApi}/*/*'
+  SpeelycaptorConvertLambdaPermissionApiGateway:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt SpeelycaptorConvertLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${SpeelycaptorApiGatewayRestApi}/*/*'
+Outputs:
+  SpeelycaptorServiceEndpoint:
+    Description: URL of the speelycaptor service endpoint
+    Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
