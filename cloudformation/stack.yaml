@@ -58,7 +58,7 @@ Resources:
     Properties:
       Code:
         ZipFile: |
-          hello
+          !INCLUDE_JS speelycaptor/index.js
       FunctionName: speelycaptor-public-initialize
       Handler: index.init
       MemorySize: 128
@@ -76,7 +76,7 @@ Resources:
     Properties:
       Code:
         ZipFile: |
-          hello
+          !INCLUDE_JS speelycaptor/index.js
       FunctionName: speelycaptor-public-convert
       Handler: index.convert
       MemorySize: 3000

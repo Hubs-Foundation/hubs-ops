@@ -6,8 +6,8 @@ const exec = util.promisify(require('child_process').exec);
 const spawn = require('child_process').spawn;
 const { writeFile, unlinkSync } = require('fs');
 
-if (process.argv.length !== 6) {
-  console.log("Usage: deploy <template.yaml> <stack-name> <region> <js-source-path>")
+const showHelp = () => {
+  console.log("Usage: cf-util [generate|deploy] <template.yaml> <stack-name> <region> <js-source-path>")
   console.log("")
   console.log("Generates and deploys the given yaml based template to CloudFormation.")
   console.log("In the template, use !INCLUDE_JS to have this script minify + inject JS into the template as a string value (for lambdas). This script will also verify you do not exceed the 4096 limit.")
@@ -19,10 +19,19 @@ if (process.argv.length !== 6) {
   process.exit();
 }
 
-const inFile = process.argv[2];
-const stackName = process.argv[3];
-const region = process.argv[4];
-const jsSourcePath = process.argv[5];
+if (process.argv.length !== 7) {
+  showHelp();
+}
+
+const command = process.argv[2];
+const inFile = process.argv[3];
+const stackName = process.argv[4];
+const region = process.argv[5];
+const jsSourcePath = process.argv[6];
+
+if (command !== "generate" && command !== "deploy") {
+  showHelp();
+}
 
 async function getParsedTemplate(inFile) {
   const {stdout, stderr} = await exec(`cfn-flip -j ${inFile} -`)
@@ -63,9 +72,12 @@ const runDeploy = () => {
 
 getParsedTemplate(inFile).then(async template => {
   await walk(template);
-
-  writeFile("_template.json", JSON.stringify(template), async () => {
-    await runDeploy();
-    unlinkSync("_template.json");
-  });
+  if (command === "generate") {
+    console.log(JSON.stringify(template));
+  } else if (command === "deploy") {
+    writeFile("_template.json", JSON.stringify(template), async () => {
+      await runDeploy();
+      unlinkSync("_template.json");
+    });
+  }
 })
