@@ -1,0 +1,44 @@
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.1.266/build/pdf.min.js"><</script>
+    <script>
+
+const qs = new URLSearchParams(location.search);
+const page = parseInt(qs.get("page") || 1);
+const url = qs.get("url");
+      
+let ready = false;
+let meta = { page };
+
+window._photomnemonicReady = () => ready;
+window._photomnemonicGetMeta = () => meta;
+
+const pdfjs = window['pdfjs-dist/build/pdf'];
+pdfjs.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.1.266/build/pdf.worker.min.js";
+
+document.addEventListener("DOMContentLoaded", () => {
+  pdfjs.getDocument(url).promise.then(pdf => {
+      meta.pages = pdf.numPages;
+    
+      pdf.getPage(page).then(page => {
+        const canvas = document.querySelector("canvas");
+        const canvasContext = canvas.getContext("2d");
+        const viewport = page.getViewport({ scale: 3 });
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        meta.width = canvas.width;
+        meta.height = canvas.height;
+        
+        canvas.setAttribute("style", `width: ${canvas.width}px; height: ${canvas.height}px;`);
+        
+        page.render({ canvasContext, viewport }).promise.then(() => ready = true)
+      });
+    });
+});
+
+    </script>
+    </head>
+  <body style="position: relative; padding: 0; margin: 0;">
+    <canvas style="position: absolute; top: 0; left: 0; width: 100%; height: 100%"></canvas>
+  </body>
+</html>

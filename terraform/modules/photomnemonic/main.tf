@@ -21,6 +21,26 @@ resource "aws_s3_bucket" "photomnemonic-bucket" {
   acl = "private"
 }
 
+resource "aws_s3_bucket" "photomnemonic-util-bucket" {
+  bucket = "photomnemonic-util-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers = ["Date", "ETag"]
+    max_age_seconds = 31536000
+  }
+}
+
+resource "aws_s3_bucket_object" "photomnemonic-pdf" {
+  bucket = "${aws_s3_bucket.photomnemonic-util-bucket.id}"
+  key = "pdf.html"
+  source = "pdf.html"
+  acl = "public-read"
+}
+
 resource "aws_iam_policy" "photomnemonic-policy" {
   name = "${var.shared["env"]}-photomnemonic-policy"
 
