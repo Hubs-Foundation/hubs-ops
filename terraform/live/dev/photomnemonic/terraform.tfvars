@@ -14,4 +14,5 @@ terragrunt = {
 
 photomnemonic_domain = "reticulum.io"
 photomnemonic_dns_prefix = "photomnemonic-dev."
+photomnemonic_utils_dns_prefix = "photomnemonic-utils-dev."
 enabled = true

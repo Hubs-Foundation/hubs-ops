@@ -12,6 +12,13 @@ data "aws_route53_zone" "photomnemonic-zone" {
   name = "${var.photomnemonic_domain}."
 }
 
+data "aws_acm_certificate" "photomnemonic-utils-cert-east" {
+  provider = "aws.east"
+  domain = "*.${var.photomnemonic_domain}"
+  statuses = ["ISSUED"]
+  most_recent = true
+}
+
 resource "random_id" "bucket-identifier" {
   byte_length = 8
 }
@@ -21,8 +28,8 @@ resource "aws_s3_bucket" "photomnemonic-bucket" {
   acl = "private"
 }
 
-resource "aws_s3_bucket" "photomnemonic-util-bucket" {
-  bucket = "photomnemonic-util-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+resource "aws_s3_bucket" "photomnemonic-utils" {
+  bucket = "photomnemonic-utils-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
   acl = "public-read"
 
   cors_rule {
@@ -35,11 +42,73 @@ resource "aws_s3_bucket" "photomnemonic-util-bucket" {
 }
 
 resource "aws_s3_bucket_object" "photomnemonic-pdf" {
-  bucket = "${aws_s3_bucket.photomnemonic-util-bucket.id}"
+  bucket = "${aws_s3_bucket.photomnemonic-utils.id}"
   key = "pdf.html"
   source = "pdf.html"
   acl = "public-read"
 }
+
+resource "aws_cloudfront_distribution" "photomnemonic-utils" {
+  enabled = "true"
+
+  origin {
+    origin_id = "photomnemonic-utils-${var.shared["env"]}"
+    domain_name = "${aws_s3_bucket.photomnemonic-utils.bucket_domain_name}"
+
+    custom_origin_config {
+      http_port = 80
+      https_port = 443
+      origin_ssl_protocols = ["SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"]
+      origin_protocol_policy = "http-only"
+    }
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  aliases = ["${var.photomnemonic_utils_dns_prefix}${var.photomnemonic_domain}"]
+
+  default_cache_behavior {
+    allowed_methods = ["GET", "HEAD", "OPTIONS"]
+    cached_methods = ["GET", "HEAD"]
+    target_origin_id = "photomnemonic-utils-${var.shared["env"]}"
+
+    forwarded_values {
+      query_string = true
+      headers = []
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl = 86400
+    default_ttl = 86400
+    max_ttl = 86400
+  }
+
+  price_class = "PriceClass_All"
+
+  viewer_certificate {
+    acm_certificate_arn = "${data.aws_acm_certificate.photomnemonic-utils-cert-east.arn}"
+    ssl_support_method = "sni-only"
+    minimum_protocol_version = "TLSv1"
+  }
+}
+
+resource "aws_route53_record" "photomnemonic-utils-dns" {
+  zone_id = "${data.aws_route53_zone.photomnemonic-zone.zone_id}"
+  name= "${var.photomnemonic_utils_dns_prefix}${data.aws_route53_zone.photomnemonic-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_cloudfront_distribution.photomnemonic-utils.domain_name}"
+    zone_id = "${aws_cloudfront_distribution.photomnemonic-utils.hosted_zone_id}"
+    evaluate_target_health = false
+  }
+}
+
 
 resource "aws_iam_policy" "photomnemonic-policy" {
   name = "${var.shared["env"]}-photomnemonic-policy"
