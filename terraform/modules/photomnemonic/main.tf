@@ -54,13 +54,6 @@ resource "aws_cloudfront_distribution" "photomnemonic-utils" {
   origin {
     origin_id = "photomnemonic-utils-${var.shared["env"]}"
     domain_name = "${aws_s3_bucket.photomnemonic-utils.bucket_domain_name}"
-
-    custom_origin_config {
-      http_port = 80
-      https_port = 443
-      origin_ssl_protocols = ["SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"]
-      origin_protocol_policy = "http-only"
-    }
   }
 
   restrictions {
@@ -78,7 +71,7 @@ resource "aws_cloudfront_distribution" "photomnemonic-utils" {
 
     forwarded_values {
       query_string = true
-      headers = []
+      headers = ["Origin", "Content-Type"]
       cookies { forward = "none" }
     }
 
