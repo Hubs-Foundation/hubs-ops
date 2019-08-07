@@ -109,7 +109,7 @@ Resources:
           scratchBucketRegion: !Ref "AWS::Region"
           scratchBucketId: !Ref SpeelycaptorScratchBucket
       Layers:
-        - arn:aws:lambda:us-east-2:558986605633:layer:polycosm-shared:16
+        - arn:aws:lambda:us-east-2:558986605633:layer:polycosm-shared:17
     DependsOn:
       - SpeelycaptorInitLogGroup
   SpeelycaptorConvertLambdaFunction:
@@ -128,7 +128,7 @@ Resources:
           scratchBucketRegion: !Ref "AWS::Region"
           scratchBucketId: !Ref SpeelycaptorScratchBucket
       Layers:
-        - arn:aws:lambda:us-east-2:558986605633:layer:polycosm-shared:16
+        - arn:aws:lambda:us-east-2:558986605633:layer:polycosm-shared:17
     DependsOn:
       - SpeelycaptorConvertLogGroup
       - SpeelycaptorRole
