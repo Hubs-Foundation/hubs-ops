@@ -529,3 +529,9 @@ resource "aws_kms_key" "lambda-kms-key" {
   provider = "aws.east"
   description = "Key for AWS Lambda secrets"
 }
+
+# Polycosm assets
+resource "aws_s3_bucket" "polycosm-assets" {
+  bucket = "assets.polycosm-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "private"
+}
