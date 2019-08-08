@@ -23,22 +23,136 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-igw"
+  LambdaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Join ["-", [ "polycosm-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+  CopySpeelycaptorLambda:
+    Type: Custom::CopySpeelycaptorLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt 'CopyLambdaZipFunction.Arn'
+      DestBucket: !Ref 'LambdaBucket'
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/speelycaptor/speelycaptor-0.1.2.zip
+  CopyNearsparkLambda:
+    Type: Custom::CopyNearsparkLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt 'CopyLambdaZipFunction.Arn'
+      DestBucket: !Ref 'LambdaBucket'
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/nearspark/nearspark-0.1.0.zip
+  CopyPhotomnemonicLambda:
+    Type: Custom::CopyPhotomnemonicLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt 'CopyLambdaZipFunction.Arn'
+      DestBucket: !Ref 'LambdaBucket'
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/photomnemonic/photomnemonic-0.1.0.zip
 
+
+# CopyLambdaZip
+
+  CopyLambdaZipRole:
+   Type: AWS::IAM::Role
+   Properties:
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Path: /
+     Policies:
+       - PolicyName: copy-lambda-zip
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - s3:PutObject
+                 - s3:DeleteObject
+               Resource:
+                 - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
+
+  CopyLambdaZipFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python2.7
+      Role: !GetAtt 'CopyLambdaZipRole.Arn'
+      Timeout: 240
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import threading
+          import boto3
+          import cfnresponse
+          def copy_objects(source_bucket, dest_bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              for o in objects:
+                  key = prefix + o
+                  copy_source = {
+                      'Bucket': source_bucket,
+                      'Key': key
+                  }
+                  print('copy_source: %s' % copy_source)
+                  print('dest_bucket = %s'%dest_bucket)
+                  print('key = %s' %key)
+                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
+                        Key=key)
+          def delete_objects(bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              objects = {'Objects': [{'Key': prefix + o} for o in objects]}
+              s3.delete_objects(Bucket=bucket, Delete=objects)
+          def timeout(event, context):
+              logging.error('Execution is about to time out, sending failure response to CloudFormation')
+              cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)
+          def handler(event, context):
+              # make sure we send a failure to CloudFormation if the function
+              # is going to timeout
+              timer = threading.Timer((context.get_remaining_time_in_millis()
+                        / 1000.00) - 0.5, timeout, args=[event, context])
+              timer.start()
+              print('Received event: %s' % json.dumps(event))
+              status = cfnresponse.SUCCESS
+              try:
+                  source_bucket = event['ResourceProperties']['SourceBucket']
+                  dest_bucket = event['ResourceProperties']['DestBucket']
+                  prefix = event['ResourceProperties']['Prefix']
+                  objects = event['ResourceProperties']['Objects']
+                  if event['RequestType'] == 'Delete':
+                      delete_objects(dest_bucket, prefix, objects)
+                  else:
+                      copy_objects(source_bucket, dest_bucket, prefix, objects)
+              except Exception as e:
+                  logging.error('Exception: %s' % e, exc_info=True)
+                  status = cfnresponse.FAILED
+              finally:
+                  timer.cancel()
+                  cfnresponse.send(event, context, status, {}, None)
 # Speelycaptor
-
   SpeelycaptorScratchBucket:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Join ["-", [ "speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
-  SpeelycaptorInitLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/speelycaptor-public-initialize
-  SpeelycaptorConvertLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/speelycaptor-public-convert
+      BucketName: !Join ["-", [ "polycosm-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   SpeelycaptorRole:
     Type: AWS::IAM::Role
     Properties:
@@ -86,52 +200,43 @@ Resources:
               - ec2:DeleteNetworkInterface
               - autoscaling:CompleteLifecycleAction
             Resource: "*"
-          - Effect: Allow
-            Action:
-              - logs:CreateLogGroup
-              - logs:CreateLogStream
-              - logs:PutLogEvents
-            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
 
   SpeelycaptorInitLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        ZipFile: |
-          !INCLUDE_JS speelycaptor/index.js
-      FunctionName: speelycaptor-public-initialize
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
+      FunctionName: speelycaptor-initialize
       Handler: index.init
       MemorySize: 128
       Role: !GetAtt SpeelycaptorRole.Arn
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Timeout: 120
       Environment:
         Variables:
           scratchBucketRegion: !Ref "AWS::Region"
           scratchBucketId: !Ref SpeelycaptorScratchBucket
     DependsOn:
-      - SpeelycaptorInitLogGroup
+      - CopySpeelycaptorLambda
   SpeelycaptorConvertLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        ZipFile: |
-          !INCLUDE_JS speelycaptor/index.js
-      FunctionName: speelycaptor-public-convert
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
+      FunctionName: speelycaptor-convert
       Handler: index.convert
       MemorySize: 3000
       Role: !GetAtt SpeelycaptorRole.Arn
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Timeout: 120
       Environment:
         Variables:
           scratchBucketRegion: !Ref "AWS::Region"
           scratchBucketId: !Ref SpeelycaptorScratchBucket
-      Layers:
-        - arn:aws:lambda:us-east-2:558986605633:layer:hubs-serverless:1
     DependsOn:
-      - SpeelycaptorConvertLogGroup
-      - SpeelycaptorRole
+      - CopySpeelycaptorLambda
   SpeelycaptorApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -187,21 +292,6 @@ Resources:
     DependsOn:
       - SpeelycaptorApiGatewayMethodInitGet
       - SpeelycaptorApiGatewayMethodConvertGet
-  SpeelycaptorApiGatewayUsagePlan:
-    Type: AWS::ApiGateway::UsagePlan
-    DependsOn: SpeelycaptorApiGatewayDeployment
-    Properties:
-      ApiStages:
-        - ApiId: !Ref SpeelycaptorApiGatewayRestApi
-          Stage: prod
-      Description: Usage plan for speelycaptor prod stage
-      UsagePlanName: speelycaptor
-      Quota:
-        Limit: 1000
-        Period: MONTH
-      Throttle:
-        BurstLimit: 10
-        RateLimit: 5
   SpeelycaptorInitLambdaPermissionApiGateway:
     Type: AWS::Lambda::Permission
     Properties:
@@ -216,7 +306,114 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: !Sub 'apigateway.${AWS::URLSuffix}'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${SpeelycaptorApiGatewayRestApi}/*/*'
+# Photomnemonic
+  PhotomnemonicRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+          Sid: ""
+      Path: "/"
+  PhotomnemonicScreenshotLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/photomnemonic-screenshot
+  PhotomnemonicRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "photomnemonic-policy"
+      Roles:
+        - !Ref PhotomnemonicRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: 
+              - ec2:DescribeInstances
+              - ec2:CreateNetworkInterface
+              - ec2:AttachNetworkInterface
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DeleteNetworkInterface
+              - autoscaling:CompleteLifecycleAction
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
+
+  PhotomnemonicScreenshotLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/photomnemonic/photomnemonic-0.1.0.zip
+      FunctionName: photomnemonic-screenshot
+      Handler: index.handler
+      MemorySize: 128
+      Role: !GetAtt PhotomnemonicRole.Arn
+      Runtime: nodejs8.10
+      Timeout: 30
+    DependsOn:
+      - CopyPhotomnemonicLambda
+      - PhotomnemonicScreenshotLogGroup
+  PhotomnemonicApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: photomnemonic
+      BinaryMediaTypes:
+        - "*/*"
+      EndpointConfiguration:
+        Types:
+          - EDGE
+  PhotomnemonicApiGatewayResourceScreenshot:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt PhotomnemonicApiGatewayRestApi.RootResourceId
+      PathPart: screenshot
+      RestApiId: !Ref PhotomnemonicApiGatewayRestApi
+  PhotomnemonicApiGatewayMethodScreenshotGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RequestParameters: {}
+      ResourceId: !Ref PhotomnemonicApiGatewayResourceScreenshot
+      RestApiId: !Ref PhotomnemonicApiGatewayRestApi
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      Integration:
+        ContentHandling: CONVERT_TO_BINARY
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PhotomnemonicScreenshotLambdaFunction.Arn}/invocations'
+      MethodResponses: []
+  PhotomnemonicApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref PhotomnemonicApiGatewayRestApi
+      StageName: prod
+    DependsOn:
+      - PhotomnemonicApiGatewayMethodScreenshotGet
+  PhotomnemonicScreenshotLambdaPermissionApiGateway:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt PhotomnemonicScreenshotLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotomnemonicApiGatewayRestApi}/*/*'
 Outputs:
   SpeelycaptorServiceEndpoint:
     Description: URL of the speelycaptor service endpoint
     Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
+
+  PhotomnemonicServiceEndpoint:
+    Description: URL of the speelycaptor service endpoint
+    Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
