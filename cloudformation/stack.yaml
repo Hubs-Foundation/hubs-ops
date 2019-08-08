@@ -217,6 +217,8 @@ Resources:
         Variables:
           scratchBucketRegion: !Ref "AWS::Region"
           scratchBucketId: !Ref SpeelycaptorScratchBucket
+      Layers:
+        - arn:aws:lambda:us-east-2:558986605633:layer:polycosm-shared:17
     DependsOn:
       - CopySpeelycaptorLambda
   SpeelycaptorConvertLambdaFunction:
