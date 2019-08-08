@@ -2,10 +2,16 @@ AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
   NamePrefix:
     Type: String
-    Default: "quack-"
+    Description: "Prefix for your AWS resource names (eg webspaces)"
+    Default: "webspaces"
+  InternalZone:
+    Type: AWS::Route53::HostedZone::Id
+    Description: "Route 53 Zone to use for internal services (a non user-facing domain name, eg mywebspaces-internal.com)"
   CIDR:
     Type: "String"
+    Description: "CIDR block to use for internal server IPs"
     Default: "10.56.0.0/16"
+
 Resources:
   VPC:
     Type: AWS::EC2::VPC
@@ -27,7 +33,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Join ["-", [ "polycosm-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      BucketName: !Join ["-", [ !Sub "${NamePrefix}-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   CopySpeelycaptorLambda:
     Type: Custom::CopySpeelycaptorLambda
     UpdateReplacePolicy: Retain
@@ -160,7 +166,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Join ["-", [ "polycosm-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      BucketName: !Join ["-", [ !Sub "${NamePrefix}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   SpeelycaptorRole:
     Type: AWS::IAM::Role
     Properties:
