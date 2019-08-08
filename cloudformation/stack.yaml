@@ -376,34 +376,31 @@ Resources:
       EndpointConfiguration:
         Types:
           - EDGE
+      Body:
+        swagger: 2.0
+        paths:
+          "/screenshot":
+            get:
+              parameters:
+                - name: url
+                  in: query
+                  required: true
+              x-amazon-apigateway-binary-media-types:
+                - "*/*"
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                passthroughBehavior: when_no_match
+                type: aws_proxy
+                contentHandling: CONVERT_TO_BINARY
+                uri:
+                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PhotomnemonicScreenshotLambdaFunction.Arn}/invocations
+
   PhotomnemonicApiGatewayResourceScreenshot:
     Type: AWS::ApiGateway::Resource
     Properties:
       ParentId: !GetAtt PhotomnemonicApiGatewayRestApi.RootResourceId
       PathPart: screenshot
       RestApiId: !Ref PhotomnemonicApiGatewayRestApi
-  PhotomnemonicApiGatewayMethodScreenshotGet:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      HttpMethod: GET
-      RequestParameters: {}
-      ResourceId: !Ref PhotomnemonicApiGatewayResourceScreenshot
-      RestApiId: !Ref PhotomnemonicApiGatewayRestApi
-      ApiKeyRequired: false
-      AuthorizationType: NONE
-      Integration:
-        ContentHandling: CONVERT_TO_BINARY
-        IntegrationHttpMethod: POST
-        Type: AWS_PROXY
-        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PhotomnemonicScreenshotLambdaFunction.Arn}/invocations'
-      MethodResponses: []
-  PhotomnemonicApiGatewayDeployment:
-    Type: AWS::ApiGateway::Deployment
-    Properties:
-      RestApiId: !Ref PhotomnemonicApiGatewayRestApi
-      StageName: prod
-    DependsOn:
-      - PhotomnemonicApiGatewayMethodScreenshotGet
   PhotomnemonicScreenshotLambdaPermissionApiGateway:
     Type: AWS::Lambda::Permission
     Properties:
