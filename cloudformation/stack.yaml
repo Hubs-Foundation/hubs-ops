@@ -148,6 +148,14 @@ Resources:
                   timer.cancel()
                   cfnresponse.send(event, context, status, {}, None)
 # Speelycaptor
+  SpeelycaptorInitLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/speelycaptor-initialize
+  SpeelycaptorConvertLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/speelycaptor-convert
   SpeelycaptorScratchBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -200,6 +208,12 @@ Resources:
               - ec2:DeleteNetworkInterface
               - autoscaling:CompleteLifecycleAction
             Resource: "*"
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
 
   SpeelycaptorInitLambdaFunction:
     Type: AWS::Lambda::Function
@@ -209,7 +223,7 @@ Resources:
         S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
       FunctionName: speelycaptor-initialize
       Handler: index.init
-      MemorySize: 128
+      MemorySize: 1024
       Role: !GetAtt SpeelycaptorRole.Arn
       Runtime: nodejs10.x
       Timeout: 120
@@ -217,9 +231,8 @@ Resources:
         Variables:
           scratchBucketRegion: !Ref "AWS::Region"
           scratchBucketId: !Ref SpeelycaptorScratchBucket
-      Layers:
-        - arn:aws:lambda:us-east-2:558986605633:layer:polycosm-shared:17
     DependsOn:
+      - SpeelycaptorInitLogGroup
       - CopySpeelycaptorLambda
   SpeelycaptorConvertLambdaFunction:
     Type: AWS::Lambda::Function
@@ -238,6 +251,7 @@ Resources:
           scratchBucketRegion: !Ref "AWS::Region"
           scratchBucketId: !Ref SpeelycaptorScratchBucket
     DependsOn:
+      - SpeelycaptorConvertLogGroup
       - CopySpeelycaptorLambda
   SpeelycaptorApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
@@ -360,7 +374,7 @@ Resources:
         S3Key: lambdas/photomnemonic/photomnemonic-0.1.0.zip
       FunctionName: photomnemonic-screenshot
       Handler: index.handler
-      MemorySize: 128
+      MemorySize: 1024
       Role: !GetAtt PhotomnemonicRole.Arn
       Runtime: nodejs8.10
       Timeout: 30
@@ -388,19 +402,22 @@ Resources:
               x-amazon-apigateway-binary-media-types:
                 - "*/*"
               x-amazon-apigateway-integration:
-                httpMethod: GET
+                responses:
+                  contentHandling: CONVERT_TO_BINARY,
+                httpMethod: POST
                 passthroughBehavior: when_no_match
                 type: aws_proxy
                 contentHandling: CONVERT_TO_BINARY
                 uri:
                   Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PhotomnemonicScreenshotLambdaFunction.Arn}/invocations
 
-  PhotomnemonicApiGatewayResourceScreenshot:
-    Type: AWS::ApiGateway::Resource
+  PhotomnemonicApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
     Properties:
-      ParentId: !GetAtt PhotomnemonicApiGatewayRestApi.RootResourceId
-      PathPart: screenshot
       RestApiId: !Ref PhotomnemonicApiGatewayRestApi
+      StageName: prod
+    DependsOn:
+      - PhotomnemonicApiGatewayRestApi
   PhotomnemonicScreenshotLambdaPermissionApiGateway:
     Type: AWS::Lambda::Permission
     Properties:
@@ -414,5 +431,5 @@ Outputs:
     Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
 
   PhotomnemonicServiceEndpoint:
-    Description: URL of the speelycaptor service endpoint
+    Description: URL of the photomnemonic service endpoint
     Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
