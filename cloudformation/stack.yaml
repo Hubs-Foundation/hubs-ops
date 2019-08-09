@@ -835,75 +835,69 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: !Sub 'apigateway.${AWS::URLSuffix}'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${NearsparkApiGatewayRestApi}/*/*'
-      #  NearsparkCloudfrontDNS:
-      #    Type: AWS::Route53::RecordSet
-      #    Properties:
-      #      Name:
-      #        Fn::Join:
-      #          - ""
-      #          - - nearspark
-      #            - !GetAtt 'InternalZoneEntry.Name'
-      #      HostedZoneId: !Ref InternalZone.Id
-      #      Type: A
-      #      AliasTarget:
-      #        DNSName:
-      #          Fn::GetAtt: [ NearsparkCloudfrontDistribution, DomainName ]
-      #        HostedZoneId: Z2FDTNDATAQYW2
-      #
-      #  NearsparkCloudfrontDistribution:
-      #    Type: AWS::CloudFront::Distribution
-      #    Properties:
-      #      DistributionConfig:
-      #        Origins:
-      #          - Id: ApiGateway
-      #            DomainName:
-      #              Fn::Join:
-      #                - ""
-      #                - - Ref: ApiGatewayRestApi
-      #                  - ".execute-api."
-      #                  - Ref: AWS::Region
-      #                  - ".amazonaws.com"
-      #            CustomOriginConfig:
-      #              HTTPPort: 80
-      #              HTTPSPort: 443
-      #              OriginProtocolPolicy: https-only
-      #              OriginSSLProtocols: [ "TLSv1", "TLSv1.1", "TLSv1.2" ]
-      #            OriginPath:
-      #              Fn::Join:
-      #                - ""
-      #                - - "/"
-      #                  - ${self:provider.stage}
-      #        Enabled: true
-      #        HttpVersion: http2
-      #        PriceClass: PriceClass_All
-      #        Aliases:
-      #          -
-      #            Fn::Join:
-      #              - ""
-      #              - - ${file(config.json):nearspark-dns-prefix}
-      #                - ${file(config.json):nearspark-domain}
-      #        DefaultCacheBehavior:
-      #          AllowedMethods:
-      #            - GET
-      #            - HEAD
-      #            - OPTIONS
-      #          CachedMethods:
-      #            - GET
-      #            - HEAD
-      #          TargetOriginId: ApiGateway
-      #          ForwardedValues:
-      #            QueryString: true
-      #            Headers: []
-      #            Cookies:
-      #              Forward: none
-      #          ViewerProtocolPolicy: redirect-to-https
-      #          MinTTL: '0'
-      #          DefaultTTL: '3600'
-      #
-      #        ViewerCertificate:
-      #          AcmCertificateArn: ${file(config.json):nearspark-cert-arn}
-      #          SslSupportMethod: sni-only
-      #          # CloudFrontDefaultCertificate: 'true'
+  NearsparkCloudfrontDNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name:
+        Fn::Join:
+          - "."
+          - - nearspark
+            - !GetAtt 'InternalZoneInfo.Name'
+      HostedZoneId: !Ref InternalZone
+      Type: A
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt: [ NearsparkCloudfrontDistribution, DomainName ]
+        HostedZoneId: Z2FDTNDATAQYW2
+
+  NearsparkCloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - Id: ApiGateway
+            DomainName:
+              Fn::Join:
+                - ""
+                - - Ref: NearsparkApiGatewayRestApi
+                  - ".execute-api."
+                  - Ref: AWS::Region
+                  - ".amazonaws.com"
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [ "TLSv1", "TLSv1.1", "TLSv1.2" ]
+            OriginPath: "/prod"
+        Enabled: true
+        HttpVersion: http2
+        PriceClass: PriceClass_All
+        Aliases:
+          -
+            Fn::Join:
+              - "."
+              - - nearspark
+                - !GetAtt 'InternalZoneInfo.Name'
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: ApiGateway
+          ForwardedValues:
+            QueryString: true
+            Headers: []
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+          MinTTL: '0'
+          DefaultTTL: '3600'
+        ViewerCertificate:
+          AcmCertificateArn: !Ref InternalZoneSSLCertEast
+          SslSupportMethod: sni-only
 
 Outputs:
   SpeelycaptorServiceEndpoint:
@@ -913,7 +907,3 @@ Outputs:
   PhotomnemonicServiceEndpoint:
     Description: URL of the photomnemonic service endpoint
     Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
-
-  NearsparkServiceEndpoint:
-    Description: URL of the nearspark service endpoint
-    Value: !Sub 'https://${NearsparkApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
