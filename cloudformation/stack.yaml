@@ -1,15 +1,52 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: General
+        Parameters:
+          - DomainName
+          - DomainZone
+          - InternalZone
+      - Label:
+          default: SSL Certificates
+        Parameters:
+          - UnmanagedDomainCertArn
+      - Label:
+          default: Advanced
+        Parameters:
+          - CIDR
+    ParameterLabels:
+      DomainName:
+        default: Domain Name
+      DomainZone:
+        default: Domain Route 53 Zone (Optional)
+      InternalZone:
+        default: Internal Route 53 Zone
+      UnmanagedDomainCertArn:
+        default: Unmanaged Domain SSL Certificate
 Parameters:
-  NamePrefix:
+  DomainName:
     Type: String
-    Description: "Prefix for your AWS resource names (eg webspaces)"
-    Default: "webspaces"
+    Description: "Domain name WebSpaces will be hosted on. (eg mywebspaces.com or webspaces.mydomain.com)"
+    AllowedPattern: ^((?:([a-z0-9]\.|[a-z0-9][a-z0-9\-]{0,61}[a-z0-9])\.)+)([a-z0-9]{2,63}|(?:[a-z0-9][a-z0-9\-]{0,61}[a-z0-9]))\.?$
+    ConstraintDescription: Must be a valid domain name (eg mywebspaces.com or webspaces.mycompany.com)
+  DomainZone:
+    Type: AWS::Route53::HostedZone::Id
+    Description: "Your AWS Route 53 Zone for the domain name. It's highly recommended to use Route 53 for your domain if possible. However, if your domain is not managed on Route 53 (but uses a third party provider like GoDaddy or Namecheap) then leave this blank and update the 'Unmanaged Domain SSL Certificate' configuration setting as needed in 'SSL Certificates' below."
   InternalZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: "Route 53 Zone to use for internal services (a non user-facing domain name, eg mywebspaces-internal.com)"
+    Description: "Your AWS Route 53 Zone for the internal domain name (eg mywebspaces-internal.com.) You'll need to register a new domain name of your choice with Route 53 if you haven't already, to be used internally by WebSpaces. This domain will not be seen by visitors and can be anything you like."
+    AllowedPattern: ".+"
+    ConstraintDescription: You didn't specify an internal Route 53 Zone. Please create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
+  UnmanagedDomainCertArn:
+    Type: "String"
+    Description: "You do not need to set this unless you left 'Domain Route 53 Zone' blank. If you left it blank, you are using a domain name not managed by AWS. To set up your SSL certificates with WebSpaces you have two options. First, you can upload your SSL certificate to AWS Certificate Manager and paste the ARN to it here (in the form arn:aws:acm:<region>:<account>:certificate/<id>). Otherwise, AWS will email your domain name's contact email address to create + verify a new SSL certificate when you create this stack."
+    AllowedPattern: "^$|^arn:aws:acm:"
+    ConstraintDescription: You must point to an ARN on AWS Certificate Manager or leave this field blank if you'd like to validate a new cert via email.
   CIDR:
     Type: "String"
-    Description: "CIDR block to use for internal server IPs"
+    Description: "VPC CIDR block to use for internal server IPs."
     Default: "10.56.0.0/16"
 
 Resources:
@@ -22,18 +59,18 @@ Resources:
       EnableDnsHostnames: 'true'
       Tags:
         - Key: Name
-          Value: !Sub "${NamePrefix}-vpc"
+          Value: !Sub "${AWS::StackId}-vpc"
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: !Sub "${NamePrefix}-igw"
+          Value: !Sub "${AWS::StackId}-igw"
   LambdaBucket:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Join ["-", [ !Sub "${NamePrefix}-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      BucketName: !Join ["-", [ !Sub "${AWS::StackId}-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   CopySpeelycaptorLambda:
     Type: Custom::CopySpeelycaptorLambda
     UpdateReplacePolicy: Retain
@@ -435,7 +472,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Join ["-", [ !Sub "${NamePrefix}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      BucketName: !Join ["-", [ !Sub "${AWS::StackId}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   SpeelycaptorRole:
     Type: AWS::IAM::Role
     Properties:
@@ -898,6 +935,60 @@ Resources:
         ViewerCertificate:
           AcmCertificateArn: !Ref InternalZoneSSLCertEast
           SslSupportMethod: sni-only
+
+# Base
+#  BasePolicy:
+#    Type: AWS::IAM::Policy
+#    Properties:
+#      PolicyName: !Sub "${AWS::StackId}-base-policy"
+#      PolicyBody:
+#        Version: 2012-10-17
+#        Statement:
+#          - Effect: Allow,
+#            Action: ec2:DescribeInstances
+#            Resource: "*"
+#          - Effect: Allow
+#            Action: ec2:CreateTags
+#            Resource: "*"
+#          - Effect: Allow
+#            Action: ec2:DescribeTags
+#            Resource: "*"
+#          - Effect: Allow
+#            Action:
+#            - ssm:DescribeAssociation
+#            - ssm:GetDeployablePatchSnapshotForInstance
+#            - ssm:GetDocument
+#            - ssm:DescribeDocument
+#            - ssm:GetManifest
+#            - ssm:GetParameters
+#            - ssm:ListAssociations
+#            - ssm:ListInstanceAssociations
+#            - ssm:PutInventory
+#            - ssm:PutComplianceItems
+#            - ssm:PutConfigurePackageResult
+#            - ssm:UpdateAssociationStatus
+#            - ssm:UpdateInstanceAssociationStatus
+#            - ssm:UpdateInstanceInformation
+#            Resource: "*"
+#          - Effect: Allow
+#            Action:
+#            - ssmmessages:CreateControlChannel
+#            - ssmmessages:CreateDataChannel
+#            - ssmmessages:OpenControlChannel
+#            - ssmmessages:OpenDataChannel
+#            Resource: "*"
+#          - Effect: Allow
+#            Action:
+#            - ec2messages:AcknowledgeMessage
+#            - ec2messages:DeleteMessage
+#            - ec2messages:FailMessage
+#            - ec2messages:GetEndpoint
+#            - ec2messages:GetMessages
+#            - ec2messages:SendReply
+#            Resource: "*"
+#          - Effect: Allow
+#            Action: route53:ChangeResourceRecordSets
+#            Resource: arn:aws:route53:::hostedzone/Z26OTGLBBCAHK4
 
 Outputs:
   SpeelycaptorServiceEndpoint:
