@@ -6,7 +6,7 @@ Metadata:
           default: General
         Parameters:
           - DomainName
-          - DomainZone
+          - IsDomainOnRoute53
           - InternalZone
       - Label:
           default: SSL Certificates
@@ -19,35 +19,39 @@ Metadata:
     ParameterLabels:
       DomainName:
         default: Domain Name
-      DomainZone:
-        default: Domain Route 53 Zone (Optional)
+      IsDomainOnRoute53:
+        default: Is your domain set up on Route 53?
       InternalZone:
         default: Internal Route 53 Zone
       UnmanagedDomainCertArn:
-        default: Unmanaged Domain SSL Certificate
+        default: Unmanaged Domain SSL Certificate ARN
 Parameters:
   DomainName:
     Type: String
-    Description: "Domain name WebSpaces will be hosted on. (eg mywebspaces.com or webspaces.mydomain.com)"
+    Description: "Domain name WebSpaces will be hosted on. (eg mywebspaces.com or webspaces.mydomain.com.)"
     AllowedPattern: ^((?:([a-z0-9]\.|[a-z0-9][a-z0-9\-]{0,61}[a-z0-9])\.)+)([a-z0-9]{2,63}|(?:[a-z0-9][a-z0-9\-]{0,61}[a-z0-9]))\.?$
     ConstraintDescription: Must be a valid domain name (eg mywebspaces.com or webspaces.mycompany.com)
-  DomainZone:
-    Type: AWS::Route53::HostedZone::Id
-    Description: "Your AWS Route 53 Zone for the domain name. It's highly recommended to use Route 53 for your domain if possible. However, if your domain is not managed on Route 53 (but uses a third party provider like GoDaddy or Namecheap) then leave this blank and update the 'Unmanaged Domain SSL Certificate' configuration setting as needed in 'SSL Certificates' below."
+  IsDomainOnRoute53:
+    Type: String
+    Description: "It is hightly recommended you use Route 53 to manage your domain. Set to Yes if your domain is set up on Route 53. Set to No if your domain is on a third party service such as GoDaddy or Namecheap. If you choose 'No', you'll need to set the 'Unmanaged Domain SSL Certificate ARN' configuration setting in the 'SSL Certificates' section below."
+    AllowedValues: ["Yes - My domain is set up on Route 53.", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section."]
   InternalZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: "Your AWS Route 53 Zone for the internal domain name (eg mywebspaces-internal.com.) You'll need to register a new domain name of your choice with Route 53 if you haven't already, to be used internally by WebSpaces. This domain will not be seen by visitors and can be anything you like."
+    Description: "Your AWS Route 53 Zone for an internal domain name (eg mywebspaces-internal.com.) You'll need to register a new internal domain name of your choice with Route 53 to be used internally by WebSpaces. It should *not* be the same domain as the WebSpaces domain name that you specified above. This domain will not be seen by visitors and can be anything you like."
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an internal Route 53 Zone. Please create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
   UnmanagedDomainCertArn:
     Type: "String"
-    Description: "You do not need to set this unless you left 'Domain Route 53 Zone' blank. If you left it blank, you are using a domain name not managed by AWS. To set up your SSL certificates with WebSpaces you have two options. First, you can upload your SSL certificate to AWS Certificate Manager and paste the ARN to it here (in the form arn:aws:acm:<region>:<account>:certificate/<id>). Otherwise, AWS will email your domain name's contact email address to create + verify a new SSL certificate when you create this stack."
+    Description: "You can skip this if you chose 'Yes' above and your domain is set up on AWS Route 53. Otherwise, if you chose 'No' and you are using a domain name not managed by AWS Route 53 you will need to upload your domain's SSL certificate to AWS Certificate Manager. Make sure you upload it to the same region you are going to create your WebSpaces stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console."
     AllowedPattern: "^$|^arn:aws:acm:"
-    ConstraintDescription: You must point to an ARN on AWS Certificate Manager or leave this field blank if you'd like to validate a new cert via email.
+    ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
   CIDR:
     Type: "String"
     Description: "VPC CIDR block to use for internal server IPs."
     Default: "10.56.0.0/16"
+
+Conditions:
+  HasMangedDomain: !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]]
 
 Resources:
   VPC:
@@ -59,51 +63,51 @@ Resources:
       EnableDnsHostnames: 'true'
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackId}-vpc"
+          Value: !Sub "${AWS::StackName}-vpc"
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackId}-igw"
+          Value: !Sub "${AWS::StackName}-igw"
   LambdaBucket:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Join ["-", [ !Sub "${AWS::StackId}-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
-  CopySpeelycaptorLambda:
-    Type: Custom::CopySpeelycaptorLambda
-    UpdateReplacePolicy: Retain
-    DependsOn: LambdaBucket
-    Properties:
-      ServiceToken: !GetAtt 'CopyLambdaZipFunction.Arn'
-      DestBucket: !Ref 'LambdaBucket'
-      SourceBucket: assets.polycosm-prod-b99b35f30242f894
-      Prefix: ""
-      Objects:
-        - lambdas/speelycaptor/speelycaptor-0.1.2.zip
-  CopyNearsparkLambda:
-    Type: Custom::CopyNearsparkLambda
-    UpdateReplacePolicy: Retain
-    DependsOn: LambdaBucket
-    Properties:
-      ServiceToken: !GetAtt 'CopyLambdaZipFunction.Arn'
-      DestBucket: !Ref 'LambdaBucket'
-      SourceBucket: assets.polycosm-prod-b99b35f30242f894
-      Prefix: ""
-      Objects:
-        - lambdas/nearspark/nearspark-0.1.0.zip
-  CopyPhotomnemonicLambda:
-    Type: Custom::CopyPhotomnemonicLambda
-    UpdateReplacePolicy: Retain
-    DependsOn: LambdaBucket
-    Properties:
-      ServiceToken: !GetAtt 'CopyLambdaZipFunction.Arn'
-      DestBucket: !Ref 'LambdaBucket'
-      SourceBucket: assets.polycosm-prod-b99b35f30242f894
-      Prefix: ""
-      Objects:
-        - lambdas/photomnemonic/photomnemonic-0.1.0.zip
+      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      #  CopySpeelycaptorLambda:
+      #    Type: Custom::CopySpeelycaptorLambda
+      #    UpdateReplacePolicy: Retain
+      #    DependsOn: LambdaBucket
+      #    Properties:
+      #      ServiceToken: !GetAtt 'CopyLambdaZipFunction.Arn'
+      #      DestBucket: !Ref 'LambdaBucket'
+      #      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      #      Prefix: ""
+      #      Objects:
+      #        - lambdas/speelycaptor/speelycaptor-0.1.2.zip
+      #  CopyNearsparkLambda:
+      #    Type: Custom::CopyNearsparkLambda
+      #    UpdateReplacePolicy: Retain
+      #    DependsOn: LambdaBucket
+      #    Properties:
+      #      ServiceToken: !GetAtt 'CopyLambdaZipFunction.Arn'
+      #      DestBucket: !Ref 'LambdaBucket'
+      #      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      #      Prefix: ""
+      #      Objects:
+      #        - lambdas/nearspark/nearspark-0.1.0.zip
+      #  CopyPhotomnemonicLambda:
+      #    Type: Custom::CopyPhotomnemonicLambda
+      #    UpdateReplacePolicy: Retain
+      #    DependsOn: LambdaBucket
+      #    Properties:
+      #      ServiceToken: !GetAtt 'CopyLambdaZipFunction.Arn'
+      #      DestBucket: !Ref 'LambdaBucket'
+      #      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      #      Prefix: ""
+      #      Objects:
+      #        - lambdas/photomnemonic/photomnemonic-0.1.0.zip
 
 # route53dependency
   Route53DependencyLambda:
@@ -122,8 +126,8 @@ Resources:
           'use strict';
 
           function route53Dependency(properties, callback) {
-            if (!properties.Id)
-              callback("Zone id not specified");
+            if (!properties.Id && !properties.Domain)
+              callback("Zone id or domain not specified");
 
             var aws = require("aws-sdk");
             var route53 = new aws.Route53();
@@ -137,7 +141,13 @@ Resources:
 
               var zones = data.HostedZones;
               var matching = zones.filter(function(zone) {
-                return zone.Id === "/hostedzone/" + properties.Id;
+                if (properties.Id) {
+                  return zone.Id === "/hostedzone/" + properties.Id;
+                } else {
+                  var tldParts = properties.Domain.split(".");
+                  var tld = tldParts[tldParts.length - 2] + "." + tldParts[tldParts.length - 1];
+                  return zone.Name === tld + ".";
+                }
               });
               if (matching.length != 1)
                 return callback('Exactly one matching zone is allowed ' + zones);
@@ -338,12 +348,36 @@ Resources:
           PolicyName: !Sub '${AWS::StackName}CustomAcmCertificateLambdaExecutionPolicy'
     Type: AWS::IAM::Role
 
+# External Zone
+  ExternalZoneInfo:
+    Type: Custom::Route53
+    Properties:
+      Domain: !Ref DomainName
+      ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
+
 # Internal Zone + SSL certs
   InternalZoneInfo:
     Type: Custom::Route53
+    Condition: HasMangedDomain
     Properties:
       Id: !Ref InternalZone
       ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
+
+  ExternalZoneSSLCert:
+    Type: Custom::DNSCertificate
+    Condition: HasMangedDomain
+    Properties: 
+      DomainName:
+        Fn::Join:
+          - "."
+          - - "*"
+            - !GetAtt 'ExternalZoneInfo.Name'
+      DomainValidationOptions:
+        - DomainName: !GetAtt 'ExternalZoneInfo.Name'
+          HostedZoneId: !GetAtt 'ExternalZoneInfo.Id'
+      ValidationMethod: DNS
+      Region: !Sub "${AWS::Region}"
+      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
 
   InternalZoneSSLCert:
     Type: Custom::DNSCertificate
@@ -376,571 +410,571 @@ Resources:
       ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
 
 # CopyLambdaZip
-  CopyLambdaZipRole:
-   Type: AWS::IAM::Role
-   Properties:
-     AssumeRolePolicyDocument:
-       Version: '2012-10-17'
-       Statement:
-         - Effect: Allow
-           Principal:
-             Service: lambda.amazonaws.com
-           Action: sts:AssumeRole
-     ManagedPolicyArns:
-       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-     Path: /
-     Policies:
-       - PolicyName: copy-lambda-zip
-         PolicyDocument:
-           Version: '2012-10-17'
-           Statement:
-             - Effect: Allow
-               Action:
-                 - s3:PutObject
-                 - s3:DeleteObject
-               Resource:
-                 - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
-
-  CopyLambdaZipFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: index.handler
-      Runtime: python2.7
-      Role: !GetAtt 'CopyLambdaZipRole.Arn'
-      Timeout: 240
-      Code:
-        ZipFile: |
-          import json
-          import logging
-          import threading
-          import boto3
-          import cfnresponse
-          def copy_objects(source_bucket, dest_bucket, prefix, objects):
-              s3 = boto3.client('s3')
-              for o in objects:
-                  key = prefix + o
-                  copy_source = {
-                      'Bucket': source_bucket,
-                      'Key': key
-                  }
-                  print('copy_source: %s' % copy_source)
-                  print('dest_bucket = %s'%dest_bucket)
-                  print('key = %s' %key)
-                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
-                        Key=key)
-          def delete_objects(bucket, prefix, objects):
-              s3 = boto3.client('s3')
-              objects = {'Objects': [{'Key': prefix + o} for o in objects]}
-              s3.delete_objects(Bucket=bucket, Delete=objects)
-          def timeout(event, context):
-              logging.error('Execution is about to time out, sending failure response to CloudFormation')
-              cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)
-          def handler(event, context):
-              # make sure we send a failure to CloudFormation if the function
-              # is going to timeout
-              timer = threading.Timer((context.get_remaining_time_in_millis()
-                        / 1000.00) - 0.5, timeout, args=[event, context])
-              timer.start()
-              print('Received event: %s' % json.dumps(event))
-              status = cfnresponse.SUCCESS
-              try:
-                  source_bucket = event['ResourceProperties']['SourceBucket']
-                  dest_bucket = event['ResourceProperties']['DestBucket']
-                  prefix = event['ResourceProperties']['Prefix']
-                  objects = event['ResourceProperties']['Objects']
-                  if event['RequestType'] == 'Delete':
-                      delete_objects(dest_bucket, prefix, objects)
-                  else:
-                      copy_objects(source_bucket, dest_bucket, prefix, objects)
-              except Exception as e:
-                  logging.error('Exception: %s' % e, exc_info=True)
-                  status = cfnresponse.FAILED
-              finally:
-                  timer.cancel()
-                  cfnresponse.send(event, context, status, {}, None)
-
-# Speelycaptor
-  SpeelycaptorInitLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/speelycaptor-initialize
-  SpeelycaptorConvertLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/speelycaptor-convert
-  SpeelycaptorScratchBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      AccessControl: Private
-      BucketName: !Join ["-", [ !Sub "${AWS::StackId}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
-  SpeelycaptorRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - lambda.amazonaws.com
-          Action:
-          - sts:AssumeRole
-          Sid: ""
-      Path: "/"
-  SpeelycaptorRolePolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: "speelycaptor-policy"
-      Roles:
-        - !Ref SpeelycaptorRole
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
-          - Effect: Allow
-            Action: s3:PutObject
-            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
-          - Effect: Allow
-            Action: s3:PutObjectAcl
-            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
-          - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
-          - Effect: Allow
-            Action: s3:ListBucket
-            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}"
-          - Effect: Allow
-            Action: 
-              - ec2:DescribeInstances
-              - ec2:CreateNetworkInterface
-              - ec2:AttachNetworkInterface
-              - ec2:DescribeNetworkInterfaces
-              - ec2:DeleteNetworkInterface
-              - autoscaling:CompleteLifecycleAction
-            Resource: "*"
-          - Effect: Allow
-            Action:
-              - logs:CreateLogGroup
-              - logs:CreateLogStream
-              - logs:PutLogEvents
-            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
-  SpeelycaptorInitLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
-      FunctionName: speelycaptor-initialize
-      Handler: index.init
-      MemorySize: 1024
-      Role: !GetAtt SpeelycaptorRole.Arn
-      Runtime: nodejs10.x
-      Timeout: 120
-      Environment:
-        Variables:
-          scratchBucketRegion: !Ref "AWS::Region"
-          scratchBucketId: !Ref SpeelycaptorScratchBucket
-    DependsOn:
-      - SpeelycaptorInitLogGroup
-      - CopySpeelycaptorLambda
-  SpeelycaptorConvertLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
-      FunctionName: speelycaptor-convert
-      Handler: index.convert
-      MemorySize: 3000
-      Role: !GetAtt SpeelycaptorRole.Arn
-      Runtime: nodejs10.x
-      Timeout: 120
-      Environment:
-        Variables:
-          scratchBucketRegion: !Ref "AWS::Region"
-          scratchBucketId: !Ref SpeelycaptorScratchBucket
-    DependsOn:
-      - SpeelycaptorConvertLogGroup
-      - CopySpeelycaptorLambda
-  SpeelycaptorApiGatewayRestApi:
-    Type: AWS::ApiGateway::RestApi
-    Properties:
-      Name: speelycaptor
-      EndpointConfiguration:
-        Types:
-          - EDGE
-  SpeelycaptorApiGatewayResourceInit:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !GetAtt SpeelycaptorApiGatewayRestApi.RootResourceId
-      PathPart: init
-      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
-  SpeelycaptorApiGatewayResourceConvert:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !GetAtt SpeelycaptorApiGatewayRestApi.RootResourceId
-      PathPart: convert
-      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
-  SpeelycaptorApiGatewayMethodInitGet:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      HttpMethod: GET
-      RequestParameters: {}
-      ResourceId: !Ref SpeelycaptorApiGatewayResourceInit
-      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
-      ApiKeyRequired: false
-      AuthorizationType: NONE
-      Integration:
-        IntegrationHttpMethod: POST
-        Type: AWS_PROXY
-        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorInitLambdaFunction.Arn}/invocations'
-      MethodResponses: []
-  SpeelycaptorApiGatewayMethodConvertGet:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      HttpMethod: GET
-      RequestParameters: {}
-      ResourceId: !Ref SpeelycaptorApiGatewayResourceConvert
-      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
-      ApiKeyRequired: false
-      AuthorizationType: NONE
-      Integration:
-        IntegrationHttpMethod: POST
-        Type: AWS_PROXY
-        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorConvertLambdaFunction.Arn}/invocations'
-      MethodResponses: []
-  SpeelycaptorApiGatewayDeployment:
-    Type: AWS::ApiGateway::Deployment
-    Properties:
-      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
-      StageName: prod
-    DependsOn:
-      - SpeelycaptorApiGatewayMethodInitGet
-      - SpeelycaptorApiGatewayMethodConvertGet
-  SpeelycaptorInitLambdaPermissionApiGateway:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt SpeelycaptorInitLambdaFunction.Arn
-      Action: lambda:InvokeFunction
-      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
-      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${SpeelycaptorApiGatewayRestApi}/*/*'
-  SpeelycaptorConvertLambdaPermissionApiGateway:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt SpeelycaptorConvertLambdaFunction.Arn
-      Action: lambda:InvokeFunction
-      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
-      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${SpeelycaptorApiGatewayRestApi}/*/*'
-
-# Photomnemonic
-  PhotomnemonicRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - lambda.amazonaws.com
-          Action:
-          - sts:AssumeRole
-          Sid: ""
-      Path: "/"
-  PhotomnemonicScreenshotLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/photomnemonic-screenshot
-  PhotomnemonicRolePolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: "photomnemonic-policy"
-      Roles:
-        - !Ref PhotomnemonicRole
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action: 
-              - ec2:DescribeInstances
-              - ec2:CreateNetworkInterface
-              - ec2:AttachNetworkInterface
-              - ec2:DescribeNetworkInterfaces
-              - ec2:DeleteNetworkInterface
-              - autoscaling:CompleteLifecycleAction
-            Resource: "*"
-          - Effect: Allow
-            Action:
-              - logs:CreateLogGroup
-              - logs:CreateLogStream
-              - logs:PutLogEvents
-            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
-  PhotomnemonicScreenshotLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/photomnemonic/photomnemonic-0.1.0.zip
-      FunctionName: photomnemonic-screenshot
-      Handler: index.handler
-      MemorySize: 1024
-      Role: !GetAtt PhotomnemonicRole.Arn
-      Runtime: nodejs8.10
-      Timeout: 30
-    DependsOn:
-      - CopyPhotomnemonicLambda
-      - PhotomnemonicScreenshotLogGroup
-  PhotomnemonicApiGatewayRestApi:
-    Type: AWS::ApiGateway::RestApi
-    Properties:
-      Name: photomnemonic
-      BinaryMediaTypes:
-        - "*/*"
-      EndpointConfiguration:
-        Types:
-          - EDGE
-      Body:
-        swagger: 2.0
-        paths:
-          "/screenshot":
-            get:
-              parameters:
-                - name: url
-                  in: query
-                  required: true
-              x-amazon-apigateway-binary-media-types:
-                - "*/*"
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                responses:
-                  contentHandling: CONVERT_TO_BINARY,
-                type: aws_proxy
-                contentHandling: CONVERT_TO_BINARY
-                uri:
-                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PhotomnemonicScreenshotLambdaFunction.Arn}/invocations
-  PhotomnemonicApiGatewayDeployment:
-    Type: AWS::ApiGateway::Deployment
-    Properties:
-      RestApiId: !Ref PhotomnemonicApiGatewayRestApi
-      StageName: prod
-    DependsOn:
-      - PhotomnemonicApiGatewayRestApi
-  PhotomnemonicScreenshotLambdaPermissionApiGateway:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt PhotomnemonicScreenshotLambdaFunction.Arn
-      Action: lambda:InvokeFunction
-      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
-      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotomnemonicApiGatewayRestApi}/*/*'
-
-# Nearspark
-  NearsparkRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - lambda.amazonaws.com
-          Action:
-          - sts:AssumeRole
-          Sid: ""
-      Path: "/"
-  NearsparkThumbnailLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/nearspark-thumbnail
-  NearsparkRolePolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: "nearspark-policy"
-      Roles:
-        - !Ref NearsparkRole
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action: 
-              - ec2:DescribeInstances
-              - ec2:CreateNetworkInterface
-              - ec2:AttachNetworkInterface
-              - ec2:DescribeNetworkInterfaces
-              - ec2:DeleteNetworkInterface
-              - autoscaling:CompleteLifecycleAction
-            Resource: "*"
-          - Effect: Allow
-            Action:
-              - logs:CreateLogGroup
-              - logs:CreateLogStream
-              - logs:PutLogEvents
-            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
-  NearsparkThumbnailLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/nearspark/nearspark-0.1.0.zip
-      FunctionName: nearspark-thumbnail
-      Handler: index.handler
-      MemorySize: 128
-      Role: !GetAtt NearsparkRole.Arn
-      Runtime: nodejs10.x
-      Timeout: 30
-    DependsOn:
-      - CopyNearsparkLambda
-      - NearsparkThumbnailLogGroup
-  NearsparkApiGatewayRestApi:
-    Type: AWS::ApiGateway::RestApi
-    Properties:
-      Name: nearspark
-      BinaryMediaTypes:
-        - "*/*"
-      EndpointConfiguration:
-        Types:
-          - EDGE
-      Body:
-        swagger: 2.0
-        paths:
-          "/thumbnail/{url}":
-            get:
-              consumes:
-                - "application/json"
-              parameters:
-                - name: url
-                  in: path
-                  required: true
-                  type: string
-                - name: width
-                  in: query
-                  required: true
-                  type: number
-                - name: height
-                  in: query
-                  required: true
-                  type: number
-                - name: fit
-                  in: query
-                  required: false
-                  type: string
-                - name: position
-                  in: query
-                  required: false
-                  type: string
-                - name: gravity
-                  in: query
-                  required: false
-                  type: string
-                - name: strategy
-                  in: query
-                  required: false
-                  type: string
-                - name: background
-                  in: query
-                  required: false
-                  type: string
-                - name: withoutEnlargement
-                  in: query
-                  required: false
-                  type: boolean
-              requestTemplates:
-                "application/json": "{\"url\": \"$input.params('url')\"}"
-              x-amazon-apigateway-binary-media-types:
-                - "*/*"
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                responses:
-                  contentHandling: CONVERT_TO_BINARY,
-                type: aws_proxy
-                contentHandling: CONVERT_TO_BINARY
-                uri:
-                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NearsparkThumbnailLambdaFunction.Arn}/invocations
-  NearsparkApiGatewayDeployment:
-    Type: AWS::ApiGateway::Deployment
-    Properties:
-      RestApiId: !Ref NearsparkApiGatewayRestApi
-      StageName: prod
-    DependsOn:
-      - NearsparkApiGatewayRestApi
-  NearsparkThumbnailLambdaPermissionApiGateway:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt NearsparkThumbnailLambdaFunction.Arn
-      Action: lambda:InvokeFunction
-      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
-      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${NearsparkApiGatewayRestApi}/*/*'
-  NearsparkCloudfrontDNS:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      Name:
-        Fn::Join:
-          - "."
-          - - nearspark
-            - !GetAtt 'InternalZoneInfo.Name'
-      HostedZoneId: !Ref InternalZone
-      Type: A
-      AliasTarget:
-        DNSName:
-          Fn::GetAtt: [ NearsparkCloudfrontDistribution, DomainName ]
-        HostedZoneId: Z2FDTNDATAQYW2
-
-  NearsparkCloudfrontDistribution:
-    Type: AWS::CloudFront::Distribution
-    Properties:
-      DistributionConfig:
-        Origins:
-          - Id: ApiGateway
-            DomainName:
-              Fn::Join:
-                - ""
-                - - Ref: NearsparkApiGatewayRestApi
-                  - ".execute-api."
-                  - Ref: AWS::Region
-                  - ".amazonaws.com"
-            CustomOriginConfig:
-              HTTPPort: 80
-              HTTPSPort: 443
-              OriginProtocolPolicy: https-only
-              OriginSSLProtocols: [ "TLSv1", "TLSv1.1", "TLSv1.2" ]
-            OriginPath: "/prod"
-        Enabled: true
-        HttpVersion: http2
-        PriceClass: PriceClass_All
-        Aliases:
-          -
-            Fn::Join:
-              - "."
-              - - nearspark
-                - !GetAtt 'InternalZoneInfo.Name'
-        DefaultCacheBehavior:
-          AllowedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
-          CachedMethods:
-            - GET
-            - HEAD
-          TargetOriginId: ApiGateway
-          ForwardedValues:
-            QueryString: true
-            Headers: []
-            Cookies:
-              Forward: none
-          ViewerProtocolPolicy: redirect-to-https
-          MinTTL: '0'
-          DefaultTTL: '3600'
-        ViewerCertificate:
-          AcmCertificateArn: !Ref InternalZoneSSLCertEast
-          SslSupportMethod: sni-only
+#  CopyLambdaZipRole:
+#   Type: AWS::IAM::Role
+#   Properties:
+#     AssumeRolePolicyDocument:
+#       Version: '2012-10-17'
+#       Statement:
+#         - Effect: Allow
+#           Principal:
+#             Service: lambda.amazonaws.com
+#           Action: sts:AssumeRole
+#     ManagedPolicyArns:
+#       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+#     Path: /
+#     Policies:
+#       - PolicyName: copy-lambda-zip
+#         PolicyDocument:
+#           Version: '2012-10-17'
+#           Statement:
+#             - Effect: Allow
+#               Action:
+#                 - s3:PutObject
+#                 - s3:DeleteObject
+#               Resource:
+#                 - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
+#
+#  CopyLambdaZipFunction:
+#    Type: AWS::Lambda::Function
+#    Properties:
+#      Handler: index.handler
+#      Runtime: python2.7
+#      Role: !GetAtt 'CopyLambdaZipRole.Arn'
+#      Timeout: 240
+#      Code:
+#        ZipFile: |
+#          import json
+#          import logging
+#          import threading
+#          import boto3
+#          import cfnresponse
+#          def copy_objects(source_bucket, dest_bucket, prefix, objects):
+#              s3 = boto3.client('s3')
+#              for o in objects:
+#                  key = prefix + o
+#                  copy_source = {
+#                      'Bucket': source_bucket,
+#                      'Key': key
+#                  }
+#                  print('copy_source: %s' % copy_source)
+#                  print('dest_bucket = %s'%dest_bucket)
+#                  print('key = %s' %key)
+#                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
+#                        Key=key)
+#          def delete_objects(bucket, prefix, objects):
+#              s3 = boto3.client('s3')
+#              objects = {'Objects': [{'Key': prefix + o} for o in objects]}
+#              s3.delete_objects(Bucket=bucket, Delete=objects)
+#          def timeout(event, context):
+#              logging.error('Execution is about to time out, sending failure response to CloudFormation')
+#              cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)
+#          def handler(event, context):
+#              # make sure we send a failure to CloudFormation if the function
+#              # is going to timeout
+#              timer = threading.Timer((context.get_remaining_time_in_millis()
+#                        / 1000.00) - 0.5, timeout, args=[event, context])
+#              timer.start()
+#              print('Received event: %s' % json.dumps(event))
+#              status = cfnresponse.SUCCESS
+#              try:
+#                  source_bucket = event['ResourceProperties']['SourceBucket']
+#                  dest_bucket = event['ResourceProperties']['DestBucket']
+#                  prefix = event['ResourceProperties']['Prefix']
+#                  objects = event['ResourceProperties']['Objects']
+#                  if event['RequestType'] == 'Delete':
+#                      delete_objects(dest_bucket, prefix, objects)
+#                  else:
+#                      copy_objects(source_bucket, dest_bucket, prefix, objects)
+#              except Exception as e:
+#                  logging.error('Exception: %s' % e, exc_info=True)
+#                  status = cfnresponse.FAILED
+#              finally:
+#                  timer.cancel()
+#                  cfnresponse.send(event, context, status, {}, None)
+#
+## Speelycaptor
+#  SpeelycaptorInitLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    Properties:
+#      LogGroupName: /aws/lambda/speelycaptor-initialize
+#  SpeelycaptorConvertLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    Properties:
+#      LogGroupName: /aws/lambda/speelycaptor-convert
+#  SpeelycaptorScratchBucket:
+#    Type: AWS::S3::Bucket
+#    Properties:
+#      AccessControl: Private
+#      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+#  SpeelycaptorRole:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: '2012-10-17'
+#        Statement:
+#        - Effect: Allow
+#          Principal:
+#            Service:
+#            - lambda.amazonaws.com
+#          Action:
+#          - sts:AssumeRole
+#          Sid: ""
+#      Path: "/"
+#  SpeelycaptorRolePolicy:
+#    Type: AWS::IAM::Policy
+#    Properties:
+#      PolicyName: "speelycaptor-policy"
+#      Roles:
+#        - !Ref SpeelycaptorRole
+#      PolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: Allow
+#            Action: s3:GetObject
+#            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+#          - Effect: Allow
+#            Action: s3:PutObject
+#            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+#          - Effect: Allow
+#            Action: s3:PutObjectAcl
+#            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+#          - Effect: Allow
+#            Action: s3:GetObject
+#            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+#          - Effect: Allow
+#            Action: s3:ListBucket
+#            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}"
+#          - Effect: Allow
+#            Action: 
+#              - ec2:DescribeInstances
+#              - ec2:CreateNetworkInterface
+#              - ec2:AttachNetworkInterface
+#              - ec2:DescribeNetworkInterfaces
+#              - ec2:DeleteNetworkInterface
+#              - autoscaling:CompleteLifecycleAction
+#            Resource: "*"
+#          - Effect: Allow
+#            Action:
+#              - logs:CreateLogGroup
+#              - logs:CreateLogStream
+#              - logs:PutLogEvents
+#            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
+#  SpeelycaptorInitLambdaFunction:
+#    Type: AWS::Lambda::Function
+#    Properties:
+#      Code:
+#        S3Bucket: !Ref LambdaBucket
+#        S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
+#      FunctionName: speelycaptor-initialize
+#      Handler: index.init
+#      MemorySize: 1024
+#      Role: !GetAtt SpeelycaptorRole.Arn
+#      Runtime: nodejs10.x
+#      Timeout: 120
+#      Environment:
+#        Variables:
+#          scratchBucketRegion: !Ref "AWS::Region"
+#          scratchBucketId: !Ref SpeelycaptorScratchBucket
+#    DependsOn:
+#      - SpeelycaptorInitLogGroup
+#      - CopySpeelycaptorLambda
+#  SpeelycaptorConvertLambdaFunction:
+#    Type: AWS::Lambda::Function
+#    Properties:
+#      Code:
+#        S3Bucket: !Ref LambdaBucket
+#        S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
+#      FunctionName: speelycaptor-convert
+#      Handler: index.convert
+#      MemorySize: 3000
+#      Role: !GetAtt SpeelycaptorRole.Arn
+#      Runtime: nodejs10.x
+#      Timeout: 120
+#      Environment:
+#        Variables:
+#          scratchBucketRegion: !Ref "AWS::Region"
+#          scratchBucketId: !Ref SpeelycaptorScratchBucket
+#    DependsOn:
+#      - SpeelycaptorConvertLogGroup
+#      - CopySpeelycaptorLambda
+#  SpeelycaptorApiGatewayRestApi:
+#    Type: AWS::ApiGateway::RestApi
+#    Properties:
+#      Name: speelycaptor
+#      EndpointConfiguration:
+#        Types:
+#          - EDGE
+#  SpeelycaptorApiGatewayResourceInit:
+#    Type: AWS::ApiGateway::Resource
+#    Properties:
+#      ParentId: !GetAtt SpeelycaptorApiGatewayRestApi.RootResourceId
+#      PathPart: init
+#      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+#  SpeelycaptorApiGatewayResourceConvert:
+#    Type: AWS::ApiGateway::Resource
+#    Properties:
+#      ParentId: !GetAtt SpeelycaptorApiGatewayRestApi.RootResourceId
+#      PathPart: convert
+#      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+#  SpeelycaptorApiGatewayMethodInitGet:
+#    Type: AWS::ApiGateway::Method
+#    Properties:
+#      HttpMethod: GET
+#      RequestParameters: {}
+#      ResourceId: !Ref SpeelycaptorApiGatewayResourceInit
+#      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+#      ApiKeyRequired: false
+#      AuthorizationType: NONE
+#      Integration:
+#        IntegrationHttpMethod: POST
+#        Type: AWS_PROXY
+#        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorInitLambdaFunction.Arn}/invocations'
+#      MethodResponses: []
+#  SpeelycaptorApiGatewayMethodConvertGet:
+#    Type: AWS::ApiGateway::Method
+#    Properties:
+#      HttpMethod: GET
+#      RequestParameters: {}
+#      ResourceId: !Ref SpeelycaptorApiGatewayResourceConvert
+#      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+#      ApiKeyRequired: false
+#      AuthorizationType: NONE
+#      Integration:
+#        IntegrationHttpMethod: POST
+#        Type: AWS_PROXY
+#        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorConvertLambdaFunction.Arn}/invocations'
+#      MethodResponses: []
+#  SpeelycaptorApiGatewayDeployment:
+#    Type: AWS::ApiGateway::Deployment
+#    Properties:
+#      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+#      StageName: prod
+#    DependsOn:
+#      - SpeelycaptorApiGatewayMethodInitGet
+#      - SpeelycaptorApiGatewayMethodConvertGet
+#  SpeelycaptorInitLambdaPermissionApiGateway:
+#    Type: AWS::Lambda::Permission
+#    Properties:
+#      FunctionName: !GetAtt SpeelycaptorInitLambdaFunction.Arn
+#      Action: lambda:InvokeFunction
+#      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
+#      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${SpeelycaptorApiGatewayRestApi}/*/*'
+#  SpeelycaptorConvertLambdaPermissionApiGateway:
+#    Type: AWS::Lambda::Permission
+#    Properties:
+#      FunctionName: !GetAtt SpeelycaptorConvertLambdaFunction.Arn
+#      Action: lambda:InvokeFunction
+#      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
+#      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${SpeelycaptorApiGatewayRestApi}/*/*'
+#
+## Photomnemonic
+#  PhotomnemonicRole:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: '2012-10-17'
+#        Statement:
+#        - Effect: Allow
+#          Principal:
+#            Service:
+#            - lambda.amazonaws.com
+#          Action:
+#          - sts:AssumeRole
+#          Sid: ""
+#      Path: "/"
+#  PhotomnemonicScreenshotLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    Properties:
+#      LogGroupName: /aws/lambda/photomnemonic-screenshot
+#  PhotomnemonicRolePolicy:
+#    Type: AWS::IAM::Policy
+#    Properties:
+#      PolicyName: "photomnemonic-policy"
+#      Roles:
+#        - !Ref PhotomnemonicRole
+#      PolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: Allow
+#            Action: 
+#              - ec2:DescribeInstances
+#              - ec2:CreateNetworkInterface
+#              - ec2:AttachNetworkInterface
+#              - ec2:DescribeNetworkInterfaces
+#              - ec2:DeleteNetworkInterface
+#              - autoscaling:CompleteLifecycleAction
+#            Resource: "*"
+#          - Effect: Allow
+#            Action:
+#              - logs:CreateLogGroup
+#              - logs:CreateLogStream
+#              - logs:PutLogEvents
+#            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
+#  PhotomnemonicScreenshotLambdaFunction:
+#    Type: AWS::Lambda::Function
+#    Properties:
+#      Code:
+#        S3Bucket: !Ref LambdaBucket
+#        S3Key: lambdas/photomnemonic/photomnemonic-0.1.0.zip
+#      FunctionName: photomnemonic-screenshot
+#      Handler: index.handler
+#      MemorySize: 1024
+#      Role: !GetAtt PhotomnemonicRole.Arn
+#      Runtime: nodejs8.10
+#      Timeout: 30
+#    DependsOn:
+#      - CopyPhotomnemonicLambda
+#      - PhotomnemonicScreenshotLogGroup
+#  PhotomnemonicApiGatewayRestApi:
+#    Type: AWS::ApiGateway::RestApi
+#    Properties:
+#      Name: photomnemonic
+#      BinaryMediaTypes:
+#        - "*/*"
+#      EndpointConfiguration:
+#        Types:
+#          - EDGE
+#      Body:
+#        swagger: 2.0
+#        paths:
+#          "/screenshot":
+#            get:
+#              parameters:
+#                - name: url
+#                  in: query
+#                  required: true
+#              x-amazon-apigateway-binary-media-types:
+#                - "*/*"
+#              x-amazon-apigateway-integration:
+#                httpMethod: POST
+#                responses:
+#                  contentHandling: CONVERT_TO_BINARY,
+#                type: aws_proxy
+#                contentHandling: CONVERT_TO_BINARY
+#                uri:
+#                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PhotomnemonicScreenshotLambdaFunction.Arn}/invocations
+#  PhotomnemonicApiGatewayDeployment:
+#    Type: AWS::ApiGateway::Deployment
+#    Properties:
+#      RestApiId: !Ref PhotomnemonicApiGatewayRestApi
+#      StageName: prod
+#    DependsOn:
+#      - PhotomnemonicApiGatewayRestApi
+#  PhotomnemonicScreenshotLambdaPermissionApiGateway:
+#    Type: AWS::Lambda::Permission
+#    Properties:
+#      FunctionName: !GetAtt PhotomnemonicScreenshotLambdaFunction.Arn
+#      Action: lambda:InvokeFunction
+#      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
+#      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotomnemonicApiGatewayRestApi}/*/*'
+#
+## Nearspark
+#  NearsparkRole:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: '2012-10-17'
+#        Statement:
+#        - Effect: Allow
+#          Principal:
+#            Service:
+#            - lambda.amazonaws.com
+#          Action:
+#          - sts:AssumeRole
+#          Sid: ""
+#      Path: "/"
+#  NearsparkThumbnailLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    Properties:
+#      LogGroupName: /aws/lambda/nearspark-thumbnail
+#  NearsparkRolePolicy:
+#    Type: AWS::IAM::Policy
+#    Properties:
+#      PolicyName: "nearspark-policy"
+#      Roles:
+#        - !Ref NearsparkRole
+#      PolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: Allow
+#            Action: 
+#              - ec2:DescribeInstances
+#              - ec2:CreateNetworkInterface
+#              - ec2:AttachNetworkInterface
+#              - ec2:DescribeNetworkInterfaces
+#              - ec2:DeleteNetworkInterface
+#              - autoscaling:CompleteLifecycleAction
+#            Resource: "*"
+#          - Effect: Allow
+#            Action:
+#              - logs:CreateLogGroup
+#              - logs:CreateLogStream
+#              - logs:PutLogEvents
+#            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
+#  NearsparkThumbnailLambdaFunction:
+#    Type: AWS::Lambda::Function
+#    Properties:
+#      Code:
+#        S3Bucket: !Ref LambdaBucket
+#        S3Key: lambdas/nearspark/nearspark-0.1.0.zip
+#      FunctionName: nearspark-thumbnail
+#      Handler: index.handler
+#      MemorySize: 128
+#      Role: !GetAtt NearsparkRole.Arn
+#      Runtime: nodejs10.x
+#      Timeout: 30
+#    DependsOn:
+#      - CopyNearsparkLambda
+#      - NearsparkThumbnailLogGroup
+#  NearsparkApiGatewayRestApi:
+#    Type: AWS::ApiGateway::RestApi
+#    Properties:
+#      Name: nearspark
+#      BinaryMediaTypes:
+#        - "*/*"
+#      EndpointConfiguration:
+#        Types:
+#          - EDGE
+#      Body:
+#        swagger: 2.0
+#        paths:
+#          "/thumbnail/{url}":
+#            get:
+#              consumes:
+#                - "application/json"
+#              parameters:
+#                - name: url
+#                  in: path
+#                  required: true
+#                  type: string
+#                - name: width
+#                  in: query
+#                  required: true
+#                  type: number
+#                - name: height
+#                  in: query
+#                  required: true
+#                  type: number
+#                - name: fit
+#                  in: query
+#                  required: false
+#                  type: string
+#                - name: position
+#                  in: query
+#                  required: false
+#                  type: string
+#                - name: gravity
+#                  in: query
+#                  required: false
+#                  type: string
+#                - name: strategy
+#                  in: query
+#                  required: false
+#                  type: string
+#                - name: background
+#                  in: query
+#                  required: false
+#                  type: string
+#                - name: withoutEnlargement
+#                  in: query
+#                  required: false
+#                  type: boolean
+#              requestTemplates:
+#                "application/json": "{\"url\": \"$input.params('url')\"}"
+#              x-amazon-apigateway-binary-media-types:
+#                - "*/*"
+#              x-amazon-apigateway-integration:
+#                httpMethod: POST
+#                responses:
+#                  contentHandling: CONVERT_TO_BINARY,
+#                type: aws_proxy
+#                contentHandling: CONVERT_TO_BINARY
+#                uri:
+#                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NearsparkThumbnailLambdaFunction.Arn}/invocations
+#  NearsparkApiGatewayDeployment:
+#    Type: AWS::ApiGateway::Deployment
+#    Properties:
+#      RestApiId: !Ref NearsparkApiGatewayRestApi
+#      StageName: prod
+#    DependsOn:
+#      - NearsparkApiGatewayRestApi
+#  NearsparkThumbnailLambdaPermissionApiGateway:
+#    Type: AWS::Lambda::Permission
+#    Properties:
+#      FunctionName: !GetAtt NearsparkThumbnailLambdaFunction.Arn
+#      Action: lambda:InvokeFunction
+#      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
+#      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${NearsparkApiGatewayRestApi}/*/*'
+#  NearsparkCloudfrontDNS:
+#    Type: AWS::Route53::RecordSet
+#    Properties:
+#      Name:
+#        Fn::Join:
+#          - "."
+#          - - nearspark
+#            - !GetAtt 'InternalZoneInfo.Name'
+#      HostedZoneId: !Ref InternalZone
+#      Type: A
+#      AliasTarget:
+#        DNSName:
+#          Fn::GetAtt: [ NearsparkCloudfrontDistribution, DomainName ]
+#        HostedZoneId: Z2FDTNDATAQYW2
+#
+#  NearsparkCloudfrontDistribution:
+#    Type: AWS::CloudFront::Distribution
+#    Properties:
+#      DistributionConfig:
+#        Origins:
+#          - Id: ApiGateway
+#            DomainName:
+#              Fn::Join:
+#                - ""
+#                - - Ref: NearsparkApiGatewayRestApi
+#                  - ".execute-api."
+#                  - Ref: AWS::Region
+#                  - ".amazonaws.com"
+#            CustomOriginConfig:
+#              HTTPPort: 80
+#              HTTPSPort: 443
+#              OriginProtocolPolicy: https-only
+#              OriginSSLProtocols: [ "TLSv1", "TLSv1.1", "TLSv1.2" ]
+#            OriginPath: "/prod"
+#        Enabled: true
+#        HttpVersion: http2
+#        PriceClass: PriceClass_All
+#        Aliases:
+#          -
+#            Fn::Join:
+#              - "."
+#              - - nearspark
+#                - !GetAtt 'InternalZoneInfo.Name'
+#        DefaultCacheBehavior:
+#          AllowedMethods:
+#            - GET
+#            - HEAD
+#            - OPTIONS
+#          CachedMethods:
+#            - GET
+#            - HEAD
+#          TargetOriginId: ApiGateway
+#          ForwardedValues:
+#            QueryString: true
+#            Headers: []
+#            Cookies:
+#              Forward: none
+#          ViewerProtocolPolicy: redirect-to-https
+#          MinTTL: '0'
+#          DefaultTTL: '3600'
+#        ViewerCertificate:
+#          AcmCertificateArn: !Ref InternalZoneSSLCertEast
+#          SslSupportMethod: sni-only
 
 # Base
 #  BasePolicy:
 #    Type: AWS::IAM::Policy
 #    Properties:
-#      PolicyName: !Sub "${AWS::StackId}-base-policy"
+#      PolicyName: !Sub "${AWS::StackName}-base-policy"
 #      PolicyBody:
 #        Version: 2012-10-17
 #        Statement:
@@ -990,11 +1024,11 @@ Resources:
 #            Action: route53:ChangeResourceRecordSets
 #            Resource: arn:aws:route53:::hostedzone/Z26OTGLBBCAHK4
 
-Outputs:
-  SpeelycaptorServiceEndpoint:
-    Description: URL of the speelycaptor service endpoint
-    Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
-
-  PhotomnemonicServiceEndpoint:
-    Description: URL of the photomnemonic service endpoint
-    Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
+          #Outputs:
+          #  SpeelycaptorServiceEndpoint:
+          #    Description: URL of the speelycaptor service endpoint
+          #    Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
+          #
+          #  PhotomnemonicServiceEndpoint:
+          #    Description: URL of the photomnemonic service endpoint
+          #    Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
