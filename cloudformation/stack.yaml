@@ -3,10 +3,11 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: General
+          default: Domain Setup
         Parameters:
           - DomainName
           - IsDomainOnRoute53
+          - ShortlinkZone
           - InternalZone
       - Label:
           default: SSL Certificates
@@ -21,6 +22,8 @@ Metadata:
         default: Domain Name
       IsDomainOnRoute53:
         default: Is your domain set up on Route 53?
+      ShortlinkZone:
+        default: Short link Route 53 Zone
       InternalZone:
         default: Internal Route 53 Zone
       UnmanagedDomainCertArn:
@@ -28,27 +31,32 @@ Metadata:
 Parameters:
   DomainName:
     Type: String
-    Description: "Domain name WebSpaces will be hosted on. (eg mywebspaces.com or webspaces.mydomain.com.)"
+    Description: Domain name WebSpaces will be hosted on. (eg mywebspaces.com or webspaces.mydomain.com.)
     AllowedPattern: ^((?:([a-z0-9]\.|[a-z0-9][a-z0-9\-]{0,61}[a-z0-9])\.)+)([a-z0-9]{2,63}|(?:[a-z0-9][a-z0-9\-]{0,61}[a-z0-9]))\.?$
     ConstraintDescription: Must be a valid domain name (eg mywebspaces.com or webspaces.mycompany.com)
   IsDomainOnRoute53:
     Type: String
-    Description: "It is hightly recommended you use Route 53 to manage your domain. Set to Yes if your domain is set up on Route 53. Set to No if your domain is on a third party service such as GoDaddy or Namecheap. If you choose 'No', you'll need to set the 'Unmanaged Domain SSL Certificate ARN' configuration setting in the 'SSL Certificates' section below."
+    Description: It is hightly recommended you use Route 53 to manage your domain. Set to Yes if your domain is set up on Route 53. Set to No if your domain is on a third party service such as GoDaddy or Namecheap. If you choose 'No', you'll need to set the 'Unmanaged Domain SSL Certificate ARN' configuration setting in the 'SSL Certificates' section below. Also, if you choose 'No', once your stack is created you'll need to update your DNS provider using the information in the 'Outputs' tab. See the 'Outputs' tab once the stack is created for more information on what to do next.
     AllowedValues: ["Yes - My domain is set up on Route 53.", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section."]
+  ShortlinkZone:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Your AWS Route 53 Zone for short room permalinks and entry codes. (eg mywebspaces.link) It should *not* be the same domain as the any of th eWebSpaces domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type.
+    AllowedPattern: ".+"
+    ConstraintDescription: You didn't specify a short link Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53, ideally one short and easy to type.
   InternalZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: "Your AWS Route 53 Zone for an internal domain name (eg mywebspaces-internal.com.) You'll need to register a new internal domain name of your choice with Route 53 to be used internally by WebSpaces. It should *not* be the same domain as the WebSpaces domain name that you specified above. This domain will not be seen by visitors and can be anything you like."
+    Description: Your AWS Route 53 Zone for an internal domain name (eg mywebspaces-internal.com.) You'll need to register a new internal domain name of your choice with Route 53 to be used internally by WebSpaces. It should *not* be the same domain as the WebSpaces domain name that you specified above. This domain will not be seen by visitors and can be anything you like.
     AllowedPattern: ".+"
-    ConstraintDescription: You didn't specify an internal Route 53 Zone. Please create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
+    ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
   UnmanagedDomainCertArn:
-    Type: "String"
-    Description: "You can skip this if you chose 'Yes' above and your domain is set up on AWS Route 53. Otherwise, if you chose 'No' and you are using a domain name not managed by AWS Route 53 you will need to upload your domain's SSL certificate to AWS Certificate Manager. Make sure you upload it to the same region you are going to create your WebSpaces stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console."
+    Type: String
+    Description: You can skip this if you chose 'Yes' above and your domain is set up on AWS Route 53. Otherwise, if you chose 'No' and you are using a domain name not managed by AWS Route 53 you will need to upload your domain's SSL certificate to AWS Certificate Manager. Make sure you upload it to the same region you are going to create your WebSpaces stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console.
     AllowedPattern: "^$|^arn:aws:acm:"
     ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
   CIDR:
-    Type: "String"
-    Description: "VPC CIDR block to use for internal server IPs."
-    Default: "10.56.0.0/16"
+    Type: String
+    Description: VPC CIDR block to use for internal server IPs.
+    Default: 10.56.0.0/16
 
 Conditions:
   HasMangedDomain: !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]]
@@ -348,14 +356,20 @@ Resources:
           PolicyName: !Sub '${AWS::StackName}CustomAcmCertificateLambdaExecutionPolicy'
     Type: AWS::IAM::Role
 
-# External Zone
+# Zones + SSL Certs
   ExternalZoneInfo:
     Type: Custom::Route53
     Properties:
       Domain: !Ref DomainName
       ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
 
-# Internal Zone + SSL certs
+  ShortlinkZoneInfo:
+    Type: Custom::Route53
+    Condition: HasMangedDomain
+    Properties:
+      Id: !Ref ShortlinkZone
+      ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
+
   InternalZoneInfo:
     Type: Custom::Route53
     Condition: HasMangedDomain
@@ -375,6 +389,21 @@ Resources:
       DomainValidationOptions:
         - DomainName: !GetAtt 'ExternalZoneInfo.Name'
           HostedZoneId: !GetAtt 'ExternalZoneInfo.Id'
+      ValidationMethod: DNS
+      Region: !Sub "${AWS::Region}"
+      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
+
+  ShortlinkZoneSSLCert:
+    Type: Custom::DNSCertificate
+    Properties: 
+      DomainName:
+        Fn::Join:
+          - "."
+          - - "*"
+            - !GetAtt 'ShortlinkZoneInfo.Name'
+      DomainValidationOptions:
+        - DomainName: !GetAtt 'ShortlinkZoneInfo.Name'
+          HostedZoneId: !GetAtt 'ShortlinkZoneInfo.Id'
       ValidationMethod: DNS
       Region: !Sub "${AWS::Region}"
       ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
