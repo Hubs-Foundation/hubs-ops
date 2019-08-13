@@ -264,183 +264,183 @@ Resources:
       Egress: true
       CidrBlock: '0.0.0.0/0'
 # Lambda Copy
-#  CopySpeelycaptorLambda:
-#    Type: Custom::CopySpeelycaptorLambda
-#    UpdateReplacePolicy: Retain
-#    DependsOn: LambdaBucket
-#    Properties:
-#      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
-#      DestBucket: !Ref LambdaBucket
-#      SourceBucket: assets.polycosm-prod-b99b35f30242f894
-#      Prefix: ""
-#      Objects:
-#        - lambdas/speelycaptor/speelycaptor-0.1.2.zip
-#  CopyNearsparkLambda:
-#    Type: Custom::CopyNearsparkLambda
-#    UpdateReplacePolicy: Retain
-#    DependsOn: LambdaBucket
-#    Properties:
-#      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
-#      DestBucket: !Ref LambdaBucket
-#      SourceBucket: assets.polycosm-prod-b99b35f30242f894
-#      Prefix: ""
-#      Objects:
-#        - lambdas/nearspark/nearspark-0.1.0.zip
-#  CopyPhotomnemonicLambda:
-#    Type: Custom::CopyPhotomnemonicLambda
-#    UpdateReplacePolicy: Retain
-#    DependsOn: LambdaBucket
-#    Properties:
-#      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
-#      DestBucket: !Ref LambdaBucket
-#      SourceBucket: assets.polycosm-prod-b99b35f30242f894
-#      Prefix: ""
-#      Objects:
-#        - lambdas/photomnemonic/photomnemonic-0.1.0.zip
-#
+  CopySpeelycaptorLambda:
+    Type: Custom::CopySpeelycaptorLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
+      DestBucket: !Ref LambdaBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/speelycaptor/speelycaptor-0.1.2.zip
+  CopyNearsparkLambda:
+    Type: Custom::CopyNearsparkLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
+      DestBucket: !Ref LambdaBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/nearspark/nearspark-0.1.0.zip
+  CopyPhotomnemonicLambda:
+    Type: Custom::CopyPhotomnemonicLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
+      DestBucket: !Ref LambdaBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/photomnemonic/photomnemonic-0.1.0.zip
+
 ## route53dependency
-#  Route53DependencyLambda:
-#    Metadata:
-#      Source: https://github.com/sonyxperiadev/amazon-custom-resources/tree/master/route53-dependency
-#      Version: 1.0.0
-#    Type: AWS::Lambda::Function
-#    Properties:
-#      Description: Lookup Route 53 info
-#      Handler: index.handler
-#      Role: !GetAtt 'Route53DependencyRole.Arn'
-#      Runtime: nodejs8.10
-#      Timeout: 900
-#      Code:
-#        ZipFile: |
-#          'use strict';
-#
-#          function route53Dependency(properties, callback) {
-#            if (!properties.Id && !properties.Domain)
-#              callback("Zone id or domain not specified");
-#
-#            var aws = require("aws-sdk");
-#            var route53 = new aws.Route53();
-#
-#            var responseData = {};
-#            console.log('route53Dependency', properties);
-#            route53.listHostedZones({}, function(err, data) {
-#              console.log('listHostedZones', err, data);
-#              if (err)
-#                return callback(err);
-#
-#              var zones = data.HostedZones;
-#              var matching = zones.filter(function(zone) {
-#                if (properties.Id) {
-#                  return zone.Id === "/hostedzone/" + properties.Id;
-#                } else {
-#                  var tldParts = properties.Domain.split(".");
-#                  var tld = tldParts[tldParts.length - 2] + "." + tldParts[tldParts.length - 1];
-#                  return zone.Name === tld + ".";
-#                }
-#              });
-#              if (matching.length != 1)
-#                return callback('Exactly one matching zone is allowed ' + zones);
-#              var match = matching[0];
-#              delete match.Config;
-#              delete match.CallerReference;
-#              match.Id = match.Id.split('/')[2];
-#              match.Name = match.Name.substring(0, match.Name.length-1);
-#              return callback(null, match);
-#            });
-#          }
-#
-#          route53Dependency.handler = function(event, context) {
-#            console.log(JSON.stringify(event, null, '  '));
-#
-#            if (event.RequestType == 'Delete') {
-#              return sendResponse(event, context, "SUCCESS");
-#            }
-#
-#            route53Dependency(event.ResourceProperties, function(err, result) {
-#              var status = err ? 'FAILED' : 'SUCCESS';
-#              return sendResponse(event, context, status, result, err);
-#            });
-#          };
-#
-#          function getReason(err) {
-#            if (err)
-#              return err.message;
-#            else
-#              return '';
-#          }
-#
-#          function sendResponse(event, context, status, data, err) {
-#            var responseBody = {
-#              StackId: event.StackId,
-#              RequestId: event.RequestId,
-#              LogicalResourceId: event.LogicalResourceId,
-#              PhysicalResourceId: 'route53Dependency-' + event.ResourceProperties.DomainName,
-#              Status: status,
-#              Reason: getReason(err) + " See details in CloudWatch Log: " + context.logStreamName,
-#              Data: data
-#            };
-#
-#            console.log("RESPONSE:\n", responseBody);
-#            var json = JSON.stringify(responseBody);
-#
-#            var https = require("https");
-#            var url = require("url");
-#
-#            var parsedUrl = url.parse(event.ResponseURL);
-#            var options = {
-#              hostname: parsedUrl.hostname,
-#              port: 443,
-#              path: parsedUrl.path,
-#              method: "PUT",
-#              headers: {
-#                "content-type": "",
-#                "content-length": json.length
-#              }
-#            };
-#
-#            var request = https.request(options, function(response) {
-#              console.log("STATUS: " + response.statusCode);
-#              console.log("HEADERS: " + JSON.stringify(response.headers));
-#              context.done(null, data);
-#            });
-#
-#            request.on("error", function(error) {
-#              console.log("sendResponse Error:\n", error);
-#              context.done(error);
-#            });
-#
-#            request.on("end", function() {
-#              console.log("end");
-#            });
-#            request.write(json);
-#            request.end();
-#          }
-#
-#
-#          module.exports = route53Dependency;
-#  Route53DependencyRole:
-#    Properties:
-#      AssumeRolePolicyDocument:
-#        Statement:
-#          - Action:
-#              - sts:AssumeRole
-#            Effect: Allow
-#            Principal:
-#              Service: lambda.amazonaws.com
-#        Version: '2012-10-17'
-#      ManagedPolicyArns:
-#        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-#        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
-#      Policies:
-#        - PolicyDocument:
-#            Statement:
-#              - Action:
-#                  - route53:ListHostedZones
-#                Effect: Allow
-#                Resource: "*"
-#            Version: '2012-10-17'
-#          PolicyName: !Sub '${AWS::StackName}Route53DependencyCustomPolicy'
-#    Type: AWS::IAM::Role
+  Route53DependencyLambda:
+    Metadata:
+      Source: https://github.com/sonyxperiadev/amazon-custom-resources/tree/master/route53-dependency
+      Version: 1.0.0
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Lookup Route 53 info
+      Handler: index.handler
+      Role: !GetAtt 'Route53DependencyRole.Arn'
+      Runtime: nodejs8.10
+      Timeout: 900
+      Code:
+        ZipFile: |
+          'use strict';
+
+          function route53Dependency(properties, callback) {
+            if (!properties.Id && !properties.Domain)
+              callback("Zone id or domain not specified");
+
+            var aws = require("aws-sdk");
+            var route53 = new aws.Route53();
+
+            var responseData = {};
+            console.log('route53Dependency', properties);
+            route53.listHostedZones({}, function(err, data) {
+              console.log('listHostedZones', err, data);
+              if (err)
+                return callback(err);
+
+              var zones = data.HostedZones;
+              var matching = zones.filter(function(zone) {
+                if (properties.Id) {
+                  return zone.Id === "/hostedzone/" + properties.Id;
+                } else {
+                  var tldParts = properties.Domain.split(".");
+                  var tld = tldParts[tldParts.length - 2] + "." + tldParts[tldParts.length - 1];
+                  return zone.Name === tld + ".";
+                }
+              });
+              if (matching.length != 1)
+                return callback('Exactly one matching zone is allowed ' + zones);
+              var match = matching[0];
+              delete match.Config;
+              delete match.CallerReference;
+              match.Id = match.Id.split('/')[2];
+              match.Name = match.Name.substring(0, match.Name.length-1);
+              return callback(null, match);
+            });
+          }
+
+          route53Dependency.handler = function(event, context) {
+            console.log(JSON.stringify(event, null, '  '));
+
+            if (event.RequestType == 'Delete') {
+              return sendResponse(event, context, "SUCCESS");
+            }
+
+            route53Dependency(event.ResourceProperties, function(err, result) {
+              var status = err ? 'FAILED' : 'SUCCESS';
+              return sendResponse(event, context, status, result, err);
+            });
+          };
+
+          function getReason(err) {
+            if (err)
+              return err.message;
+            else
+              return '';
+          }
+
+          function sendResponse(event, context, status, data, err) {
+            var responseBody = {
+              StackId: event.StackId,
+              RequestId: event.RequestId,
+              LogicalResourceId: event.LogicalResourceId,
+              PhysicalResourceId: 'route53Dependency-' + event.ResourceProperties.DomainName,
+              Status: status,
+              Reason: getReason(err) + " See details in CloudWatch Log: " + context.logStreamName,
+              Data: data
+            };
+
+            console.log("RESPONSE:\n", responseBody);
+            var json = JSON.stringify(responseBody);
+
+            var https = require("https");
+            var url = require("url");
+
+            var parsedUrl = url.parse(event.ResponseURL);
+            var options = {
+              hostname: parsedUrl.hostname,
+              port: 443,
+              path: parsedUrl.path,
+              method: "PUT",
+              headers: {
+                "content-type": "",
+                "content-length": json.length
+              }
+            };
+
+            var request = https.request(options, function(response) {
+              console.log("STATUS: " + response.statusCode);
+              console.log("HEADERS: " + JSON.stringify(response.headers));
+              context.done(null, data);
+            });
+
+            request.on("error", function(error) {
+              console.log("sendResponse Error:\n", error);
+              context.done(error);
+            });
+
+            request.on("end", function() {
+              console.log("end");
+            });
+            request.write(json);
+            request.end();
+          }
+
+
+          module.exports = route53Dependency;
+  Route53DependencyRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - route53:ListHostedZones
+                Effect: Allow
+                Resource: "*"
+            Version: '2012-10-17'
+          PolicyName: !Sub '${AWS::StackName}Route53DependencyCustomPolicy'
+    Type: AWS::IAM::Role
 
 # CustomAcmCertificateLambda
 #  CustomAcmCertificateLambda:
@@ -538,25 +538,25 @@ Resources:
 #    Type: AWS::IAM::Role
 
 # Zones + SSL Certs
-#  ExternalZoneInfo:
-#    Type: Custom::Route53
-#    Properties:
-#      Domain: !Ref DomainName
-#      ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
-#
-#  ShortlinkZoneInfo:
-#    Type: Custom::Route53
-#    Condition: HasMangedDomain
-#    Properties:
-#      Id: !Ref ShortlinkZone
-#      ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
-#
-#  InternalZoneInfo:
-#    Type: Custom::Route53
-#    Condition: HasMangedDomain
-#    Properties:
-#      Id: !Ref InternalZone
-#      ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
+  ExternalZoneInfo:
+    Type: Custom::Route53
+    Properties:
+      Domain: !Ref DomainName
+      ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
+
+  ShortlinkZoneInfo:
+    Type: Custom::Route53
+    Condition: HasMangedDomain
+    Properties:
+      Id: !Ref ShortlinkZone
+      ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
+
+  InternalZoneInfo:
+    Type: Custom::Route53
+    Condition: HasMangedDomain
+    Properties:
+      Id: !Ref InternalZone
+      ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
 #
 #  ExternalZoneSSLCert:
 #    Type: Custom::DNSCertificate
@@ -645,6 +645,7 @@ Resources:
                Resource:
                  - !Sub 'arn:aws:s3:::${AssetsBucket}/*'
                  - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
+                 - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}/*'
 
   CopyFileFunction:
     Type: AWS::Lambda::Function
@@ -1191,23 +1192,6 @@ Resources:
     Properties:
       AccessControl: PublicRead
       BucketName: !Join ["-", [ !Sub "${AWS::StackName}-assets", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
-  AssetsPublicBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      PolicyDocument:
-        Id: PublicAssets
-        Version: 2012-10-17
-        Statement:
-          - Sid: PublicReadForGetBucketObjects
-            Effect: Allow
-            Principal: '*'
-            Action: 's3:GetObject'
-            Resource: !Join 
-              - ''
-              - - 'arn:aws:s3:::'
-                - !Ref AssetsBucket
-                - /*
-      Bucket: !Ref AssetsBucket
   CopyPDFJSAssets:
     Type: Custom::CopyPDFJSAssets
     UpdateReplacePolicy: Retain
@@ -1219,6 +1203,44 @@ Resources:
       Prefix: ""
       Objects:
         - assets/js/pdfjs-dist@2.1.266/build/pdf.worker.js
+  LinkRedirectorBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-link-redirector", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+            - "*"
+            AllowedMethods:
+            - GET
+            - HEAD
+            AllowedOrigins:
+            - "*"
+            ExposedHeaders:
+            - Date
+            - ETag
+            MaxAge: 31536000
+      WebsiteConfiguration:
+        IndexDocument: link-redirector-index.html
+        ErrorDocument: link-redirector-error.html
+        RoutingRules:
+          - RedirectRule:
+              ReplaceKeyPrefixWith: "link/"
+              Protocol: https
+              HostName: !GetAtt 'ShortlinkZoneInfo.Name'
+  CopyLinkRedirectorIndex:
+    Type: Custom::CopyLinkRedirectorIndex
+    UpdateReplacePolicy: Retain
+    DependsOn: LinkRedirectorBucket
+    Properties:
+      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
+      DestBucket: !Ref LinkRedirectorBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - link-redirector-index.html
+        - link-redirector-error.html
 
 # Base
 #  BasePolicy:
