@@ -85,6 +85,10 @@ function moz-admin {
     ssh -L "3000:postgrest.reticulum.io:3000" "$(moz-host prod bastion).reticulum.io" "${@:1}"
 }
 
+function moz-admin-dev {
+    ssh -L "3000:postgrest-dev.reticulum.io:3000" "$(moz-host dev bastion).reticulum.io" "${@:1}"
+}
+
 # moz-iex target ...cmd-args
 # SSHes into a Reticulum host and opens an Elixir console.
 function moz-iex {
