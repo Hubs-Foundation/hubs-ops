@@ -7,7 +7,8 @@ grant select, insert, update on ret0_admin.avatar_listings to ret_admin;
 create or replace view pending_avatars as (
        select avatars.id, avatar_sid, avatars.slug, avatars.name, avatars.description, avatars.thumbnail_owned_file_id,
        avatars.base_map_owned_file_id, avatars.emissive_map_owned_file_id, avatars.normal_map_owned_file_id, avatars.orm_map_owned_file_id,
-       avatars.attributions, avatar_listings.id as avatar_listing_id, avatars.updated_at, avatars.allow_remixing as allow_remixing, avatars.allow_promotion as allow_promotion
+       avatars.attributions, avatar_listings.id as avatar_listing_id, avatars.updated_at, avatars.allow_remixing as allow_remixing, avatars.allow_promotion as allow_promotion,
+       avatars.gltf_owned_file_id, avatars.bin_owned_file_id
        from avatars
        left outer join avatar_listings on avatar_listings.avatar_id = avatars.id
        where ((avatars.reviewed_at is null or avatars.reviewed_at < avatars.updated_at) and avatars.allow_promotion and avatars.state = 'active')
@@ -18,7 +19,8 @@ grant select on ret0_admin.pending_avatars to ret_admin;
 create or replace view featured_avatar_listings as (
        select id, avatar_listing_sid, slug, name, description, thumbnail_owned_file_id,
        base_map_owned_file_id, emissive_map_owned_file_id, normal_map_owned_file_id, orm_map_owned_file_id,
-       attributions, avatar_listings.order, updated_at, tags
+       attributions, avatar_listings.order, updated_at, tags,
+       gltf_owned_file_id, bin_owned_file_id
        from avatar_listings
        where
        state = 'active' and
