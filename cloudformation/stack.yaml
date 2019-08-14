@@ -475,6 +475,7 @@ Resources:
           module.exports = route53Dependency;
   Route53DependencyRole:
     Properties:
+      RoleName: !Sub "${AWS::StackName}-Route53Dependency"
       AssumeRolePolicyDocument:
         Statement:
           - Action:
@@ -554,6 +555,7 @@ Resources:
     Type: AWS::Lambda::Function
   CustomAcmCertificateLambdaExecutionRole:
     Properties:
+      RoleName: !Sub "${AWS::StackName}-CustomAcmCertificateLambdaExecution"
       AssumeRolePolicyDocument:
         Statement:
           - Action:
@@ -629,6 +631,22 @@ Resources:
       Region: !Sub "${AWS::Region}"
       ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
 
+  ExternalZoneSSLCertEast:
+    Type: Custom::DNSCertificate
+    Condition: HasMangedDomain
+    Properties: 
+      DomainName:
+        Fn::Join:
+          - "."
+          - - "*"
+            - !GetAtt 'ExternalZoneInfo.Name'
+      DomainValidationOptions:
+        - DomainName: !GetAtt 'ExternalZoneInfo.Name'
+          HostedZoneId: !GetAtt 'ExternalZoneInfo.Id'
+      ValidationMethod: DNS
+      Region: us-east-1
+      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
+
   ShortlinkZoneSSLCertEast:
     Type: Custom::DNSCertificate
     Properties: 
@@ -638,6 +656,21 @@ Resources:
           HostedZoneId: !GetAtt 'ShortlinkZoneInfo.Id'
       ValidationMethod: DNS
       Region: us-east-1
+      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
+
+  InternalZoneSSLCert:
+    Type: Custom::DNSCertificate
+    Properties: 
+      DomainName:
+        Fn::Join:
+          - "."
+          - - "*"
+            - !GetAtt 'InternalZoneInfo.Name'
+      DomainValidationOptions:
+        - DomainName: !GetAtt 'InternalZoneInfo.Name'
+          HostedZoneId: !Ref InternalZone
+      ValidationMethod: DNS
+      Region: !Sub "${AWS::Region}"
       ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
 
   InternalZoneSSLCertEast:
@@ -659,6 +692,7 @@ Resources:
   CopyFileRole:
    Type: AWS::IAM::Role
    Properties:
+     RoleName: !Sub "${AWS::StackName}-CopyFile"
      AssumeRolePolicyDocument:
        Version: '2012-10-17'
        Statement:
@@ -763,6 +797,7 @@ Resources:
 #  SpeelycaptorRole:
 #    Type: AWS::IAM::Role
 #    Properties:
+#      RoleName: !Sub "${AWS::StackName}-Speelycaptor"
 #      AssumeRolePolicyDocument:
 #        Version: '2012-10-17'
 #        Statement:
@@ -925,6 +960,7 @@ Resources:
 #  PhotomnemonicRole:
 #    Type: AWS::IAM::Role
 #    Properties:
+#      RoleName: !Sub "${AWS::StackName}-Photomnemonic"
 #      AssumeRolePolicyDocument:
 #        Version: '2012-10-17'
 #        Statement:
@@ -1026,6 +1062,7 @@ Resources:
 #  NearsparkRole:
 #    Type: AWS::IAM::Role
 #    Properties:
+#      RoleName: !Sub "${AWS::StackName}-Nearspark"
 #      AssumeRolePolicyDocument:
 #        Version: '2012-10-17'
 #        Statement:
@@ -1165,7 +1202,7 @@ Resources:
 #      Name:
 #        Fn::Join:
 #          - "."
-#          - - nearspark
+#          - - !Sub "${AWS::StackName}-nearspark"
 #            - !GetAtt 'InternalZoneInfo.Name'
 #      HostedZoneId: !Ref InternalZone
 #      Type: A
@@ -1395,8 +1432,8 @@ Resources:
           CidrIp: 0.0.0.0/0
         # Inbound Janus Websocket
         - IpProtocol: tcp
-          FromPort: 7001
-          ToPort: 7001
+          FromPort: 80
+          ToPort: 80
           CidrIp: 0.0.0.0/0
         # Inbound WebRTC
         - IpProtocol: udp
@@ -1499,65 +1536,228 @@ Resources:
       ToPort: 3000
       DestinationSecurityGroupId: !Ref AppSecurityGroup
 
-# Base
-#  BasePolicy:
-#    Type: AWS::IAM::Policy
-#    Properties:
-#      PolicyName: !Sub "${AWS::StackName}-base-policy"
-#      PolicyBody:
-#        Version: 2012-10-17
-#        Statement:
-#          - Effect: Allow,
-#            Action: ec2:DescribeInstances
-#            Resource: "*"
-#          - Effect: Allow
-#            Action: ec2:CreateTags
-#            Resource: "*"
-#          - Effect: Allow
-#            Action: ec2:DescribeTags
-#            Resource: "*"
-#          - Effect: Allow
-#            Action:
-#            - ssm:DescribeAssociation
-#            - ssm:GetDeployablePatchSnapshotForInstance
-#            - ssm:GetDocument
-#            - ssm:DescribeDocument
-#            - ssm:GetManifest
-#            - ssm:GetParameters
-#            - ssm:ListAssociations
-#            - ssm:ListInstanceAssociations
-#            - ssm:PutInventory
-#            - ssm:PutComplianceItems
-#            - ssm:PutConfigurePackageResult
-#            - ssm:UpdateAssociationStatus
-#            - ssm:UpdateInstanceAssociationStatus
-#            - ssm:UpdateInstanceInformation
-#            Resource: "*"
-#          - Effect: Allow
-#            Action:
-#            - ssmmessages:CreateControlChannel
-#            - ssmmessages:CreateDataChannel
-#            - ssmmessages:OpenControlChannel
-#            - ssmmessages:OpenDataChannel
-#            Resource: "*"
-#          - Effect: Allow
-#            Action:
-#            - ec2messages:AcknowledgeMessage
-#            - ec2messages:DeleteMessage
-#            - ec2messages:FailMessage
-#            - ec2messages:GetEndpoint
-#            - ec2messages:GetMessages
-#            - ec2messages:SendReply
-#            Resource: "*"
-#          - Effect: Allow
-#            Action: route53:ChangeResourceRecordSets
-#            Resource: arn:aws:route53:::hostedzone/Z26OTGLBBCAHK4
+  AppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-app"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - !Ref BasePolicy
 
-          #Outputs:
-          #  SpeelycaptorServiceEndpoint:
+  BasePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 
+              - ec2:DescribeInstances
+            Resource: "*"
+          - Effect: Allow
+            Action: 
+              - ec2:CreateTags
+            Resource: "*"
+          - Effect: Allow
+            Action: 
+              - ec2:DescribeTags
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - ssm:DescribeAssociation
+              - ssm:GetDeployablePatchSnapshotForInstance
+              - ssm:GetDocument
+              - ssm:DescribeDocument
+              - ssm:GetManifest
+              - ssm:GetParameters
+              - ssm:ListAssociations
+              - ssm:ListInstanceAssociations
+              - ssm:PutInventory
+              - ssm:PutComplianceItems
+              - ssm:PutConfigurePackageResult
+              - ssm:UpdateAssociationStatus
+              - ssm:UpdateInstanceAssociationStatus
+              - ssm:UpdateInstanceInformation
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - ssmmessages:CreateControlChannel
+              - ssmmessages:CreateDataChannel
+              - ssmmessages:OpenControlChannel
+              - ssmmessages:OpenDataChannel
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - ec2messages:AcknowledgeMessage
+              - ec2messages:DeleteMessage
+              - ec2messages:FailMessage
+              - ec2messages:GetEndpoint
+              - ec2messages:GetMessages
+              - ec2messages:SendReply
+            Resource: "*"
+          - Effect: Allow
+            Action: 
+              - route53:ChangeResourceRecordSets
+            Resource: arn:aws:route53:::hostedzone/Z26OTGLBBCAHK4
+
+  AppALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${AWS::StackName}-app"
+      SecurityGroups:
+        - !Ref AppALBSecurityGroup
+      Subnets:
+        - !Ref SubnetAPublic
+        - !Ref SubnetBPublic
+
+  AppALBRetTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${AWS::StackName}-ret"
+      VpcId: !Ref VPC
+      Port: 4000
+      Protocol: HTTPS
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: 0
+      HealthCheckPath: "/health"
+      HealthCheckProtocol: HTTPS
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+
+  AppALBRetSSLListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AppALB
+      Port: 443
+      Protocol: HTTPS
+      SslPolicy: ELBSecurityPolicy-2015-05
+      Certificates:
+        - CertificateArn: !If [HasMangedDomain, !Ref ExternalZoneSSLCert, !Ref UnmanagedDomainCertArn] 
+        - CertificateArn: !Ref InternalZoneSSLCert
+      DefaultActions:
+        - TargetGroupArn: !Ref AppALBRetTargetGroup
+          Type: forward
+
+  AppALBRetClearListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AppALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Port: "443"
+            Protocol: HTTPS
+            StatusCode: "301"
+
+  AppALBRetListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref AppALBRetSSLListener
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref AppALBRetTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values: ["/"]
+
+  AppInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub "${AWS::StackName}-ret"
+      Roles:
+        - !Ref AppRole
+
+  AppAssetsCloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: !Sub "${AWS::StackName}-app-assets"
+            DomainName: !GetAtt 'AssetsBucket.DomainName'
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+            Locations: []
+        Aliases:
+          -
+            Fn::Join:
+              - "."
+              - - !Sub "${AWS::StackName}-assets"
+                - !GetAtt 'InternalZoneInfo.Name'
+        HttpVersion: http2
+        PriceClass: PriceClass_All
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 500
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 502
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 503
+            ErrorCachingMinTTL: 0
+        DefaultCacheBehavior:
+          Compress: true
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: !Sub "${AWS::StackName}-app-assets"
+          ForwardedValues:
+            QueryString: true
+            Headers: ["Origin", "Content-Type"]
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: https-only
+          MinTTL: 0
+          DefaultTTL: 3600
+          MaxTTL: 3600
+        ViewerCertificate:
+          AcmCertificateArn: !Ref InternalZoneSSLCertEast
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1
+
+
+Outputs:
+  AssetsEndpoint:
+    Description: Domain for CDN assets
+    Value:
+      !Join
+        - "."
+        - - !Sub "https://${AWS::StackName}-assets"
+          - !GetAtt 'InternalZoneInfo.Name'
+
+  NearsparkEndpoint:
+    Description: Domain for CDN assets
+    Value:
+      !Join
+        - "."
+        - - !Sub "https://${AWS::StackName}-nearspark"
+          - !GetAtt 'InternalZoneInfo.Name'
+
+          #  SpeelycaptorEndpoint:
           #    Description: URL of the speelycaptor service endpoint
           #    Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
           #
-          #  PhotomnemonicServiceEndpoint:
+          #  PhotomnemonicEndpoint:
           #    Description: URL of the photomnemonic service endpoint
           #    Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
