@@ -10,6 +10,13 @@ Metadata:
           - ShortlinkZone
           - InternalZone
       - Label:
+          default: Server Configuration
+        Parameters:
+          - AppInstanceCount
+          - AppInstanceType
+          - StreamInstanceCount
+          - StreamInstanceType
+      - Label:
           default: SSL Certificates
         Parameters:
           - UnmanagedDomainCertArn
@@ -28,6 +35,14 @@ Metadata:
         default: Internal Route 53 Zone
       UnmanagedDomainCertArn:
         default: Unmanaged Domain SSL Certificate ARN
+      AppInstanceCount:
+        default: Number of app server EC2 instances
+      AppInstanceType:
+        default: App server EC2 instance type
+      StreamInstanceCount:
+        default: Number of voice/videos streaming server EC2 instances
+      StreamInstanceType:
+        default: Voice/video streaming server EC2 instance type
 Parameters:
   DomainName:
     Type: String
@@ -53,6 +68,45 @@ Parameters:
     Description: You can skip this if you chose 'Yes' above and your domain is set up on AWS Route 53. Otherwise, if you chose 'No' and you are using a domain name managed another provider like GoDaddy or Namecheap you will need to upload your domain's SSL certificate to AWS Certificate Manager. Make sure you upload it to the same AWS region you are going to create your WebSpaces stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console.
     AllowedPattern: "^$|^arn:aws:acm:"
     ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
+  AppInstanceCount:
+    Type: Number
+    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for WebSpaces. If you create zero voice/video streaming servers (below) the app server(s) will also enable voice/video streaming. You must run at least one app server. Use the "t" instance types if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
+    Default: 1
+    MinValue: 1
+    ConstraintDescription: You must run at least one app server.
+  AppInstanceType:
+    Type: String
+    Description: The EC2 instance type for your app server(s).
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.medium
+      - m3.medium
+      - t3.large
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+  StreamInstanceCount:
+    Type: Number
+    Description: The number of voice/video streaming server(s) you'd like to run. These servers are optional, but adding streaming servers will take network and CPU load off of your app servers. These servers will transmit voice and streaming video data between users. Use the "t" instance types if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
+    Default: 0
+    MinValue: 0
+  StreamInstanceType:
+    Type: String
+    Description: The EC2 instance type for your stream server(s).
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.medium
+      - m3.medium
+      - t3.large
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
   ClassB:
     Type: String
     Description: VPC ClassB (10.XX.0.0/16) block to use for internal server IPs.
@@ -60,6 +114,7 @@ Parameters:
 
 Conditions:
   HasMangedDomain: !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]]
+  HasStreamingServers: !Not [!Equals [!Ref StreamInstanceCount, 0]]
 
 Resources:
 
@@ -557,38 +612,23 @@ Resources:
     Properties:
       Id: !Ref InternalZone
       ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
-#
-#  ExternalZoneSSLCert:
-#    Type: Custom::DNSCertificate
-#    Condition: HasMangedDomain
-#    Properties: 
-#      DomainName:
-#        Fn::Join:
-#          - "."
-#          - - "*"
-#            - !GetAtt 'ExternalZoneInfo.Name'
-#      DomainValidationOptions:
-#        - DomainName: !GetAtt 'ExternalZoneInfo.Name'
-#          HostedZoneId: !GetAtt 'ExternalZoneInfo.Id'
-#      ValidationMethod: DNS
-#      Region: !Sub "${AWS::Region}"
-#      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
-#
-#  ShortlinkZoneSSLCert:
-#    Type: Custom::DNSCertificate
-#    Properties: 
-#      DomainName:
-#        Fn::Join:
-#          - "."
-#          - - "*"
-#            - !GetAtt 'ShortlinkZoneInfo.Name'
-#      DomainValidationOptions:
-#        - DomainName: !GetAtt 'ShortlinkZoneInfo.Name'
-#          HostedZoneId: !GetAtt 'ShortlinkZoneInfo.Id'
-#      ValidationMethod: DNS
-#      Region: !Sub "${AWS::Region}"
-#      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
-#
+
+  ExternalZoneSSLCert:
+    Type: Custom::DNSCertificate
+    Condition: HasMangedDomain
+    Properties: 
+      DomainName:
+        Fn::Join:
+          - "."
+          - - "*"
+            - !GetAtt 'ExternalZoneInfo.Name'
+      DomainValidationOptions:
+        - DomainName: !GetAtt 'ExternalZoneInfo.Name'
+          HostedZoneId: !GetAtt 'ExternalZoneInfo.Id'
+      ValidationMethod: DNS
+      Region: !Sub "${AWS::Region}"
+      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
+
   ShortlinkZoneSSLCertEast:
     Type: Custom::DNSCertificate
     Properties: 
@@ -599,37 +639,22 @@ Resources:
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
-#
-#  InternalZoneSSLCert:
-#    Type: Custom::DNSCertificate
-#    Properties: 
-#      DomainName:
-#        Fn::Join:
-#          - "."
-#          - - "*"
-#            - !GetAtt 'InternalZoneInfo.Name'
-#      DomainValidationOptions:
-#        - DomainName: !GetAtt 'InternalZoneInfo.Name'
-#          HostedZoneId: !Ref InternalZone
-#      ValidationMethod: DNS
-#      Region: !Sub "${AWS::Region}"
-#      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
-#
-#  InternalZoneSSLCertEast:
-#    Type: Custom::DNSCertificate
-#    Properties: 
-#      DomainName:
-#        Fn::Join:
-#          - "."
-#          - - "*"
-#            - !GetAtt 'InternalZoneInfo.Name'
-#      DomainValidationOptions:
-#        - DomainName: !GetAtt 'InternalZoneInfo.Name'
-#          HostedZoneId: !Ref InternalZone
-#      ValidationMethod: DNS
-#      Region: us-east-1
-#      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
-#
+
+  InternalZoneSSLCertEast:
+    Type: Custom::DNSCertificate
+    Properties: 
+      DomainName:
+        Fn::Join:
+          - "."
+          - - "*"
+            - !GetAtt 'InternalZoneInfo.Name'
+      DomainValidationOptions:
+        - DomainName: !GetAtt 'InternalZoneInfo.Name'
+          HostedZoneId: !Ref InternalZone
+      ValidationMethod: DNS
+      Region: us-east-1
+      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
+
 # CopyFile
   CopyFileRole:
    Type: AWS::IAM::Role
@@ -1338,6 +1363,141 @@ Resources:
           AcmCertificateArn: !Ref ShortlinkZoneSSLCertEast
           SslSupportMethod: sni-only
           MinimumProtocolVersion: "TLSv1"
+
+# App servers
+  AppALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-app-alb"
+      GroupDescription: App ALB
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-app"
+      GroupDescription: App
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        # Inbound HTTPS
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        # Inbound Janus Websocket
+        - IpProtocol: tcp
+          FromPort: 7001
+          ToPort: 7001
+          CidrIp: 0.0.0.0/0
+        # Inbound WebRTC
+        - IpProtocol: udp
+          FromPort: 20000
+          ToPort: 60000
+          CidrIp: 0.0.0.0/0
+        # Inbound SSH
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        # Inbound Reticulum
+        - IpProtocol: tcp
+          FromPort: 4000
+          ToPort: 4000
+          SourceSecurityGroupId: !Ref AppALBSecurityGroup
+        # Inbound PostgREST
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref AppALBSecurityGroup
+      SecurityGroupEgress:
+        # Outbound HTTP
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        # Outbound HTTPS
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        # Outbound SMTP
+        - IpProtocol: tcp
+          FromPort: 587
+          ToPort: 587
+          CidrIp: 0.0.0.0/0
+        # Outbound NTP
+        - IpProtocol: tcp
+          FromPort: 123
+          ToPort: 123
+          CidrIp: 0.0.0.0/0
+          #        # Outbound NFS
+          #        - IpProtocol: tcp
+          #          FromPort: 2049
+          #          ToPort: 2049
+          #          DestinationSecurityGroupId: !Ref StorageFsSecurityGroupId
+
+  AppJanusAdminAppIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: 7000
+      ToPort: 7000
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  AppEPMDAppIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: 4369
+      ToPort: 4369
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  AppErlangAppIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: 9000
+      ToPort: 9100
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  AppFullSelfEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
+
+  AppALBReticulumEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AppALBSecurityGroup
+      IpProtocol: tcp
+      FromPort: 4000
+      ToPort: 4000
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
+
+  AppALBPostgrestEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AppALBSecurityGroup
+      IpProtocol: tcp
+      FromPort: 3000
+      ToPort: 3000
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
 
 # Base
 #  BasePolicy:
