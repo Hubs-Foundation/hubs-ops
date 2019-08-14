@@ -25,6 +25,7 @@ Metadata:
           default: Advanced - Leave the defaults unless you know what you're doing!
         Parameters:
           - ClassB
+          - AppPlacementGroupStrategy
     ParameterLabels:
       DomainName:
         default: Domain Name
@@ -71,7 +72,8 @@ Parameters:
     ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
   AppInstanceCount:
     Type: Number
-    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for WebSpaces. You must run at least one app server.    Default: 1
+    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for WebSpaces. You must run at least one app server.
+    Default: 1
     MinValue: 1
     ConstraintDescription: You must run at least one app server.
   AppInstanceType:
@@ -82,7 +84,6 @@ Parameters:
       - t2.micro
       - t2.small
       - t3.medium
-      - m3.medium
       - t3.large
       - c5.large
       - c5.xlarge
@@ -115,6 +116,14 @@ Parameters:
     Type: String
     Description: VPC ClassB (10.XX.0.0/16) block to use for internal server IPs.
     Default: 56
+  AppPlacementGroupStrategy:
+    Type: String
+    Description: "Placement group strategy for app servers. If you only have one app server, this setting has no effect. If you have more than one app server, choose 'cluster' to increase connectivity between servers at the cost of reliability: your service will go down if there is an AZ-wide outage.) Choose 'spread' if you have less than 7 app servers and would like to ensure availability at the cost of latency or maximum throughput between app servers. Choose 'none' if you do not have a preference, or if AWS is failing to provision servers for your configuration. App servers communicate with one another extensively, so 'cluster' is the preferred setting if you can tolerate some risk of downtime if there are AZ-wide outages."
+    Default: cluster
+    AllowedValues:
+      - cluster
+      - partition
+      - none
 
 Conditions:
   HasMangedDomain: !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]]
@@ -1808,6 +1817,37 @@ Resources:
         - !Ref AppSecurityGroup
       ImageId: ami-be7753db
       KeyName: !Ref KeyPair
+
+  AppPlacementGroup:
+    Type: AWS::EC2::PlacementGroup
+    Properties:
+      Strategy: !Ref AppPlacementGroupStrategy
+
+  AppASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub "${AWS::StackName}-app"
+      AvailabilityZones:
+        - !Select [0, !GetAZs '']
+        - !Select [1, !GetAZs '']
+      VPCZoneIdentifier:
+        - !Ref SubnetAPublic
+        - !Ref SubnetBPublic
+      TargetGroupARNs:
+        - !Ref AppALBRetTargetGroup
+      MinSize: 1
+      MaxSize: 64
+      DesiredCapacity: !Ref AppInstanceCount
+      PlacementGroup: !Ref AppPlacementGroup
+      LaunchConfigurationName: !Ref AppLaunchConfiguration
+      Tags:
+      - Key: polycosm-roles
+        Value: !If [HasStreamingServers, "app stream", "app"]
+        PropagateAtLaunch: true
+      - Key: bio-ring
+        Value: !Sub "${AWS::StackName}"
+        PropagateAtLaunch: true
+
 
 Outputs:
   AppALBDomain:
