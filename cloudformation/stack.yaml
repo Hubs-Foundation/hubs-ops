@@ -95,7 +95,7 @@ Parameters:
     MinValue: 0
   StreamInstanceType:
     Type: String
-    Description: The EC2 instance type for your stream server(s), if you've added any. Choose a "t" instance type if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
+    Description: The EC2 instance type for your streaming server(s), if you've added any. Choose a "t" instance type if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
     Default: t2.micro
     AllowedValues:
       - t2.micro
