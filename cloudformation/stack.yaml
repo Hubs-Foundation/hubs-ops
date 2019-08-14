@@ -1642,11 +1642,17 @@ Resources:
       Protocol: HTTPS
       SslPolicy: ELBSecurityPolicy-2015-05
       Certificates:
-        - CertificateArn: !If [HasMangedDomain, !Ref ExternalZoneSSLCert, !Ref UnmanagedDomainCertArn] 
-        - CertificateArn: !Ref InternalZoneSSLCert
+        - CertificateArn: !If [HasMangedDomain, !Ref ExternalZoneSSLCert, !Ref UnmanagedDomainCertArn]
       DefaultActions:
         - TargetGroupArn: !Ref AppALBRetTargetGroup
           Type: forward
+
+  AppALBRetSSLListenerInternalCert:
+    Type: AWS::ElasticLoadBalancingV2::ListenerCertificate
+    Properties:
+      ListenerArn: !Ref AppALBRetSSLListener
+      Certificates:
+        - CertificateArn: !Ref InternalZoneSSLCert
 
   AppALBRetClearListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -1659,7 +1665,7 @@ Resources:
           RedirectConfig:
             Port: "443"
             Protocol: HTTPS
-            StatusCode: "301"
+            StatusCode: HTTP_301
 
   AppALBRetListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
