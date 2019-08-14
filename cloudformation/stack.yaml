@@ -12,6 +12,7 @@ Metadata:
       - Label:
           default: Server Configuration
         Parameters:
+          - KeyPair
           - AppInstanceCount
           - AppInstanceType
           - StreamInstanceCount
@@ -107,6 +108,10 @@ Parameters:
       - c5.xlarge
       - c5.2xlarge
       - c5.4xlarge
+  KeyPair:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: "SSH Keypair for server SSH access. (If no keypairs in this list, you'll need to add a SSH keypair via the EC2 console. See: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#having-ec2-create-your-key-pair)"
+    AllowedPattern: ".+"
   ClassB:
     Type: String
     Description: VPC ClassB (10.XX.0.0/16) block to use for internal server IPs.
@@ -619,11 +624,7 @@ Resources:
     Type: Custom::DNSCertificate
     Condition: HasMangedDomain
     Properties: 
-      DomainName:
-        Fn::Join:
-          - "."
-          - - "*"
-            - !GetAtt 'ExternalZoneInfo.Name'
+      DomainName: !Sub '*.${ExternalZoneInfo.Name}'
       DomainValidationOptions:
         - DomainName: !GetAtt 'ExternalZoneInfo.Name'
           HostedZoneId: !GetAtt 'ExternalZoneInfo.Id'
@@ -635,11 +636,7 @@ Resources:
     Type: Custom::DNSCertificate
     Condition: HasMangedDomain
     Properties: 
-      DomainName:
-        Fn::Join:
-          - "."
-          - - "*"
-            - !GetAtt 'ExternalZoneInfo.Name'
+      DomainName: !Sub '*.${ExternalZoneInfo.Name}'
       DomainValidationOptions:
         - DomainName: !GetAtt 'ExternalZoneInfo.Name'
           HostedZoneId: !GetAtt 'ExternalZoneInfo.Id'
@@ -661,11 +658,7 @@ Resources:
   InternalZoneSSLCert:
     Type: Custom::DNSCertificate
     Properties: 
-      DomainName:
-        Fn::Join:
-          - "."
-          - - "*"
-            - !GetAtt 'InternalZoneInfo.Name'
+      DomainName: !Sub '*.${InternalZoneInfo.Name}'
       DomainValidationOptions:
         - DomainName: !GetAtt 'InternalZoneInfo.Name'
           HostedZoneId: !Ref InternalZone
@@ -676,11 +669,7 @@ Resources:
   InternalZoneSSLCertEast:
     Type: Custom::DNSCertificate
     Properties: 
-      DomainName:
-        Fn::Join:
-          - "."
-          - - "*"
-            - !GetAtt 'InternalZoneInfo.Name'
+      DomainName: !Sub '*.${InternalZoneInfo.Name}'
       DomainValidationOptions:
         - DomainName: !GetAtt 'InternalZoneInfo.Name'
           HostedZoneId: !Ref InternalZone
@@ -1199,11 +1188,7 @@ Resources:
 #  NearsparkCloudfrontDNS:
 #    Type: AWS::Route53::RecordSet
 #    Properties:
-#      Name:
-#        Fn::Join:
-#          - "."
-#          - - !Sub "${AWS::StackName}-nearspark"
-#            - !GetAtt 'InternalZoneInfo.Name'
+#      Name: !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
 #      HostedZoneId: !Ref InternalZone
 #      Type: A
 #      AliasTarget:
@@ -1217,13 +1202,7 @@ Resources:
 #      DistributionConfig:
 #        Origins:
 #          - Id: ApiGateway
-#            DomainName:
-#              Fn::Join:
-#                - ""
-#                - - Ref: NearsparkApiGatewayRestApi
-#                  - ".execute-api."
-#                  - Ref: AWS::Region
-#                  - ".amazonaws.com"
+#            DomainName: !Sub '${NearsparkApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com'
 #            CustomOriginConfig:
 #              HTTPPort: 80
 #              HTTPSPort: 443
@@ -1234,11 +1213,7 @@ Resources:
 #        HttpVersion: http2
 #        PriceClass: PriceClass_All
 #        Aliases:
-#          -
-#            Fn::Join:
-#              - "."
-#              - - nearspark
-#                - !GetAtt 'InternalZoneInfo.Name'
+#          - !Sub 'nearspark.${InternalZoneInfo.Name}'
 #        DefaultCacheBehavior:
 #          AllowedMethods:
 #            - GET
@@ -1276,11 +1251,7 @@ Resources:
             Effect: Allow
             Principal: '*'
             Action: 's3:GetObject'
-            Resource: !Join
-              - ''
-              - - 'arn:aws:s3:::'
-                - !Ref AssetsBucket
-                - /*
+            Resource: !Sub 'arn:aws:s3:::${AssetsBucket}/*'
       Bucket: !Ref AssetsBucket
   CopyPDFJSAssets:
     Type: Custom::CopyPDFJSAssets
@@ -1330,11 +1301,7 @@ Resources:
             Effect: Allow
             Principal: '*'
             Action: 's3:GetObject'
-            Resource: !Join
-              - ''
-              - - 'arn:aws:s3:::'
-                - !Ref LinkRedirectorBucket
-                - /*
+            Resource: !Sub 'arn:aws:s3:::${LinkRedirectorBucket}/*'
       Bucket: !Ref LinkRedirectorBucket
   CopyLinkRedirectorIndex:
     Type: Custom::CopyLinkRedirectorIndex
@@ -1617,6 +1584,28 @@ Resources:
         - !Ref SubnetAPublic
         - !Ref SubnetBPublic
 
+  AppALBDNS:
+    Type: AWS::Route53::RecordSet
+    Condition: HasMangedDomain
+    Properties:
+      Name: !Ref DomainName
+      HostedZoneId: !GetAtt 'ExternalZoneInfo.Id'
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt 'AppALB.DNSName'
+        HostedZoneId: !GetAtt 'AppALB.CanonicalHostedZoneID'
+
+  AppALBDNSInternal:
+    Type: AWS::Route53::RecordSet
+    Condition: HasMangedDomain
+    Properties:
+      Name: !Sub "${AWS::StackName}.${InternalZoneInfo.Name}"
+      HostedZoneId: !Ref InternalZone
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt 'AppALB.DNSName'
+        HostedZoneId: !GetAtt 'AppALB.CanonicalHostedZoneID'
+
   AppALBRetTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -1671,6 +1660,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
       ListenerArn: !Ref AppALBRetSSLListener
+      Priority: 1
       Actions:
         - Type: forward
           TargetGroupArn: !Ref AppALBRetTargetGroup
@@ -1700,11 +1690,7 @@ Resources:
             RestrictionType: none
             Locations: []
         Aliases:
-          -
-            Fn::Join:
-              - "."
-              - - !Sub "${AWS::StackName}-assets"
-                - !GetAtt 'InternalZoneInfo.Name'
+          - !Sub '${AWS::StackName}-assets.${InternalZoneInfo.Name}'
         HttpVersion: http2
         PriceClass: PriceClass_All
         CustomErrorResponses:
@@ -1742,23 +1728,100 @@ Resources:
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1
 
+  StorageCloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: !Sub "${AWS::StackName}-storage"
+            DomainName: !Sub '${AWS::StackName}.${InternalZoneInfo.Name}'
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [ "TLSv1", "TLSv1.1", "TLSv1.2" ]
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+            Locations: []
+        Aliases:
+          - !Sub '${AWS::StackName}-storage.${InternalZoneInfo.Name}'
+        HttpVersion: http2
+        PriceClass: PriceClass_All
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 500
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 502
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 503
+            ErrorCachingMinTTL: 0
+        DefaultCacheBehavior:
+          Compress: true
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: !Sub "${AWS::StackName}-storage"
+          ForwardedValues:
+            QueryString: true
+            Headers: ["Origin", "Content-Type", "Authorization"]
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: https-only
+          MinTTL: 0
+          DefaultTTL: 3600
+          MaxTTL: 3600
+        ViewerCertificate:
+          AcmCertificateArn: !Ref InternalZoneSSLCertEast
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1
+
+  StorageDNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Sub '${AWS::StackName}-storage.${InternalZoneInfo.Name}'
+      HostedZoneId: !Ref InternalZone
+      Type: A
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt: [ StorageCloudfrontDistribution, DomainName ]
+        HostedZoneId: Z2FDTNDATAQYW2
+
+  AppLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 128
+      IamInstanceProfile: !Ref AppInstanceProfile
+      InstanceType: !Ref AppInstanceType
+      SecurityGroups:
+        - !Ref AppSecurityGroup
+      ImageId: ami-be7753db
+      KeyName: !Ref KeyPair
 
 Outputs:
+  AppALBDomain:
+    Description: Domain name for app servers. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable WebSpaces on your site.
+    Value: !GetAtt 'AppALB.DNSName'
+
   AssetsEndpoint:
     Description: Domain for CDN assets
-    Value:
-      !Join
-        - "."
-        - - !Sub "https://${AWS::StackName}-assets"
-          - !GetAtt 'InternalZoneInfo.Name'
+    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}'
 
   NearsparkEndpoint:
     Description: Domain for CDN assets
-    Value:
-      !Join
-        - "."
-        - - !Sub "https://${AWS::StackName}-nearspark"
-          - !GetAtt 'InternalZoneInfo.Name'
+    Value: !Sub 'https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
 
           #  SpeelycaptorEndpoint:
           #    Description: URL of the speelycaptor service endpoint
