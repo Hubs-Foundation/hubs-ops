@@ -14,8 +14,8 @@ Metadata:
         Parameters:
           - KeyPair
           - AppInstanceCount
-          - AppInstanceType
           - StreamInstanceCount
+          - AppInstanceType
           - StreamInstanceType
       - Label:
           default: SSL Certificates
@@ -24,7 +24,7 @@ Metadata:
       - Label:
           default: Advanced - Leave the defaults unless you know what you're doing!
         Parameters:
-          - CIDR
+          - ClassB
     ParameterLabels:
       DomainName:
         default: Domain Name
@@ -37,11 +37,11 @@ Metadata:
       UnmanagedDomainCertArn:
         default: Unmanaged Domain SSL Certificate ARN
       AppInstanceCount:
-        default: Number of app server EC2 instances
+        default: Number of app servers
       AppInstanceType:
         default: App server EC2 instance type
       StreamInstanceCount:
-        default: Number of voice/videos streaming server EC2 instances
+        default: Number of voice/videos streaming servers
       StreamInstanceType:
         default: Voice/video streaming server EC2 instance type
 Parameters:
@@ -56,7 +56,7 @@ Parameters:
     AllowedValues: ["Yes - My domain is set up on Route 53.", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section."]
   ShortlinkZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: Your AWS Route 53 Zone for short room permalinks and entry codes. (eg mywebspaces.link) It should *not* be the same domain as the any of th eWebSpaces domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type.
+    Description: Your AWS Route 53 Zone for short room permalinks and entry codes. (eg mywebspaces.link) It should *not* be the same domain as the any of the WebSpaces domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify a short link Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53, ideally one short and easy to type.
   InternalZone:
@@ -71,7 +71,7 @@ Parameters:
     ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
   AppInstanceCount:
     Type: Number
-    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for WebSpaces. If you create zero voice/video streaming servers (below) the app server(s) will also enable voice/video streaming. You must run at least one app server. Use the "t" instance types if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
+    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for WebSpaces. You must run at least one app server. Use the "t" instance types if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
     Default: 1
     MinValue: 1
     ConstraintDescription: You must run at least one app server.
@@ -91,12 +91,12 @@ Parameters:
       - c5.4xlarge
   StreamInstanceCount:
     Type: Number
-    Description: The number of voice/video streaming server(s) you'd like to run. These servers are optional, but adding streaming servers will take network and CPU load off of your app servers. These servers will transmit voice and streaming video data between users. Use the "t" instance types if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
+    Description: The number of dedicated voice/video streaming server(s) you'd like to run. These servers are optional, enter a zero here if you do not want to run any streaming servers. Adding streaming servers will take network and CPU load off of your app servers. These servers will transmit voice and streaming video data between users. Use the "t" instance types if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
     Default: 0
     MinValue: 0
   StreamInstanceType:
     Type: String
-    Description: The EC2 instance type for your stream server(s).
+    Description: The EC2 instance type for your stream server(s), if you've added any.
     Default: t2.micro
     AllowedValues:
       - t2.micro
@@ -110,7 +110,7 @@ Parameters:
       - c5.4xlarge
   KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
-    Description: "SSH Keypair for server SSH access. (If no keypairs in this list, you'll need to add a SSH keypair via the EC2 console. See: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#having-ec2-create-your-key-pair)"
+    Description: "SSH Keypair for server SSH access. If there no keypairs in this list, you'll need to add a SSH keypair via the EC2 console. See: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#having-ec2-create-your-key-pair."
     AllowedPattern: ".+"
   ClassB:
     Type: String
@@ -1816,11 +1816,11 @@ Outputs:
     Value: !GetAtt 'AppALB.DNSName'
 
   AssetsEndpoint:
-    Description: Domain for CDN assets
+    Description: URL for CDN assets
     Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}'
 
   NearsparkEndpoint:
-    Description: Domain for CDN assets
+    Description: URL of the nearspark service endpoint
     Value: !Sub 'https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
 
           #  SpeelycaptorEndpoint:
