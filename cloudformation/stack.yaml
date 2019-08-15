@@ -118,16 +118,40 @@ Parameters:
     Default: 56
   AppPlacementGroupStrategy:
     Type: String
-    Description: "Placement group strategy for app servers. If you only have one app server, this setting has no effect. If you have more than one app server, choose 'cluster' to increase connectivity between servers at the cost of reliability: your service will go down if there is an AZ-wide outage.) Choose 'spread' if you have less than 7 app servers and would like to ensure availability at the cost of latency or maximum throughput between app servers. Choose 'none' if you do not have a preference, or if AWS is failing to provision servers for your configuration. App servers communicate with one another extensively, so 'cluster' is the preferred setting if you can tolerate some risk of downtime if there are AZ-wide outages."
+    Description: "Placement group strategy for app servers. If you only have one app server, this setting has no effect. If you have more than one app server, choose 'cluster' to increase connectivity between servers at the cost of reliability: your service will go down if there is an AZ-wide outage.) Choose 'spread' if you have less than 7 app servers and would like to ensure availability at the cost of latency or maximum throughput between app servers. Choose 'none' if you do not have a preference, will be running more than 7 app servers, or if AWS is failing to provision servers for your configuration. App servers communicate with one another extensively, so 'cluster' is the preferred setting if you can tolerate some risk of downtime if there are AZ-wide outages."
     Default: cluster
     AllowedValues:
       - cluster
-      - partition
+      - spread
       - none
+
+Mappings:
+  InstanceTypeMeta:
+    # Some instance types do not support cluster placement, so use spread
+    t2.micro:
+      PlacementForCluster: spread
+    t2.small:
+      PlacementForCluster: spread
+    t3.medium:
+      PlacementForCluster: spread
+    m3.medium:
+      PlacementForCluster: spread
+    t3.large:
+      PlacementForCluster: spread
+    c5.large:
+      PlacementForCluster: cluster
+    c5.xlarge:
+      PlacementForCluster: cluster
+    c5.2xlarge:
+      PlacementForCluster: cluster
+    c5.4xlarge:
+      PlacementForCluster: cluster
 
 Conditions:
   HasMangedDomain: !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]]
   HasStreamingServers: !Not [!Equals [!Ref StreamInstanceCount, 0]]
+  AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
+  StreamIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
 
 Resources:
 
@@ -1821,18 +1845,14 @@ Resources:
   AppPlacementGroup:
     Type: AWS::EC2::PlacementGroup
     Properties:
-      Strategy: !Ref AppPlacementGroupStrategy
+      Strategy: !If [ AppIsClusterPlacement, !FindInMap [ InstanceTypeMeta, !Ref AppInstanceType, PlacementForCluster ], !Ref AppPlacementGroupStrategy ]
 
   AppASG:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       AutoScalingGroupName: !Sub "${AWS::StackName}-app"
-      AvailabilityZones:
-        - !Select [0, !GetAZs '']
-        - !Select [1, !GetAZs '']
-      VPCZoneIdentifier:
-        - !Ref SubnetAPublic
-        - !Ref SubnetBPublic
+      AvailabilityZones: !If [AppIsClusterPlacement, [!GetAtt 'SubnetAPublic.AvailabilityZone'], [!GetAtt 'SubnetAPublic.AvailabilityZone', !GetAtt 'SubnetBPublic.AvailabilityZone']]
+      VPCZoneIdentifier: !If [AppIsClusterPlacement, [!Ref SubnetAPublic], [!Ref SubnetAPublic, !Ref SubnetBPublic]]
       TargetGroupARNs:
         - !Ref AppALBRetTargetGroup
       MinSize: 1
