@@ -45,6 +45,10 @@ Metadata:
         default: Number of voice/videos streaming servers
       StreamInstanceType:
         default: Voice/video streaming server EC2 instance type
+      ClassB:
+        default: Class B IP Block
+      AppPlacementGroupStrategy:
+        default: App server placement group strategy
 Parameters:
   DomainName:
     Type: String
@@ -84,6 +88,7 @@ Parameters:
       - t2.micro
       - t2.small
       - t3.medium
+      - m3.medium
       - t3.large
       - c5.large
       - c5.xlarge
@@ -1475,11 +1480,11 @@ Resources:
           FromPort: 123
           ToPort: 123
           CidrIp: 0.0.0.0/0
-          #        # Outbound NFS
-          #        - IpProtocol: tcp
-          #          FromPort: 2049
-          #          ToPort: 2049
-          #          DestinationSecurityGroupId: !Ref StorageFsSecurityGroupId
+        # Outbound NFS
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          DestinationSecurityGroupId: !Ref StorageSecurityGroup
 
   AppJanusAdminAppIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -1868,6 +1873,120 @@ Resources:
         Value: !Sub "${AWS::StackName}"
         PropagateAtLaunch: true
 
+  StorageEFS:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      PerformanceMode: generalPurpose
+      Tags:
+        - 
+          Key: backup
+          Value: daily
+
+  StorageEFSAppMountTargetAPrivate:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref StorageEFS
+      SecurityGroups:
+        - !Ref StorageSecurityGroup
+      SubnetId:
+        - !Ref SubnetAPrivate
+
+  StorageEFSAppMountTargetBPrivate:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref StorageEFS
+      SecurityGroups:
+        - !Ref StorageSecurityGroup
+      SubnetId:
+        - !Ref SubnetBPrivate
+
+  StorageSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-storage-fs"
+      GroupDescription: Storage EFS
+      VpcId: !Ref VPC
+
+  StorageConnectSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-storage-fs-connect"
+      GroupDescription: Storage EFS Connect
+      VpcId: !Ref VPC
+
+  StorageFSConnectIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref StorageSecurityGroup
+      IpProtocol: tcp
+      FromPort: 2049
+      ToPort: 2049
+      SourceSecurityGroupId: !Ref StorageConnectSecurityGroup
+
+  DailyBackupKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Encryption key for daily backups
+      EnableKeyRotation: True
+      Enabled: True
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            "AWS": { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root" }
+          Action:
+          - kms:*
+          Resource: "*"
+          
+  DailyBackupVault:
+    Type: AWS::Backup::BackupVault
+    Properties:
+      BackupVaultName: !Sub "${AWS::StackName}-daily-backup"
+      EncryptionKeyArn: !GetAtt DailyBackupKey.Arn
+
+  DailyBackupPlan:
+    Type: AWS::Backup::BackupPlan
+    Properties:
+      BackupPlan:
+        BackupPlanName: !Sub "${AWS::StackName}-daily-backup-plan"
+        BackupPlanRule:
+          -
+            RuleName: "Daily"
+            TargetBackupVault: !Ref DailyBackupVault
+            ScheduleExpression: "cron(0 10 ? * * *)" # 3AM PST
+    DependsOn: DailyBackupVault
+          
+  DailyBackupRole:
+    Type: AWS::IAM::Role
+    Properties:
+     AssumeRolePolicyDocument:
+       Version: "2012-10-17"
+       Statement:
+         -
+          Effect: Allow
+          Principal:
+            Service:
+              - backup.amazonaws.com
+          Action:
+            - "sts:AssumeRole"
+     ManagedPolicyArns:
+       -
+        "arn:aws:iam::aws:policy/service-role/service role"
+
+  DailyBackupSelection:
+    Type: AWS::Backup::BackupSelection
+    Properties:
+      BackupSelection:
+        SelectionName: !Sub "${AWS::StackName}-daily-backup-selection"
+        IamRoleArn: !GetAtt DailyBackupRole.Arn
+        ListOfTags:
+         -
+           ConditionType: "STRINGEQUALS"
+           ConditionKey: backup
+           ConditionValue: daily
+      BackupPlanId: !Ref DailyBackupPlan
+    DependsOn: DailyBackupPlan
 
 Outputs:
   AppALBDomain:
