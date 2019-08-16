@@ -809,11 +809,11 @@ Resources:
                Resource:
                  - "*"
 
-                   #  SESDomainRecords:
-                   #    Type: AWS::Route53::RecordSetGroup
-                   #    Properties:
-                   #      HostedZoneName: !Sub '${EmailZoneInfo.Name}.'
-                   #      RecordSets: !GetAtt SESDomain.Route53RecordSets
+#  SESDomainRecords:
+#    Type: AWS::Route53::RecordSetGroup
+#    Properties:
+#      HostedZoneName: !Sub '${EmailZoneInfo.Name}.'
+#      RecordSets: !GetAtt SESDomain.Route53RecordSets
 
   SESDomainFunction:
     Type: AWS::Lambda::Function
@@ -828,16 +828,16 @@ Resources:
     DependsOn:
       - CopySesLambda
 
-        #  SESDomain:
-        #    Type: Custom::SES_Domain
-        #    Properties:
-        #      ServiceToken: !GetAtt SESDomainFunction.Arn
-        #      Domain: !GetAtt EmailZoneInfo.Name
-        #      EnableReceive: false
-        #      EnableSend: true
-        #      MailFromSubdomain: !Ref EmailSubdomain
-        #      TTL: 1800
-        #      CustomDMARC: '"v=DMARC1;p=reject;pct=100;aspf=r;"' # We can advise reject since we always send via SES
+#  SESDomain:
+#    Type: Custom::SES_Domain
+#    Properties:
+#      ServiceToken: !GetAtt SESDomainFunction.Arn
+#      Domain: !GetAtt EmailZoneInfo.Name
+#      EnableReceive: false
+#      EnableSend: true
+#      MailFromSubdomain: !Ref EmailSubdomain
+#      TTL: 1800
+#      CustomDMARC: '"v=DMARC1;p=reject;pct=100;aspf=r;"' # We can advise reject since we always send via SES
 
 # CopyFile
   CopyFileRole:
@@ -1692,7 +1692,7 @@ Resources:
       SourceSecurityGroupId: !Ref AppSecurityGroup
 
   AppJanusAdminStreamEgress:
-    Type: AWS::EC2::SecurityGroupIngress
+    Type: AWS::EC2::SecurityGroupEgress
     Properties:
       GroupId: !Ref AppSecurityGroup
       IpProtocol: tcp
