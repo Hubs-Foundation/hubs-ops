@@ -2363,7 +2363,7 @@ Resources:
     DeletionPolicy: Retain
     DependsOn: AppDb
     Properties:
-      AliasName: !Sub 'alias/${AppDb}'
+      AliasName: !Sub 'alias/db-${AppDb}'
       TargetKeyId: !Ref AppDbKmsKey
 
   AppDbSubnet:
