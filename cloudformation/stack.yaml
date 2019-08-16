@@ -783,11 +783,11 @@ Resources:
                Resource:
                  - "*"
 
-  SESDomainRecords:
-    Type: AWS::Route53::RecordSetGroup
-    Properties:
-      HostedZoneName: !Sub '${EmailZoneInfo.Name}.'
-      RecordSets: !GetAtt SESDomain.Route53RecordSets
+                   #  SESDomainRecords:
+                   #    Type: AWS::Route53::RecordSetGroup
+                   #    Properties:
+                   #      HostedZoneName: !Sub '${EmailZoneInfo.Name}.'
+                   #      RecordSets: !GetAtt SESDomain.Route53RecordSets
 
   SESDomainFunction:
     Type: AWS::Lambda::Function
@@ -802,16 +802,16 @@ Resources:
     DependsOn:
       - CopySesLambda
 
-  SESDomain:
-    Type: Custom::SES_Domain
-    Properties:
-      ServiceToken: !GetAtt SESDomainFunction.Arn
-      Domain: !GetAtt EmailZoneInfo.Name
-      EnableReceive: false
-      EnableSend: true
-      MailFromSubdomain: !Ref EmailSubdomain
-      TTL: 1800
-      CustomDMARC: '"v=DMARC1;p=reject;pct=100;aspf=r;"' # We can advise reject since we always send via SES
+        #  SESDomain:
+        #    Type: Custom::SES_Domain
+        #    Properties:
+        #      ServiceToken: !GetAtt SESDomainFunction.Arn
+        #      Domain: !GetAtt EmailZoneInfo.Name
+        #      EnableReceive: false
+        #      EnableSend: true
+        #      MailFromSubdomain: !Ref EmailSubdomain
+        #      TTL: 1800
+        #      CustomDMARC: '"v=DMARC1;p=reject;pct=100;aspf=r;"' # We can advise reject since we always send via SES
 
 # CopyFile
   CopyFileRole:
@@ -1521,6 +1521,67 @@ Resources:
           ToPort: 443
           CidrIp: 0.0.0.0/0
 
+  BioRingSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-bio-ring"
+      GroupDescription: Bio
+      VpcId: !Ref VPC
+
+  BioRingCensusIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: tcp
+      FromPort: 9631
+      ToPort: 9631
+      SourceSecurityGroupId: !Ref BioRingSecurityGroup
+
+  BioRingCensusEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: tcp
+      FromPort: 9631
+      ToPort: 9631
+      DestinationSecurityGroupId: !Ref BioRingSecurityGroup
+
+  BioRingRPCIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: tcp
+      FromPort: 9638
+      ToPort: 9638
+      SourceSecurityGroupId: !Ref BioRingSecurityGroup
+
+  BioRingRPCEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: tcp
+      FromPort: 9638
+      ToPort: 9638
+      DestinationSecurityGroupId: !Ref BioRingSecurityGroup
+
+  BioRingRPCUDPIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: udp
+      FromPort: 9638
+      ToPort: 9638
+      SourceSecurityGroupId: !Ref BioRingSecurityGroup
+
+  BioRingRPCUDPEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: udp
+      FromPort: 9638
+      ToPort: 9638
+      DestinationSecurityGroupId: !Ref BioRingSecurityGroup
+
   AppSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -1535,11 +1596,16 @@ Resources:
           CidrIp: 0.0.0.0/0
         # Inbound Janus Websocket
         - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
+          FromPort: 8443
+          ToPort: 8443
           CidrIp: 0.0.0.0/0
         # Inbound WebRTC
         - IpProtocol: udp
+          FromPort: 20000
+          ToPort: 60000
+          CidrIp: 0.0.0.0/0
+        # Inbound WebRTC
+        - IpProtocol: tcp
           FromPort: 20000
           ToPort: 60000
           CidrIp: 0.0.0.0/0
@@ -1584,6 +1650,11 @@ Resources:
           FromPort: 2049
           ToPort: 2049
           DestinationSecurityGroupId: !Ref StorageSecurityGroup
+        # Outbound RTP
+        - IpProtocol: udp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
 
   AppJanusAdminAppIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -1643,6 +1714,21 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${AWS::StackName}-app"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - !Ref BasePolicy
+
+  StreamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-stream"
       AssumeRolePolicyDocument:
         Statement:
           - Action:
@@ -1807,9 +1893,16 @@ Resources:
   AppInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      InstanceProfileName: !Sub "${AWS::StackName}-ret"
+      InstanceProfileName: !Sub "${AWS::StackName}-app"
       Roles:
         - !Ref AppRole
+
+  StreamInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub "${AWS::StackName}-stream"
+      Roles:
+        - !Ref StreamRole
 
   AppAssetsCloudfrontDistribution:
     Type: AWS::CloudFront::Distribution
@@ -1863,6 +1956,63 @@ Resources:
           AcmCertificateArn: !Ref InternalZoneSSLCertEast
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1
+
+  StreamSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-stream"
+      GroupDescription: Stream
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        # Inbound Janus Websocket
+        - IpProtocol: tcp
+          FromPort: 8443
+          ToPort: 8443
+          CidrIp: 0.0.0.0/0
+        # Inbound WebRTC
+        - IpProtocol: udp
+          FromPort: 20000
+          ToPort: 60000
+          CidrIp: 0.0.0.0/0
+        # Inbound WebRTC
+        - IpProtocol: tcp
+          FromPort: 20000
+          ToPort: 60000
+          CidrIp: 0.0.0.0/0
+        # Inbound SSH
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        # Outbound NTP
+        - IpProtocol: tcp
+          FromPort: 123
+          ToPort: 123
+          CidrIp: 0.0.0.0/0
+        # Outbound RTP
+        - IpProtocol: udp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+
+  StreamJanusAdminAppIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref StreamSecurityGroup
+      IpProtocol: tcp
+      FromPort: 7000
+      ToPort: 7000
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  StreamFullSelfEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref StreamSecurityGroup
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+      DestinationSecurityGroupId: !Ref StreamSecurityGroup
 
   StorageCloudfrontDistribution:
     Type: AWS::CloudFront::Distribution
@@ -1943,6 +2093,7 @@ Resources:
       InstanceType: !Ref AppInstanceType
       SecurityGroups:
         - !Ref AppSecurityGroup
+        - !Ref BioRingSecurityGroup
       ImageId: ami-be7753db
       KeyName: !Ref KeyPair
 
@@ -1967,6 +2118,40 @@ Resources:
       Tags:
       - Key: polycosm-roles
         Value: !If [HasStreamingServers, "app stream", "app"]
+        PropagateAtLaunch: true
+      - Key: bio-ring
+        Value: !Sub "${AWS::StackName}"
+        PropagateAtLaunch: true
+
+  StreamLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 128
+      IamInstanceProfile: !Ref StreamInstanceProfile
+      InstanceType: !Ref StreamInstanceType
+      SecurityGroups:
+        - !Ref StreamSecurityGroup
+        - !Ref BioRingSecurityGroup
+      ImageId: ami-be7753db
+      KeyName: !Ref KeyPair
+
+  StreamASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub "${AWS::StackName}-stream"
+      AvailabilityZones: [!GetAtt SubnetAPublic.AvailabilityZone, !GetAtt SubnetBPublic.AvailabilityZone]
+      VPCZoneIdentifier: [!Ref SubnetAPublic, !Ref SubnetBPublic]
+      MinSize: 0
+      MaxSize: 64
+      DesiredCapacity: !Ref StreamInstanceCount
+      LaunchConfigurationName: !Ref StreamLaunchConfiguration
+      Tags:
+      - Key: polycosm-roles
+        Value: stream
         PropagateAtLaunch: true
       - Key: bio-ring
         Value: !Sub "${AWS::StackName}"
@@ -2077,7 +2262,7 @@ Resources:
       BackupSelection:
         SelectionName: !Sub "${AWS::StackName}-daily-backup-selection"
         IamRoleArn: !GetAtt DailyBackupRole.Arn
-        Resources:
+        ListOfTags:
          -
            ConditionType: "STRINGEQUALS"
            ConditionKey: backup
