@@ -2380,7 +2380,7 @@ Resources:
     Properties:
       Description: 'App db secret'
       GenerateSecretString:
-        SecretStringTemplate: '{}'
+        SecretStringTemplate: '{ username: "postgres" }'
         GenerateStringKey: 'password'
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
@@ -2425,7 +2425,7 @@ Resources:
       EngineVersion: 10.7
       KmsKeyId: !Ref AppDbKmsKey
       StorageEncrypted: true
-      MasterUsername: postgres
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]
       PreferredBackupWindow: !Ref DbPreferredBackupWindow
       PreferredMaintenanceWindow: !Ref DbPreferredMaintenanceWindow
