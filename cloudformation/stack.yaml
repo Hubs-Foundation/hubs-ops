@@ -847,6 +847,75 @@ Resources:
       CustomDMARC: '"v=DMARC1;p=reject;pct=100;aspf=r;"' # We can advise reject since we always send via SES
       Region: "us-east-1"
 
+# EmptyBucket
+  EmptyBucketRole:
+   Type: AWS::IAM::Role
+   Properties:
+     RoleName: !Sub "${AWS::StackName}-EmptyBucket"
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Path: /
+     Policies:
+       - PolicyName: delete-s3-files
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - s3:DeleteObject
+               Resource:
+                 - !Sub 'arn:aws:s3:::${AssetsBucket}/*'
+                 - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
+                 - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}/*'
+                 - !Sub 'arn:aws:s3:::${SpeelycaptorScratchBucket}/*'
+
+  EmptyBucketFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python2.7
+      Role: !GetAtt EmptyBucketRole.Arn
+      Timeout: 240
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          from botocore.vendored import requests
+          
+          def handler(event, context):
+              try:
+                  bucket = event['ResourceProperties']['BucketName']
+          
+                  if event['RequestType'] == 'Delete':
+                      s3 = boto3.resource('s3')
+                      bucket = s3.Bucket(bucket)
+                      for obj in bucket.objects.filter():
+                          s3.Object(bucket.name, obj.key).delete()
+          
+                  sendResponseCfn(event, context, "SUCCESS")
+              except Exception as e:
+                  print(e)
+                  sendResponseCfn(event, context, "FAILED")
+          
+          
+          def sendResponseCfn(event, context, responseStatus):
+              response_body = {'Status': responseStatus,
+                               'Reason': 'Log stream name: ' + context.log_stream_name,
+                               'PhysicalResourceId': context.log_stream_name,
+                               'StackId': event['StackId'],
+                               'RequestId': event['RequestId'],
+                               'LogicalResourceId': event['LogicalResourceId'],
+                               'Data': json.loads("{}")}
+          
+              requests.put(event['ResponseURL'], data=json.dumps(response_body))
+
 # CopyFile
   CopyFileRole:
    Type: AWS::IAM::Role
@@ -939,6 +1008,12 @@ Resources:
     Properties:
       AccessControl: Private
       BucketName: !Join ["-", [ !Sub "${AWS::StackName}-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+  EmptyLambdaBucket:
+    Type: Custom::EmptyLambdaBucket
+    UpdateReplacePolicy: Retain
+    Properties:
+      ServiceToken: !GetAtt EmptyBucketFunction.Arn
+      Bucket: !Ref LambdaBucket
 # Speelycaptor
   SpeelycaptorInitLogGroup:
     Type: AWS::Logs::LogGroup
@@ -953,6 +1028,12 @@ Resources:
     Properties:
       AccessControl: Private
       BucketName: !Join ["-", [ !Sub "${AWS::StackName}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+  EmptySpeelycaptorScratchBucket:
+    Type: Custom::EmptySpeelycaptorScratchBucket
+    UpdateReplacePolicy: Retain
+    Properties:
+      ServiceToken: !GetAtt EmptyBucketFunction.Arn
+      Bucket: !Ref SpeelycaptorScratchBucket
   SpeelycaptorRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1423,6 +1504,12 @@ Resources:
             Action: 's3:GetObject'
             Resource: !Sub 'arn:aws:s3:::${AssetsBucket}/*'
       Bucket: !Ref AssetsBucket
+  EmptyAssetsBucket:
+    Type: Custom::EmptyAssetsBucket
+    UpdateReplacePolicy: Retain
+    Properties:
+      ServiceToken: !GetAtt EmptyBucketFunction.Arn
+      Bucket: !Ref AssetsBucket
   CopyPDFJSAssets:
     Type: Custom::CopyPDFJSAssets
     UpdateReplacePolicy: Retain
@@ -1460,6 +1547,12 @@ Resources:
               ReplaceKeyPrefixWith: "link/"
               Protocol: https
               HostName: !Ref DomainName
+  EmptyLinkRedirectorBucket:
+    Type: Custom::EmptyLinkRedirectorBucket
+    UpdateReplacePolicy: Retain
+    Properties:
+      ServiceToken: !GetAtt EmptyBucketFunction.Arn
+      Bucket: !Ref LinkRedirectorBucket
   LinkRedirectorPublicBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
