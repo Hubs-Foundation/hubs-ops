@@ -32,7 +32,6 @@ Metadata:
           - ClassB
           - AppPlacementGroupStrategy
           - DbBackupRetentionPeriod
-          - DbEncryptionEnabled
           - DbPreferredBackupWindow
           - DbPreferredMaintenanceWindow
           - DBMaxCapacity
@@ -65,13 +64,11 @@ Metadata:
         default: App server placement group strategy
         DbBackupRetentionPeriod:
           default: "Database backup retention period (in days)"
-        DbEncryptionEnabled:
-          default: "Enable database-level encryption?"
         DbPreferredBackupWindow:
           default: "Preferred database backup window. (Format dddd:hh24:mi-ddd:hh24:mi)"
         DbPreferredMaintenanceWindow:
           default: "Preferred database maintenance window. (Format dddd:hh24:mi-ddd:hh24:mi)"
-        DbEncryptionEnabled:
+        DbMaxCapacity:
           default: "Max database capacity (in ACUs)"
 Parameters:
   DomainName:
@@ -165,13 +162,6 @@ Parameters:
   DbBackupRetentionPeriod:
     Type: Number
     Default: 14
-  DbEncryptionEnabled:
-    Type: String
-    Description: Enables full encryption at rest for your database. Note that WebSpaces already encrypts sensitive information in the database such as pinned objects and upload tokens.
-    AllowedValues:
-      - No
-      - Yes
-    Default: No
   DbPreferredBackupWindow:
     Type: String
     Description: "Preferred time for automatic database backups. (Format hh24:mi-hh24:mi)"
@@ -182,7 +172,7 @@ Parameters:
     Default: "Sun:08:30-Sun:09:30"
   DbMaxCapacity:
     Type: Number
-    Default: 16
+    Default: 64
 
 Mappings:
   InstanceTypeMeta:
@@ -212,7 +202,6 @@ Conditions:
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   StreamIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
-  HasDbEncryptionEnabled: !Equals [!Ref DbEncryptionEnabled, "Yes"]
 
 Resources:
 
@@ -1702,6 +1691,15 @@ Resources:
       ToPort: 7000
       SourceSecurityGroupId: !Ref AppSecurityGroup
 
+  AppJanusAdminStreamEgress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: 7000
+      ToPort: 7000
+      DestinationSecurityGroupId: !Ref StreamSecurityGroup
+
   AppEPMDAppIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -2263,7 +2261,7 @@ Resources:
         Statement:
         - Effect: Allow
           Principal:
-            "AWS": { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root" }
+            AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
           Action:
           - kms:*
           Resource: "*"
@@ -2332,30 +2330,41 @@ Resources:
 
   AppDbKmsKey:
     Type: AWS::KMS::Key
+    DeletionPolicy: Retain
     Properties:
       Description: DB encryption key
       KeyPolicy:
-        Version: 2012-10-17
-        Id: app-db-key
+        Version: '2012-10-17'
         Statement:
-          - Sid: Enable IAM User Permissions
-            Effect: Allow
-            Principal: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
-            Action: 'kms:*'
-            Resource: '*'
+        - Effect: Allow
+          Principal:
+            AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+          Action: 'kms:*'
+          Resource: '*'
+        - Effect: Allow
+          Principal:
+            AWS: '*'
+          Action:
+          - 'kms:Encrypt'
+          - 'kms:Decrypt'
+          - 'kms:ReEncrypt*'
+          - 'kms:GenerateDataKey*'
+          - 'kms:CreateGrant'
+          - 'kms:ListGrants'
+          - 'kms:DescribeKey'
+          Resource: '*'
+          Condition:
+            StringEquals:
+              'kms:CallerAccount': !Ref 'AWS::AccountId'
+              'kms:ViaService': !Sub 'rds.${AWS::Region}.amazonaws.com'
 
   AppDbKmsKeyAlias:
     Type: AWS::KMS::Alias
-    Condition: HasDbEncryptionEnabled
+    DeletionPolicy: Retain
+    DependsOn: AppDb
     Properties:
-      AliasName: app-db-key
+      AliasName: !Sub 'alias/${AppDb}'
       TargetKeyId: !Ref AppDbKmsKey
-
-  AppDbClusterParameterGroup:
-    Type: AWS::RDS::DBClusterParameterGroup
-    Properties:
-      Description: app-db
-      Family: aurora-postgres10
 
   AppDbSubnet:
     Type: AWS::RDS::DBSubnetGroup
@@ -2366,30 +2375,64 @@ Resources:
         - !Ref SubnetAPrivate
         - !Ref SubnetBPrivate
 
+  AppDbSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'App db secret'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+  AppDbSecretAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref AppDbSecret
+      TargetId: !Ref AppDb
+      TargetType: AWS::RDS::DBCluster
+
+  AppDbSecretResourcePolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties: 
+      SecretId: !Ref AppDbSecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: "Deny"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "secretsmanager:DeleteSecret"
+            Resource: "*"
+
   AppDb:
     Type: AWS::RDS::DBCluster
     Properties:
       AvailabilityZones:
-        - !Ref SubnetAPrivate
-        - !Ref SubnetBPrivate
+        - !GetAtt SubnetAPrivate.AvailabilityZone
+        - !GetAtt SubnetBPrivate.AvailabilityZone
       BackupRetentionPeriod: !Ref DbBackupRetentionPeriod
       DatabaseName: polycosm_production
       DBClusterIdentifier: !Sub "${AWS::StackName}-app-db"
-      DBClusterParameterGroupName: !Ref AppDbClusterParameterGroup
       DBSubnetGroupName: !Ref AppDbSubnet
       Engine: aurora-postgresql
       EngineMode: serverless
       EngineVersion: 10.7
-      KmsKeyId: !If [HasDbEncryptionEnabled, AppDbKmsKey, !Ref 'AWS::NoValue']
-      StorageEncrypted: !If [HasDbEncryptionEnabled, true, false]
-      MasterUserName: postgres
-      MasterUserPassword: postgres
+      KmsKeyId: !Ref AppDbKmsKey
+      StorageEncrypted: true
+      MasterUsername: postgres
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]
       PreferredBackupWindow: !Ref DbPreferredBackupWindow
       PreferredMaintenanceWindow: !Ref DbPreferredMaintenanceWindow
       ScalingConfiguration:
         AutoPause: true
         MaxCapacity: !Ref DbMaxCapacity
-        MinCapacity: 1
+        MinCapacity: 2
         SecondsUntilAutoPause: 300
 
 Outputs:
@@ -2405,6 +2448,14 @@ Outputs:
     Description: URL of the nearspark service endpoint
     Value: !Sub 'https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
 
+          #  SpeelycaptorEndpoint:
+          #    Description: URL of the speelycaptor service endpoint
+          #    Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
+          #
+          #  PhotomnemonicEndpoint:
+          #    Description: URL of the photomnemonic service endpoint
+          #    Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
+
   StorageEFSId:
     Description: Storage EFS volume id
     Value: !Ref StorageEFS
@@ -2417,13 +2468,6 @@ Outputs:
     Description: Port for app db
     Value: !GetAtt AppDb.Endpoint.Port
 
-  AppDbKmsKeyAlias:
-    Value: app-db-key
-
-          #  SpeelycaptorEndpoint:
-          #    Description: URL of the speelycaptor service endpoint
-          #    Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
-          #
-          #  PhotomnemonicEndpoint:
-          #    Description: URL of the photomnemonic service endpoint
-          #    Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
+  AppDbSecret:
+    Description: Secret for app db
+    Value: !Ref AppDbSecret
