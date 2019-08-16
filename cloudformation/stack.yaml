@@ -3,14 +3,14 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: Domain Setup
+          default: Domain Configuration
         Parameters:
           - DomainName
           - IsDomainOnRoute53
           - ShortlinkZone
           - InternalZone
       - Label:
-          default: Email Setup
+          default: Email Configuration
         Parameters:
           - EmailZone
           - EmailSubdomain
@@ -31,6 +31,11 @@ Metadata:
         Parameters:
           - ClassB
           - AppPlacementGroupStrategy
+          - DbBackupRetentionPeriod
+          - DbEncryptionEnabled
+          - DbPreferredBackupWindow
+          - DbPreferredMaintenanceWindow
+          - DBMaxCapacity
     ParameterLabels:
       DomainName:
         default: Domain Name
@@ -58,6 +63,16 @@ Metadata:
         default: Class B IP Block
       AppPlacementGroupStrategy:
         default: App server placement group strategy
+        DbBackupRetentionPeriod:
+          default: "Database backup retention period (in days)"
+        DbEncryptionEnabled:
+          default: "Enable database-level encryption?"
+        DbPreferredBackupWindow:
+          default: "Preferred database backup window. (Format dddd:hh24:mi-ddd:hh24:mi)"
+        DbPreferredMaintenanceWindow:
+          default: "Preferred database maintenance window. (Format dddd:hh24:mi-ddd:hh24:mi)"
+        DbEncryptionEnabled:
+          default: "Max database capacity (in ACUs)"
 Parameters:
   DomainName:
     Type: String
@@ -147,6 +162,27 @@ Parameters:
       - cluster
       - spread
       - none
+  DbBackupRetentionPeriod:
+    Type: Number
+    Default: 14
+  DbEncryptionEnabled:
+    Type: String
+    Description: Enables full encryption at rest for your database. Note that WebSpaces already encrypts sensitive information in the database such as pinned objects and upload tokens.
+    AllowedValues:
+      - No
+      - Yes
+    Default: No
+  DbPreferredBackupWindow:
+    Type: String
+    Description: "Preferred time for automatic database backups. (Format hh24:mi-hh24:mi)"
+    Default: "09:30-10:00"
+  DbPreferredMaintenanceWindow:
+    Type: String
+    Description: "Preferred time for database maintenence. (Format ddd:hh24:mi-ddd:hh24:mi)"
+    Default: "Sun:08:30-Sun:09:30"
+  DbMaxCapacity:
+    Type: Number
+    Default: 16
 
 Mappings:
   InstanceTypeMeta:
@@ -176,6 +212,7 @@ Conditions:
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   StreamIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
+  HasDbEncryptionEnabled: !Equals [!Ref DbEncryptionEnabled, "Yes"]
 
 Resources:
 
@@ -1683,6 +1720,15 @@ Resources:
       ToPort: 9100
       SourceSecurityGroupId: !Ref AppSecurityGroup
 
+  AppDbEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      DestinationSecurityGroupId: !Ref DbSecurityGroup
+
   AppFullSelfEgress:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
@@ -2159,6 +2205,7 @@ Resources:
 
   StorageEFS:
     Type: AWS::EFS::FileSystem
+    DeletionPolicy: Retain
     Properties:
       PerformanceMode: generalPurpose
       FileSystemTags:
@@ -2270,6 +2317,80 @@ Resources:
       BackupPlanId: !Ref DailyBackupPlan
     DependsOn: DailyBackupPlan
 
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-db"
+      GroupDescription: DB
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        # Inbound PostgreSQL
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  AppDbKmsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: DB encryption key
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: app-db-key
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+
+  AppDbKmsKeyAlias:
+    Type: AWS::KMS::Alias
+    Condition: HasDbEncryptionEnabled
+    Properties:
+      AliasName: app-db-key
+      TargetKeyId: !Ref AppDbKmsKey
+
+  AppDbClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Family: aurora-postgres10
+
+  AppDbSubnet:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: app-db
+      DBSubnetGroupName: app-db
+      SubnetIds:
+        - !Ref SubnetAPrivate
+        - !Ref SubnetBPrivate
+
+  AppDb:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      AvailabilityZones:
+        - !Ref SubnetAPrivate
+        - !Ref SubnetBPrivate
+      BackupRetentionPeriod: !Ref DbBackupRetentionPeriod
+      DatabaseName: polycosm_production
+      DBClusterIdentifier: !Sub "${AWS::StackName}-app-db"
+      DBClusterParameterGroupName: !Ref AppDbClusterParameterGroup
+      DBSubnetGroupName: !Ref AppDbSubnet
+      Engine: aurora-postgresql
+      EngineMode: serverless
+      EngineVersion: 10.7
+      KmsKeyId: !If [HasDbEncryptionEnabled, AppDbKmsKey, !Ref 'AWS::NoValue']
+      StorageEncrypted: !If [HasDbEncryptionEnabled, true, false]
+      MasterUserName: postgres
+      MasterUserPassword: postgres
+      PreferredBackupWindow: !Ref DbPreferredBackupWindow
+      PreferredMaintenanceWindow: !Ref DbPreferredMaintenanceWindow
+      ScalingConfiguration:
+        AutoPause: true
+        MaxCapacity: !Ref DbMaxCapacity
+        MinCapacity: 1
+        SecondsUntilAutoPause: 300
+
 Outputs:
   AppALBDomain:
     Description: Domain name for app servers. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable WebSpaces on your site.
@@ -2282,6 +2403,21 @@ Outputs:
   NearsparkEndpoint:
     Description: URL of the nearspark service endpoint
     Value: !Sub 'https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
+
+  StorageEFSId:
+    Description: Storage EFS volume id
+    Value: !Ref StorageEFS
+
+  AppDbAddress:
+    Description: Domain name for app db
+    Value: !GetAtt AppDb.Endpoint.Address
+
+  AppDbPort:
+    Description: Port for app db
+    Value: !GetAtt AppDb.Endpoint.Port
+
+  AppDbKmsKeyAlias:
+    Value: app-db-key
 
           #  SpeelycaptorEndpoint:
           #    Description: URL of the speelycaptor service endpoint
