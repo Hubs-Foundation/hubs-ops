@@ -2380,7 +2380,7 @@ Resources:
     Properties:
       Description: 'App db secret'
       GenerateSecretString:
-        SecretStringTemplate: '{ username: "postgres" }'
+        SecretStringTemplate: '{ "username": "postgres" }'
         GenerateStringKey: 'password'
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
