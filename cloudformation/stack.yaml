@@ -2354,6 +2354,7 @@ Resources:
   AppDbClusterParameterGroup:
     Type: AWS::RDS::DBClusterParameterGroup
     Properties:
+      Description: app-db
       Family: aurora-postgres10
 
   AppDbSubnet:
