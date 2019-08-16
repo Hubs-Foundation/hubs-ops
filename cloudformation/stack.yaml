@@ -10,6 +10,11 @@ Metadata:
           - ShortlinkZone
           - InternalZone
       - Label:
+          default: Email Setup
+        Parameters:
+          - EmailZone
+          - EmailSubdomain
+      - Label:
           default: Server Configuration
         Parameters:
           - KeyPair
@@ -35,6 +40,10 @@ Metadata:
         default: Short link Route 53 Zone
       InternalZone:
         default: Internal Route 53 Zone
+      EmailZone:
+        default: Outgoing Email Route 53 Zone
+      EmailSubdomain:
+        default: Outgoing Email Subdomain Prefix
       UnmanagedDomainCertArn:
         default: Unmanaged Domain SSL Certificate ARN
       AppInstanceCount:
@@ -57,7 +66,7 @@ Parameters:
     ConstraintDescription: Must be a valid domain name (eg mywebspaces.com or webspaces.mycompany.com)
   IsDomainOnRoute53:
     Type: String
-    Description: It is hightly recommended you use Route 53 to manage your domain. Set to Yes if your domain is set up on Route 53. Set to No if your domain is on a third party service such as GoDaddy or Namecheap. If you choose 'No', you'll need to set the 'Unmanaged Domain SSL Certificate ARN' configuration setting in the 'SSL Certificates' section below. Also, if you choose 'No', once your stack is created you'll need to update your DNS provider using the information in the 'Outputs' tab. See the 'Outputs' tab once the stack is created for more information on what to do next.
+    Description: It is hightly recommended you use Route 53 to manage your domain. Set to Yes if your domain is set up on Route 53, and you can move onto the next item. Set to No if your domain is on a third party service such as GoDaddy or Namecheap. If you choose 'No', you'll need to set the 'Unmanaged Domain SSL Certificate ARN' configuration setting in the 'SSL Certificates' section below. Also, if you choose 'No', once your stack is created you'll need to update your DNS provider using the information in the 'Outputs' tab. See the 'Outputs' tab once the stack is created for more information on what to do next.
     AllowedValues: ["Yes - My domain is set up on Route 53.", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section."]
   ShortlinkZone:
     Type: AWS::Route53::HostedZone::Id
@@ -69,9 +78,18 @@ Parameters:
     Description: Your AWS Route 53 Zone for an internal domain name (eg mywebspaces-internal.com.) You'll need to register a new internal domain name of your choice with Route 53 to be used internally by WebSpaces. It should *not* be the same domain as the WebSpaces domain name that you specified above. This domain will not be seen by visitors and can be anything you like.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
+  EmailZone:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Your AWS Route 53 Zone for sending email. (eg mywebspacesmail.com.) To verify email addresses, WebSpaces needs to be able to send email. If you do not have an existing SMTP provider, create and choose a Route 53 Zone for the domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing SMTP provider (eg Mailchimp) select the same zone as you chose above in 'Internal Route 53 Zone' and you'll be able to enter your SMTP credentials from your provider later.
+    AllowedPattern: ".+"
+    ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
+  EmailSubdomain:
+    Type: String
+    Description: The Subdomain prefix to use for outgoing emails. For example, if your Outgoing Email Route 53 Zone is set to mywebspaces.com, setting this field to "mail" will send email from the domain mail.mywebspaces.com. If you have a third party SMTP provider then leave this field blank. 
+    Default: mail
   UnmanagedDomainCertArn:
     Type: String
-    Description: You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to upload your domain's SSL certificate to AWS Certificate Manager. Make sure you upload it to the same AWS region as your WebSpaces stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console.
+    Description: You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to upload your domain's SSL certificate to AWS Certificate Manager before completing this form. Make sure you upload your SSL certificate to the same AWS region as your WebSpaces stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console.
     AllowedPattern: "^$|^arn:aws:acm:"
     ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
   AppInstanceCount:
@@ -101,7 +119,7 @@ Parameters:
     MinValue: 0
   StreamInstanceType:
     Type: String
-    Description: The EC2 instance type for your streaming server(s), if you've added any. Choose a "t" instance type if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
+    Description: The EC2 instance type for your streaming server(s), if you've added any. This field will not be used if you entered zero for the number of streaming servers above. Choose a "t" instance type if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
     Default: t2.micro
     AllowedValues:
       - t2.micro
@@ -123,7 +141,7 @@ Parameters:
     Default: 56
   AppPlacementGroupStrategy:
     Type: String
-    Description: "Placement group strategy for app servers. If you only have one app server, this setting has no effect. If you have more than one app server, choose 'cluster' to increase connectivity between servers at the cost of reliability: your service will go down if there is an AZ-wide outage.) Choose 'spread' if you have less than 7 app servers and would like to ensure availability at the cost of latency or maximum throughput between app servers. Choose 'none' if you do not have a preference, will be running more than 7 app servers, or if AWS is failing to provision servers for your configuration. App servers communicate with one another extensively, so 'cluster' is the preferred setting if you can tolerate some risk of downtime if there are AZ-wide outages."
+    Description: "Placement group strategy for app servers. If you only have one app server, this setting has no effect. If you have more than one app server, choose 'cluster' to increase connectivity between servers at the cost of reliability. When using 'cluster', you will have lower latency between users but your service will go down if there is an AZ-wide outage. Choose 'spread' if you would like to ensure higher availability at the cost of latency or maximum throughput between app servers. Choose 'none' if you do not have a preference, will be running more than 7 app servers, or if AWS has been failing to provision servers for you in previous attempts to create the stack. App servers communicate with one another extensively, so 'cluster' is the preferred setting if you can tolerate some risk of downtime if there are AZ-wide outages."
     Default: cluster
     AllowedValues:
       - cluster
@@ -157,6 +175,7 @@ Conditions:
   HasStreamingServers: !Not [!Equals [!Ref StreamInstanceCount, 0]]
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   StreamIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
+  HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
 
 Resources:
 
@@ -366,7 +385,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DependsOn: LambdaBucket
     Properties:
-      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
+      ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref LambdaBucket
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
@@ -377,7 +396,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DependsOn: LambdaBucket
     Properties:
-      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
+      ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref LambdaBucket
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
@@ -388,12 +407,23 @@ Resources:
     UpdateReplacePolicy: Retain
     DependsOn: LambdaBucket
     Properties:
-      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
+      ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref LambdaBucket
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
       Objects:
         - lambdas/photomnemonic/photomnemonic-0.1.0.zip
+  CopySesLambda:
+    Type: Custom::CopySesLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt CopyFileFunction.Arn
+      DestBucket: !Ref LambdaBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.2.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -404,7 +434,7 @@ Resources:
     Properties:
       Description: Lookup Route 53 info
       Handler: index.handler
-      Role: !GetAtt 'Route53DependencyRole.Arn'
+      Role: !GetAtt Route53DependencyRole.Arn
       Runtime: nodejs8.10
       Timeout: 900
       Code:
@@ -591,7 +621,7 @@ Resources:
           \ W()"
       Description: Cloudformation custom resource for DNS validated certificates
       Handler: index.handler
-      Role: !GetAtt 'CustomAcmCertificateLambdaExecutionRole.Arn'
+      Role: !GetAtt CustomAcmCertificateLambdaExecutionRole.Arn
       Runtime: python3.6
       Timeout: 900
     Type: AWS::Lambda::Function
@@ -641,21 +671,28 @@ Resources:
     Type: Custom::Route53
     Properties:
       Domain: !Ref DomainName
-      ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
+      ServiceToken: !GetAtt Route53DependencyLambda.Arn
 
   ShortlinkZoneInfo:
     Type: Custom::Route53
     Condition: HasMangedDomain
     Properties:
       Id: !Ref ShortlinkZone
-      ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
+      ServiceToken: !GetAtt Route53DependencyLambda.Arn
 
   InternalZoneInfo:
     Type: Custom::Route53
     Condition: HasMangedDomain
     Properties:
       Id: !Ref InternalZone
-      ServiceToken: !GetAtt 'Route53DependencyLambda.Arn'  
+      ServiceToken: !GetAtt Route53DependencyLambda.Arn
+
+  EmailZoneInfo:
+    Type: Custom::Route53
+    Condition: HasMangedDomain
+    Properties:
+      Id: !Ref EmailZone
+      ServiceToken: !GetAtt Route53DependencyLambda.Arn
 
   ExternalZoneSSLCert:
     Type: Custom::DNSCertificate
@@ -663,11 +700,11 @@ Resources:
     Properties: 
       DomainName: !Sub '*.${ExternalZoneInfo.Name}'
       DomainValidationOptions:
-        - DomainName: !GetAtt 'ExternalZoneInfo.Name'
-          HostedZoneId: !GetAtt 'ExternalZoneInfo.Id'
+        - DomainName: !GetAtt ExternalZoneInfo.Name
+          HostedZoneId: !GetAtt ExternalZoneInfo.Id
       ValidationMethod: DNS
       Region: !Sub "${AWS::Region}"
-      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
 
   ExternalZoneSSLCertEast:
     Type: Custom::DNSCertificate
@@ -675,44 +712,106 @@ Resources:
     Properties: 
       DomainName: !Sub '*.${ExternalZoneInfo.Name}'
       DomainValidationOptions:
-        - DomainName: !GetAtt 'ExternalZoneInfo.Name'
-          HostedZoneId: !GetAtt 'ExternalZoneInfo.Id'
+        - DomainName: !GetAtt ExternalZoneInfo.Name
+          HostedZoneId: !GetAtt ExternalZoneInfo.Id
       ValidationMethod: DNS
       Region: us-east-1
-      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
 
   ShortlinkZoneSSLCertEast:
     Type: Custom::DNSCertificate
     Properties: 
-      DomainName: !GetAtt 'ShortlinkZoneInfo.Name'
+      DomainName: !GetAtt ShortlinkZoneInfo.Name
       DomainValidationOptions:
-        - DomainName: !GetAtt 'ShortlinkZoneInfo.Name'
-          HostedZoneId: !GetAtt 'ShortlinkZoneInfo.Id'
+        - DomainName: !GetAtt ShortlinkZoneInfo.Name
+          HostedZoneId: !GetAtt ShortlinkZoneInfo.Id
       ValidationMethod: DNS
       Region: us-east-1
-      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
 
   InternalZoneSSLCert:
     Type: Custom::DNSCertificate
     Properties: 
       DomainName: !Sub '*.${InternalZoneInfo.Name}'
       DomainValidationOptions:
-        - DomainName: !GetAtt 'InternalZoneInfo.Name'
+        - DomainName: !GetAtt InternalZoneInfo.Name
           HostedZoneId: !Ref InternalZone
       ValidationMethod: DNS
       Region: !Sub "${AWS::Region}"
-      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
 
   InternalZoneSSLCertEast:
     Type: Custom::DNSCertificate
     Properties: 
       DomainName: !Sub '*.${InternalZoneInfo.Name}'
       DomainValidationOptions:
-        - DomainName: !GetAtt 'InternalZoneInfo.Name'
+        - DomainName: !GetAtt InternalZoneInfo.Name
           HostedZoneId: !Ref InternalZone
       ValidationMethod: DNS
       Region: us-east-1
-      ServiceToken: !GetAtt 'CustomAcmCertificateLambda.Arn'  
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+
+# SESDomain
+  SESDomainRole:
+   Type: AWS::IAM::Role
+   Properties:
+     RoleName: !Sub "${AWS::StackName}-SESDOmain"
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Policies:
+       - PolicyName: provision-ses
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - ses:DeleteIdentity
+                 - ses:GetIdentityDkimAttributes
+                 - ses:GetIdentityMailFromDomainAttributes
+                 - ses:GetIdentityVerificationAttributes
+                 - ses:SetIdentityDomainDkim
+                 - ses:SetIdentityMailFromDomain
+                 - ses:VerifyDomainDkim
+                 - ses:VerifyDomainIdentity
+               Resource:
+                 - "*"
+
+  SESDomainRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Sub '${EmailZoneInfo.Name}.'
+      RecordSets: !GetAtt SESDomain.Route53RecordSets
+
+  SESDomainFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.2.zip
+      Handler: index.lambda_handler
+      Role: !GetAtt SESDomainRole.Arn
+      Runtime: python3.6
+      Description: Sets up SES domain for sending email
+    DependsOn:
+      - CopySesLambda
+
+  SESDomain:
+    Type: Custom::SES_Domain
+    Properties:
+      ServiceToken: !GetAtt SESDomainFunction.Arn
+      Domain: !GetAtt EmailZoneInfo.Name
+      EnableReceive: false
+      EnableSend: true
+      MailFromSubdomain: !Ref EmailSubdomain
+      TTL: 1800
+      CustomDMARC: '"v=DMARC1;p=reject;pct=100;aspf=r;"' # We can advise reject since we always send via SES
 
 # CopyFile
   CopyFileRole:
@@ -748,7 +847,7 @@ Resources:
     Properties:
       Handler: index.handler
       Runtime: python2.7
-      Role: !GetAtt 'CopyFileRole.Arn'
+      Role: !GetAtt CopyFileRole.Arn
       Timeout: 240
       Code:
         ZipFile: |
@@ -1295,7 +1394,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DependsOn: AssetsBucket
     Properties:
-      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
+      ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref AssetsBucket
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
@@ -1345,7 +1444,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DependsOn: LinkRedirectorBucket
     Properties:
-      ServiceToken: !GetAtt 'CopyFileFunction.Arn'
+      ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref LinkRedirectorBucket
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
@@ -1355,7 +1454,7 @@ Resources:
   LinkRedirectorDNS:
     Type: AWS::Route53::RecordSet
     Properties:
-      Name: !GetAtt 'ShortlinkZoneInfo.Name'
+      Name: !GetAtt ShortlinkZoneInfo.Name
       HostedZoneId: !Ref ShortlinkZone
       Type: A
       AliasTarget:
@@ -1377,7 +1476,7 @@ Resources:
         Enabled: true
         PriceClass: PriceClass_All
         Aliases:
-          - !GetAtt 'ShortlinkZoneInfo.Name'
+          - !GetAtt ShortlinkZoneInfo.Name
         DefaultCacheBehavior:
           AllowedMethods:
             - GET
@@ -1626,11 +1725,11 @@ Resources:
     Condition: HasMangedDomain
     Properties:
       Name: !Ref DomainName
-      HostedZoneId: !GetAtt 'ExternalZoneInfo.Id'
+      HostedZoneId: !GetAtt ExternalZoneInfo.Id
       Type: A
       AliasTarget:
-        DNSName: !GetAtt 'AppALB.DNSName'
-        HostedZoneId: !GetAtt 'AppALB.CanonicalHostedZoneID'
+        DNSName: !GetAtt AppALB.DNSName
+        HostedZoneId: !GetAtt AppALB.CanonicalHostedZoneID
 
   AppALBDNSInternal:
     Type: AWS::Route53::RecordSet
@@ -1640,8 +1739,8 @@ Resources:
       HostedZoneId: !Ref InternalZone
       Type: A
       AliasTarget:
-        DNSName: !GetAtt 'AppALB.DNSName'
-        HostedZoneId: !GetAtt 'AppALB.CanonicalHostedZoneID'
+        DNSName: !GetAtt AppALB.DNSName
+        HostedZoneId: !GetAtt AppALB.CanonicalHostedZoneID
 
   AppALBRetTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -1719,7 +1818,7 @@ Resources:
         Enabled: true
         Origins:
           - Id: !Sub "${AWS::StackName}-app-assets"
-            DomainName: !GetAtt 'AssetsBucket.DomainName'
+            DomainName: !GetAtt AssetsBucket.DomainName
             S3OriginConfig:
               OriginAccessIdentity: ""
         Restrictions:
@@ -1856,7 +1955,7 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       AutoScalingGroupName: !Sub "${AWS::StackName}-app"
-      AvailabilityZones: !If [AppIsClusterPlacement, [!GetAtt 'SubnetAPublic.AvailabilityZone'], [!GetAtt 'SubnetAPublic.AvailabilityZone', !GetAtt 'SubnetBPublic.AvailabilityZone']]
+      AvailabilityZones: !If [AppIsClusterPlacement, [!GetAtt SubnetAPublic.AvailabilityZone], [!GetAtt SubnetAPublic.AvailabilityZone, !GetAtt SubnetBPublic.AvailabilityZone]]
       VPCZoneIdentifier: !If [AppIsClusterPlacement, [!Ref SubnetAPublic], [!Ref SubnetAPublic, !Ref SubnetBPublic]]
       TargetGroupARNs:
         - !Ref AppALBRetTargetGroup
@@ -1877,7 +1976,7 @@ Resources:
     Type: AWS::EFS::FileSystem
     Properties:
       PerformanceMode: generalPurpose
-      Tags:
+      FileSystemTags:
         - 
           Key: backup
           Value: daily
@@ -1888,8 +1987,7 @@ Resources:
       FileSystemId: !Ref StorageEFS
       SecurityGroups:
         - !Ref StorageSecurityGroup
-      SubnetId:
-        - !Ref SubnetAPrivate
+      SubnetId: !Ref SubnetAPrivate
 
   StorageEFSAppMountTargetBPrivate:
     Type: AWS::EFS::MountTarget
@@ -1897,8 +1995,7 @@ Resources:
       FileSystemId: !Ref StorageEFS
       SecurityGroups:
         - !Ref StorageSecurityGroup
-      SubnetId:
-        - !Ref SubnetBPrivate
+      SubnetId: !Ref SubnetBPrivate
 
   StorageSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -1938,7 +2035,7 @@ Resources:
           Action:
           - kms:*
           Resource: "*"
-          
+
   DailyBackupVault:
     Type: AWS::Backup::BackupVault
     Properties:
@@ -1956,7 +2053,7 @@ Resources:
             TargetBackupVault: !Ref DailyBackupVault
             ScheduleExpression: "cron(0 10 ? * * *)" # 3AM PST
     DependsOn: DailyBackupVault
-          
+
   DailyBackupRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1972,7 +2069,7 @@ Resources:
             - "sts:AssumeRole"
      ManagedPolicyArns:
        -
-        "arn:aws:iam::aws:policy/service-role/service role"
+        "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
 
   DailyBackupSelection:
     Type: AWS::Backup::BackupSelection
@@ -1980,7 +2077,7 @@ Resources:
       BackupSelection:
         SelectionName: !Sub "${AWS::StackName}-daily-backup-selection"
         IamRoleArn: !GetAtt DailyBackupRole.Arn
-        ListOfTags:
+        Resources:
          -
            ConditionType: "STRINGEQUALS"
            ConditionKey: backup
@@ -1991,7 +2088,7 @@ Resources:
 Outputs:
   AppALBDomain:
     Description: Domain name for app servers. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable WebSpaces on your site.
-    Value: !GetAtt 'AppALB.DNSName'
+    Value: !GetAtt AppALB.DNSName
 
   AssetsEndpoint:
     Description: URL for CDN assets
