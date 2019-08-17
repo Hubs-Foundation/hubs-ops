@@ -1898,11 +1898,14 @@ Resources:
       RoleName: !Sub "${AWS::StackName}-app"
       Policies:
         - PolicyDocument:
+            Version: '2012-10-17'
             Statement:
-              - Action:
+              - Effect: Allow
+                Action:
                   - iam:GetUser
                   - iam:ListAccessKeys
-                Resource: !Ref SendEmailUser
+                Resource: !GetAtt SendEmailUser.Arn
+          PolicyName: !Sub '${AWS::StackName}-send-email-policy'
       AssumeRolePolicyDocument:
         Statement:
           - Action:
@@ -2625,3 +2628,7 @@ Outputs:
   AppDbSecret:
     Description: Secret for app db
     Value: !Ref AppDbSecret
+
+  SmtpSendUser:
+    Description: SMTP send user for email zone
+    Value: !GetAtt SendEmailUser.Arn
