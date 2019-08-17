@@ -1717,8 +1717,8 @@ Resources:
     Properties:
       GroupId: !Ref BioRingSecurityGroup
       IpProtocol: tcp
-      FromPort: 9631
-      ToPort: 9631
+      FromPort: !FindInMap [ServicesMeta, BioCensus, Port]
+      ToPort: !FindInMap [ServicesMeta, BioCensus, Port]
       SourceSecurityGroupId: !Ref BioRingSecurityGroup
 
   BioRingCensusEgress:
@@ -1726,8 +1726,8 @@ Resources:
     Properties:
       GroupId: !Ref BioRingSecurityGroup
       IpProtocol: tcp
-      FromPort: 9631
-      ToPort: 9631
+      FromPort: !FindInMap [ServicesMeta, BioCensus, Port]
+      ToPort: !FindInMap [ServicesMeta, BioCensus, Port]
       DestinationSecurityGroupId: !Ref BioRingSecurityGroup
 
   BioRingRPCIngress:
@@ -2676,6 +2676,10 @@ Outputs:
   JanusWebRTCToPort:
     Description: Janus WebRTC To Port
     Value: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+
+  BioCensusPort:
+    Description: Bio census HTTP port
+    Value: !FindInMap [ServicesMeta, BioCensus, Port]
 
   InternalZoneId:
     Description: Internal Zone Id
