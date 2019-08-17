@@ -833,7 +833,7 @@ Resources:
   SESDomainFunction:
     Type: AWS::Lambda::Function
     Properties:
-    FunctionName: !Sub "${AWS::StackName}-aws-cfn-ses-domain"
+      FunctionName: !Sub "${AWS::StackName}-aws-cfn-ses-domain"
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.3.zip
@@ -2544,7 +2544,7 @@ Resources:
       Engine: aurora-postgresql
       EngineMode: serverless
       EngineVersion: 10.7
-      KmsKeyId: !If [CreateDbEncryptionKey, !Ref AppDbKmsKey, !Ref AWS::NoValue]
+      KmsKeyId: !If [CreateDbEncryptionKey, !Ref AppDbKmsKey, !Ref "AWS::NoValue"]
       StorageEncrypted: true
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]
