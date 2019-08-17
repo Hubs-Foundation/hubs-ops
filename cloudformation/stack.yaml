@@ -185,6 +185,24 @@ Parameters:
       - Yes
 
 Mappings:
+  ServicesMeta:
+    RetExternal:
+      Port: 443
+    RetInternal:
+      Port: 4000
+    PostgrestInternal:
+      Port: 3000
+    JanusExternal:
+      Port: 8443
+    JanusAdmin:
+      Port: 7000
+    JanusWebRTCFrom:
+      Port: 20000
+    JanusWebRTCTo:
+      Port: 60000
+    BioCensus:
+      Port: 9631
+
   InstanceTypeMeta:
     # Some instance types do not support cluster placement, so use spread
     t2.micro:
@@ -1753,40 +1771,34 @@ Resources:
       GroupDescription: App
       VpcId: !Ref VPC
       SecurityGroupIngress:
-        # Inbound HTTPS
         - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
+          FromPort: !FindInMap [ServicesMeta, RetExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetExternal, Port]
           CidrIp: 0.0.0.0/0
-        # Inbound Janus Websocket
         - IpProtocol: tcp
-          FromPort: 8443
-          ToPort: 8443
+          FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           CidrIp: 0.0.0.0/0
-        # Inbound WebRTC
         - IpProtocol: udp
-          FromPort: 20000
-          ToPort: 60000
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
           CidrIp: 0.0.0.0/0
-        # Inbound WebRTC
         - IpProtocol: tcp
-          FromPort: 20000
-          ToPort: 60000
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
           CidrIp: 0.0.0.0/0
         # Inbound SSH
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
-        # Inbound Reticulum
         - IpProtocol: tcp
-          FromPort: 4000
-          ToPort: 4000
+          FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
           SourceSecurityGroupId: !Ref AppALBSecurityGroup
-        # Inbound PostgREST
         - IpProtocol: tcp
-          FromPort: 3000
-          ToPort: 3000
+          FromPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
+          ToPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
           SourceSecurityGroupId: !Ref AppALBSecurityGroup
       SecurityGroupEgress:
         # Outbound HTTP
@@ -1825,8 +1837,8 @@ Resources:
     Properties:
       GroupId: !Ref AppSecurityGroup
       IpProtocol: tcp
-      FromPort: 7000
-      ToPort: 7000
+      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
       SourceSecurityGroupId: !Ref AppSecurityGroup
 
   AppJanusAdminStreamEgress:
@@ -1834,8 +1846,8 @@ Resources:
     Properties:
       GroupId: !Ref AppSecurityGroup
       IpProtocol: tcp
-      FromPort: 7000
-      ToPort: 7000
+      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
       DestinationSecurityGroupId: !Ref StreamSecurityGroup
 
   AppEPMDAppIngress:
@@ -1861,8 +1873,8 @@ Resources:
     Properties:
       GroupId: !Ref AppSecurityGroup
       IpProtocol: tcp
-      FromPort: 5432
-      ToPort: 5432
+      FromPort: !GetAtt AppDb.Endpoint.Port
+      ToPort: !GetAtt AppDb.Endpoint.Port
       DestinationSecurityGroupId: !Ref DbSecurityGroup
 
   AppFullSelfEgress:
@@ -1879,8 +1891,8 @@ Resources:
     Properties:
       GroupId: !Ref AppALBSecurityGroup
       IpProtocol: tcp
-      FromPort: 4000
-      ToPort: 4000
+      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
       DestinationSecurityGroupId: !Ref AppSecurityGroup
 
   AppALBPostgrestEgress:
@@ -1888,8 +1900,8 @@ Resources:
     Properties:
       GroupId: !Ref AppALBSecurityGroup
       IpProtocol: tcp
-      FromPort: 3000
-      ToPort: 3000
+      FromPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
+      ToPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
       DestinationSecurityGroupId: !Ref AppSecurityGroup
 
   AppRole:
@@ -2025,7 +2037,7 @@ Resources:
     Properties:
       Name: !Sub "${AWS::StackName}-ret"
       VpcId: !Ref VPC
-      Port: 4000
+      Port: !FindInMap [ServicesMeta, RetInternal, Port]
       Protocol: HTTPS
       TargetGroupAttributes:
       - Key: deregistration_delay.timeout_seconds
@@ -2156,20 +2168,19 @@ Resources:
       GroupDescription: Stream
       VpcId: !Ref VPC
       SecurityGroupIngress:
-        # Inbound Janus Websocket
         - IpProtocol: tcp
-          FromPort: 8443
-          ToPort: 8443
+          FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           CidrIp: 0.0.0.0/0
         # Inbound WebRTC
         - IpProtocol: udp
-          FromPort: 20000
-          ToPort: 60000
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
           CidrIp: 0.0.0.0/0
         # Inbound WebRTC
         - IpProtocol: tcp
-          FromPort: 20000
-          ToPort: 60000
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
           CidrIp: 0.0.0.0/0
         # Inbound SSH
         - IpProtocol: tcp
@@ -2193,8 +2204,8 @@ Resources:
     Properties:
       GroupId: !Ref StreamSecurityGroup
       IpProtocol: tcp
-      FromPort: 7000
-      ToPort: 7000
+      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
       SourceSecurityGroupId: !Ref AppSecurityGroup
 
   StreamFullSelfEgress:
@@ -2473,10 +2484,9 @@ Resources:
       GroupDescription: DB
       VpcId: !Ref VPC
       SecurityGroupIngress:
-        # Inbound PostgreSQL
         - IpProtocol: tcp
-          FromPort: 5432
-          ToPort: 5432
+          FromPort: !GetAtt AppDb.Endpoint.Port
+          ToPort: !GetAtt AppDb.Endpoint.Port
           SourceSecurityGroupId: !Ref AppSecurityGroup
 
   AppDbKmsKey:
@@ -2632,3 +2642,35 @@ Outputs:
   SmtpSendUser:
     Description: SMTP send user for email zone
     Value: !GetAtt SendEmailUser.Arn
+
+  SmtpSendFromAddress:
+    Description: SMTP send from address
+    Value: !Sub "noreply@${SESDomain}"
+
+  RetExternalPort:
+    Description: Reticulum External Port
+    Value: !FindInMap [ServicesMeta, RetExternal, Port]
+
+  RetInternalPort:
+    Description: Reticulum Internal Port
+    Value: !FindInMap [ServicesMeta, RetInternal, Port]
+
+  PostgrestInternalPort:
+    Description: PostgREST Internal Port
+    Value: !FindInMap [ServicesMeta, PostgrestInternal, Port]
+
+  JanusExternalPort:
+    Description: Janus External Port
+    Value: !FindInMap [ServicesMeta, JanusExternal, Port]
+
+  JanusAdminPort:
+    Description: Janus Admin Port
+    Value: !FindInMap [ServicesMeta, JanusAdmin, Port]
+
+  JanusWebRTCFrom:
+    Description: Janus WebRTC From Port
+    Value: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+
+  JanusWebRTCTo:
+    Description: Janus WebRTC To Port
+    Value: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
