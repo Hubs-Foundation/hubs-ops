@@ -169,11 +169,11 @@ Parameters:
     Default: 14
   DbPreferredBackupWindow:
     Type: String
-    Description: "Preferred time for automatic database backups. (Format hh24:mi-hh24:mi)"
+    Description: "Preferred time for automatic database backups. (Format hh24:mi-hh24:mi in UTC)"
     Default: "09:30-10:00"
   DbPreferredMaintenanceWindow:
     Type: String
-    Description: "Preferred time for database maintenence. (Format ddd:hh24:mi-ddd:hh24:mi)"
+    Description: "Preferred time for database maintenence. (Format ddd:hh24:mi-ddd:hh24:mi in UTC)"
     Default: "Sun:08:30-Sun:09:30"
   DbMaxCapacity:
     Type: Number
