@@ -858,6 +858,28 @@ Resources:
       CustomDMARC: '"v=DMARC1;p=reject;pct=100;aspf=r;"' # We can advise reject since we always send via SES
       Region: "us-east-1"
 
+  SendEmailUser:
+   Type: AWS::IAM::User
+   Properties:
+     UserName: !Sub "${AWS::StackName}-send-email"
+     Policies:
+       - PolicyName: send-email
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - ses:SendRawEmail
+               Resource: "*"
+               Condition:
+                 StringEquals:
+                   "ses:FromAddress": !Sub "noreply@${SESDomain}"
+
+  SendEmailAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Sub "${AWS::StackName}-send-email"
+
 # EmptyBucket
   EmptyBucketRole:
    Type: AWS::IAM::Role
@@ -1874,6 +1896,13 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${AWS::StackName}-app"
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - iam:GetUser
+                  - iam:ListAccessKeys
+                Resource: !Ref SendEmailUser
       AssumeRolePolicyDocument:
         Statement:
           - Action:
