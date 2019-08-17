@@ -95,7 +95,7 @@ Parameters:
     ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
   EmailZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: To verify email addresses, WebSpaces needs to be able to send email. If you do not have an existing SMTP provider, create and choose a Route 53 Zone for the domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing email provider (eg Mailchimp) or have a a domain configured in AWS Simple Email Service already select the same zone you chose above for 'Internal Route 53 Zone' and you'll be able to enter the login credentials from your preferred email provider later.
+    Description: To verify email addresses, WebSpaces needs to be able to send email. If you do not have an existing SMTP provider, create and choose a Route 53 Zone for the domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing email provider you'd like to send email from (eg Mailchimp) or already have a domain verified in AWS Simple Email Service select the same zone you chose above for 'Internal Route 53 Zone' and you'll be able to enter the login credentials from your email provider later.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
   EmailSubdomain:
