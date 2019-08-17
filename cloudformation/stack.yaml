@@ -2669,11 +2669,11 @@ Outputs:
     Description: Janus Admin Port
     Value: !FindInMap [ServicesMeta, JanusAdmin, Port]
 
-  JanusWebRTCFrom:
+  JanusWebRTCFromPort:
     Description: Janus WebRTC From Port
     Value: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
 
-  JanusWebRTCTo:
+  JanusWebRTCToPort:
     Description: Janus WebRTC To Port
     Value: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
 
