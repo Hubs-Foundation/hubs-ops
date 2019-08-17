@@ -7,8 +7,8 @@ Metadata:
         Parameters:
           - DomainName
           - IsDomainOnRoute53
-          - ShortlinkZone
           - InternalZone
+          - ShortlinkZone
       - Label:
           default: Email Configuration
         Parameters:
@@ -27,14 +27,14 @@ Metadata:
         Parameters:
           - UnmanagedDomainCertArn
       - Label:
-          default: Advanced - Leave the defaults unless you know what you're doing!
+          default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
           - ClassB
           - AppPlacementGroupStrategy
           - DbBackupRetentionPeriod
           - DbPreferredBackupWindow
           - DbPreferredMaintenanceWindow
-          - DBMaxCapacity
+          - DbMaxCapacity
           - NewCMKForDbEncryption
     ParameterLabels:
       DomainName:
@@ -65,14 +65,14 @@ Metadata:
         default: Create a dedicated CMK for database encryption?
       AppPlacementGroupStrategy:
         default: App server placement group strategy
-        DbBackupRetentionPeriod:
-          default: "Database backup retention period (in days)"
-        DbPreferredBackupWindow:
-          default: "Preferred database backup window. (Format dddd:hh24:mi-ddd:hh24:mi)"
-        DbPreferredMaintenanceWindow:
-          default: "Preferred database maintenance window. (Format dddd:hh24:mi-ddd:hh24:mi)"
-        DbMaxCapacity:
-          default: "Max database capacity (in ACUs)"
+      DbBackupRetentionPeriod:
+        default: "Database backup retention period (in days)"
+      DbPreferredBackupWindow:
+        default: "Preferred database backup window."
+      DbPreferredMaintenanceWindow:
+        default: "Preferred database maintenance window."
+      DbMaxCapacity:
+        default: "Max database capacity (in ACUs)"
 Parameters:
   DomainName:
     Type: String
@@ -95,16 +95,16 @@ Parameters:
     ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
   EmailZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: Your AWS Route 53 Zone for sending email. (eg mywebspacesmail.com.) To verify email addresses, WebSpaces needs to be able to send email. If you do not have an existing SMTP provider, create and choose a Route 53 Zone for the domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing SMTP provider (eg Mailchimp) select the same zone as you chose above in 'Internal Route 53 Zone' and you'll be able to enter your SMTP credentials from your provider later.
+    Description: To verify email addresses, WebSpaces needs to be able to send email. If you do not have an existing SMTP provider, create and choose a Route 53 Zone for the domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing email provider (eg Mailchimp) select the same zone as you chose above in 'Internal Route 53 Zone' and you'll be able to enter the login credentials from your provider later.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
   EmailSubdomain:
     Type: String
-    Description: The Subdomain prefix to use for outgoing emails. For example, if your Outgoing Email Route 53 Zone is set to mywebspaces.com, setting this field to "mail" will send email from the domain mail.mywebspaces.com. If you have a third party SMTP provider then leave this field blank. 
+    Description: The Subdomain prefix to use for outgoing emails. For example, if your Outgoing Email Route 53 Zone is set to mywebspaces.com, setting this field to "mail" will send email from the domain mail.mywebspaces.com. If you have a third party email provider (eg Mailchimp) you can ignore this field.
     Default: mail
   UnmanagedDomainCertArn:
     Type: String
-    Description: You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to upload your domain's SSL certificate to AWS Certificate Manager before completing this form. Make sure you upload your SSL certificate to the same AWS region as your WebSpaces stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console.
+    Description: You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to upload your domain's SSL certificate to AWS Certificate Manager before completing this form. Make sure you upload your SSL certificate to the AWS region you'd like to use for your WebSpaces stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console.
     AllowedPattern: "^$|^arn:aws:acm:"
     ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
   AppInstanceCount:
@@ -129,12 +129,12 @@ Parameters:
       - c5.4xlarge
   StreamInstanceCount:
     Type: Number
-    Description: The number of dedicated voice/video streaming server(s) you'd like to run. These servers are optional, enter a zero here if you do not want to run any streaming servers. Adding streaming servers will take network and CPU load off of your app servers. These servers will transmit voice and streaming video data between users.
+    Description: The number of dedicated voice/video streaming server(s) you'd like to run. These servers are optional - enter a zero here if you do not want to run any streaming servers. Adding streaming servers will take network and CPU load off of your app servers. These servers will transmit voice and streaming video data between users.
     Default: 0
     MinValue: 0
   StreamInstanceType:
     Type: String
-    Description: The EC2 instance type for your streaming server(s), if you've added any. This field will not be used if you entered zero for the number of streaming servers above. Choose a "t" instance type if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
+    Description: The EC2 instance type for your streaming server(s), if you've added any. This field will not be used if you entered zero for the number of streaming servers. Choose a "t" instance type if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
     Default: t2.micro
     AllowedValues:
       - t2.micro
@@ -178,11 +178,11 @@ Parameters:
     Default: 64
   NewCMKForDbEncryption:
     Type: String
-    Description: Select 'Yes' if you'd like to create a dedicated CMK in KMS for database encryption. Charges will apply.
-    Default: No
+    Description: "Select 'Yes' if you'd like to create a dedicated CMK in KMS for database encryption. Charges will apply."
+    Default: "No - Use the AWS Managed Key"
     AllowedValues:
-      - No
-      - Yes
+      - No - Use the AWS Managed Key
+      - Yes - Create a new CMK
 
 Mappings:
   ServicesMeta:
@@ -232,7 +232,7 @@ Conditions:
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   StreamIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
-  CreateDbEncryptionKey: !Equals [!Ref NewCMKForDbEncryption, "Yes"]
+  CreateDbEncryptionKey: !Equals [!Ref NewCMKForDbEncryption, "Yes - Create a new CMK"]
 
 Resources:
 
