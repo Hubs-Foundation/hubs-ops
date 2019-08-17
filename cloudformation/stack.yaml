@@ -833,7 +833,7 @@ Resources:
   SESDomainFunction:
     Type: AWS::Lambda::Function
     Properties:
-    FunctionName: "${AWS::StackName}-aws-cfn-ses-domain"
+    FunctionName: !Sub "${AWS::StackName}-aws-cfn-ses-domain"
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.3.zip
@@ -1048,7 +1048,6 @@ Resources:
       BucketName: !Join ["-", [ !Sub "${AWS::StackName}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   EmptySpeelycaptorScratchBucket:
     Type: Custom::EmptySpeelycaptorScratchBucket
-    UpdateReplacePolicy: Retain
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
       BucketName: !Ref SpeelycaptorScratchBucket
@@ -1112,7 +1111,7 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
-      FunctionName: "${AWS::StackName}-speelycaptor-initialize"
+      FunctionName: !Sub "${AWS::StackName}-speelycaptor-initialize"
       Handler: index.init
       MemorySize: 1024
       Role: !GetAtt SpeelycaptorRole.Arn
@@ -1131,7 +1130,7 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
-      FunctionName: "${AWS::StackName}-speelycaptor-convert"
+      FunctionName: !Sub "${AWS::StackName}-speelycaptor-convert"
       Handler: index.convert
       MemorySize: 3000
       Role: !GetAtt SpeelycaptorRole.Arn
@@ -1264,7 +1263,7 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/photomnemonic/photomnemonic-0.1.0.zip
-      FunctionName: "${AWS::StackName}-photomnemonic-screenshot"
+      FunctionName: !Sub "${AWS::StackName}-photomnemonic-screenshot"
       Handler: index.handler
       MemorySize: 1024
       Role: !GetAtt PhotomnemonicRole.Arn
