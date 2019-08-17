@@ -35,6 +35,7 @@ Metadata:
           - DbPreferredBackupWindow
           - DbPreferredMaintenanceWindow
           - DBMaxCapacity
+          - NewCMKForDbEncryption
     ParameterLabels:
       DomainName:
         default: Domain Name
@@ -60,6 +61,8 @@ Metadata:
         default: Voice/video streaming server EC2 instance type
       ClassB:
         default: Class B IP Block
+      NewCMKForDbEncryption:
+        default: Create a dedicated CMK for database encryption?
       AppPlacementGroupStrategy:
         default: App server placement group strategy
         DbBackupRetentionPeriod:
@@ -173,6 +176,13 @@ Parameters:
   DbMaxCapacity:
     Type: Number
     Default: 64
+  NewCMKForDbEncryption:
+    Type: String
+    Description: Select 'Yes' if you'd like to create a dedicated CMK in KMS for database encryption. Charges will apply.
+    Default: No
+    AllowedValues:
+      - No
+      - Yes
 
 Mappings:
   InstanceTypeMeta:
@@ -202,6 +212,7 @@ Conditions:
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   StreamIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
+  CreateDbEncryptionKey: !Equals [!Ref NewCMKForDbEncryption, "Yes"]
 
 Resources:
 
@@ -822,7 +833,7 @@ Resources:
   SESDomainFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: aws-cfn-ses-domain
+    FunctionName: "${AWS::StackName}-aws-cfn-ses-domain"
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.3.zip
@@ -875,6 +886,14 @@ Resources:
                  - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
                  - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}/*'
                  - !Sub 'arn:aws:s3:::${SpeelycaptorScratchBucket}/*'
+             - Effect: Allow
+               Action:
+                 - s3:ListObjects
+               Resource:
+                 - !Sub 'arn:aws:s3:::${AssetsBucket}'
+                 - !Sub 'arn:aws:s3:::${LambdaBucket}'
+                 - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}'
+                 - !Sub 'arn:aws:s3:::${SpeelycaptorScratchBucket}'
 
   EmptyBucketFunction:
     Type: AWS::Lambda::Function
@@ -1010,19 +1029,18 @@ Resources:
       BucketName: !Join ["-", [ !Sub "${AWS::StackName}-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   EmptyLambdaBucket:
     Type: Custom::EmptyLambdaBucket
-    UpdateReplacePolicy: Retain
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
-      Bucket: !Ref LambdaBucket
+      BucketName: !Ref LambdaBucket
 # Speelycaptor
   SpeelycaptorInitLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: /aws/lambda/speelycaptor-initialize
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-speelycaptor-initialize"
   SpeelycaptorConvertLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: /aws/lambda/speelycaptor-convert
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-speelycaptor-convert"
   SpeelycaptorScratchBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -1033,7 +1051,7 @@ Resources:
     UpdateReplacePolicy: Retain
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
-      Bucket: !Ref SpeelycaptorScratchBucket
+      BucketName: !Ref SpeelycaptorScratchBucket
   SpeelycaptorRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1094,7 +1112,7 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
-      FunctionName: speelycaptor-initialize
+      FunctionName: "${AWS::StackName}-speelycaptor-initialize"
       Handler: index.init
       MemorySize: 1024
       Role: !GetAtt SpeelycaptorRole.Arn
@@ -1113,7 +1131,7 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
-      FunctionName: speelycaptor-convert
+      FunctionName: "${AWS::StackName}-speelycaptor-convert"
       Handler: index.convert
       MemorySize: 3000
       Role: !GetAtt SpeelycaptorRole.Arn
@@ -1215,7 +1233,7 @@ Resources:
   PhotomnemonicScreenshotLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: /aws/lambda/photomnemonic-screenshot
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-photomnemonic-screenshot"
   PhotomnemonicRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -1246,7 +1264,7 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/photomnemonic/photomnemonic-0.1.0.zip
-      FunctionName: photomnemonic-screenshot
+      FunctionName: "${AWS::StackName}-photomnemonic-screenshot"
       Handler: index.handler
       MemorySize: 1024
       Role: !GetAtt PhotomnemonicRole.Arn
@@ -1317,7 +1335,7 @@ Resources:
   NearsparkThumbnailLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: /aws/lambda/nearspark-thumbnail
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-nearspark-thumbnail"
   NearsparkRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -1348,7 +1366,7 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/nearspark/nearspark-0.1.0.zip
-      FunctionName: nearspark-thumbnail
+      FunctionName: !Sub "${AWS::StackName}-nearspark-thumbnail"
       Handler: index.handler
       MemorySize: 128
       Role: !GetAtt NearsparkRole.Arn
@@ -1506,10 +1524,9 @@ Resources:
       Bucket: !Ref AssetsBucket
   EmptyAssetsBucket:
     Type: Custom::EmptyAssetsBucket
-    UpdateReplacePolicy: Retain
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
-      Bucket: !Ref AssetsBucket
+      BucketName: !Ref AssetsBucket
   CopyPDFJSAssets:
     Type: Custom::CopyPDFJSAssets
     UpdateReplacePolicy: Retain
@@ -1549,10 +1566,9 @@ Resources:
               HostName: !Ref DomainName
   EmptyLinkRedirectorBucket:
     Type: Custom::EmptyLinkRedirectorBucket
-    UpdateReplacePolicy: Retain
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
-      Bucket: !Ref LinkRedirectorBucket
+      BucketName: !Ref LinkRedirectorBucket
   LinkRedirectorPublicBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -2434,6 +2450,7 @@ Resources:
 
   AppDbKmsKey:
     Type: AWS::KMS::Key
+    Condition: CreateDbEncryptionKey
     DeletionPolicy: Retain
     Properties:
       Description: DB encryption key
@@ -2464,6 +2481,7 @@ Resources:
 
   AppDbKmsKeyAlias:
     Type: AWS::KMS::Alias
+    Condition: CreateDbEncryptionKey
     DeletionPolicy: Retain
     DependsOn: AppDb
     Properties:
@@ -2527,7 +2545,7 @@ Resources:
       Engine: aurora-postgresql
       EngineMode: serverless
       EngineVersion: 10.7
-      KmsKeyId: !Ref AppDbKmsKey
+      KmsKeyId: !If [CreateDbEncryptionKey, !Ref AppDbKmsKey, !Ref AWS::NoValue]
       StorageEncrypted: true
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]
