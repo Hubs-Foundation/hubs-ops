@@ -2679,10 +2679,6 @@ Outputs:
     Description: Bio census HTTP port
     Value: !FindInMap [ServicesMeta, BioCensus, Port]
 
-  SshPort:
-    Description: SSH port
-    Value: !FindInMap [ServicesMeta, Ssh, Port]
-
   InternalZoneId:
     Description: Internal Zone Id
     Value: !GetAtt InternalZoneInfo.Id
