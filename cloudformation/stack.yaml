@@ -895,6 +895,8 @@ Resources:
 
   SendEmailAccessKey:
     Type: AWS::IAM::AccessKey
+    DependsOn:
+      - SendEmailUser
     Properties:
       UserName: !Sub "${AWS::StackName}-send-email"
 
@@ -2674,3 +2676,15 @@ Outputs:
   JanusWebRTCTo:
     Description: Janus WebRTC To Port
     Value: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+
+  InternalZoneId:
+    Description: Internal Zone Id
+    Value: !GetAtt InternalZoneInfo.Id
+
+  InternalZoneDomainName:
+    Description: Internal Zone Domain Name
+    Value: !GetAtt InternalZoneInfo.Name
+
+  ShortlinkDomainName:
+    Description: Shortlink Domain Name
+    Value: !GetAtt ShortlinkZoneInfo.Name
