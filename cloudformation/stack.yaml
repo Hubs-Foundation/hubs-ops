@@ -1,0 +1,2690 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Domain Configuration
+        Parameters:
+          - DomainName
+          - IsDomainOnRoute53
+          - ShortlinkZone
+          - InternalZone
+      - Label:
+          default: Email Configuration
+        Parameters:
+          - EmailZone
+          - EmailSubdomain
+      - Label:
+          default: Server Configuration
+        Parameters:
+          - KeyPair
+          - AppInstanceCount
+          - StreamInstanceCount
+          - AppInstanceType
+          - StreamInstanceType
+      - Label:
+          default: SSL Certificates
+        Parameters:
+          - UnmanagedDomainCertArn
+      - Label:
+          default: Advanced - Leave the defaults unless you know what you're doing!
+        Parameters:
+          - ClassB
+          - AppPlacementGroupStrategy
+          - DbBackupRetentionPeriod
+          - DbPreferredBackupWindow
+          - DbPreferredMaintenanceWindow
+          - DBMaxCapacity
+          - NewCMKForDbEncryption
+    ParameterLabels:
+      DomainName:
+        default: Domain Name
+      IsDomainOnRoute53:
+        default: Is your domain set up on Route 53?
+      ShortlinkZone:
+        default: Short link Route 53 Zone
+      InternalZone:
+        default: Internal Route 53 Zone
+      EmailZone:
+        default: Outgoing Email Route 53 Zone
+      EmailSubdomain:
+        default: Outgoing Email Subdomain Prefix
+      UnmanagedDomainCertArn:
+        default: Unmanaged Domain SSL Certificate ARN
+      AppInstanceCount:
+        default: Number of app servers
+      AppInstanceType:
+        default: App server EC2 instance type
+      StreamInstanceCount:
+        default: Number of voice/videos streaming servers
+      StreamInstanceType:
+        default: Voice/video streaming server EC2 instance type
+      ClassB:
+        default: Class B IP Block
+      NewCMKForDbEncryption:
+        default: Create a dedicated CMK for database encryption?
+      AppPlacementGroupStrategy:
+        default: App server placement group strategy
+        DbBackupRetentionPeriod:
+          default: "Database backup retention period (in days)"
+        DbPreferredBackupWindow:
+          default: "Preferred database backup window. (Format dddd:hh24:mi-ddd:hh24:mi)"
+        DbPreferredMaintenanceWindow:
+          default: "Preferred database maintenance window. (Format dddd:hh24:mi-ddd:hh24:mi)"
+        DbMaxCapacity:
+          default: "Max database capacity (in ACUs)"
+Parameters:
+  DomainName:
+    Type: String
+    Description: Domain name WebSpaces will be hosted on. (eg mywebspaces.com or webspaces.mydomain.com.)
+    AllowedPattern: ^((?:([a-z0-9]\.|[a-z0-9][a-z0-9\-]{0,61}[a-z0-9])\.)+)([a-z0-9]{2,63}|(?:[a-z0-9][a-z0-9\-]{0,61}[a-z0-9]))\.?$
+    ConstraintDescription: Must be a valid domain name (eg mywebspaces.com or webspaces.mycompany.com)
+  IsDomainOnRoute53:
+    Type: String
+    Description: It is hightly recommended you use Route 53 to manage your domain. Set to Yes if your domain is set up on Route 53, and you can move onto the next item. Set to No if your domain is on a third party service such as GoDaddy or Namecheap. If you choose 'No', you'll need to set the 'Unmanaged Domain SSL Certificate ARN' configuration setting in the 'SSL Certificates' section below. Also, if you choose 'No', once your stack is created you'll need to update your DNS provider using the information in the 'Outputs' tab. See the 'Outputs' tab once the stack is created for more information on what to do next.
+    AllowedValues: ["Yes - My domain is set up on Route 53.", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section."]
+  ShortlinkZone:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Your AWS Route 53 Zone for short room permalinks and entry codes. (eg mywebspaces.link) It should *not* be the same domain as the any of the WebSpaces domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type.
+    AllowedPattern: ".+"
+    ConstraintDescription: You didn't specify a short link Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53, ideally one short and easy to type.
+  InternalZone:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Your AWS Route 53 Zone for an internal domain name (eg mywebspaces-internal.com.) You'll need to register a new internal domain name of your choice with Route 53 to be used internally by WebSpaces. It should *not* be the same domain as the WebSpaces domain name that you specified above. This domain will not be seen by visitors and can be anything you like.
+    AllowedPattern: ".+"
+    ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
+  EmailZone:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Your AWS Route 53 Zone for sending email. (eg mywebspacesmail.com.) To verify email addresses, WebSpaces needs to be able to send email. If you do not have an existing SMTP provider, create and choose a Route 53 Zone for the domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing SMTP provider (eg Mailchimp) select the same zone as you chose above in 'Internal Route 53 Zone' and you'll be able to enter your SMTP credentials from your provider later.
+    AllowedPattern: ".+"
+    ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
+  EmailSubdomain:
+    Type: String
+    Description: The Subdomain prefix to use for outgoing emails. For example, if your Outgoing Email Route 53 Zone is set to mywebspaces.com, setting this field to "mail" will send email from the domain mail.mywebspaces.com. If you have a third party SMTP provider then leave this field blank. 
+    Default: mail
+  UnmanagedDomainCertArn:
+    Type: String
+    Description: You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to upload your domain's SSL certificate to AWS Certificate Manager before completing this form. Make sure you upload your SSL certificate to the same AWS region as your WebSpaces stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console.
+    AllowedPattern: "^$|^arn:aws:acm:"
+    ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
+  AppInstanceCount:
+    Type: Number
+    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for WebSpaces. You must run at least one app server.
+    Default: 1
+    MinValue: 1
+    ConstraintDescription: You must run at least one app server.
+  AppInstanceType:
+    Type: String
+    Description: The EC2 instance type for your app server(s). Choose a "t" instance type if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.medium
+      - m3.medium
+      - t3.large
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+  StreamInstanceCount:
+    Type: Number
+    Description: The number of dedicated voice/video streaming server(s) you'd like to run. These servers are optional, enter a zero here if you do not want to run any streaming servers. Adding streaming servers will take network and CPU load off of your app servers. These servers will transmit voice and streaming video data between users.
+    Default: 0
+    MinValue: 0
+  StreamInstanceType:
+    Type: String
+    Description: The EC2 instance type for your streaming server(s), if you've added any. This field will not be used if you entered zero for the number of streaming servers above. Choose a "t" instance type if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.medium
+      - m3.medium
+      - t3.large
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+  KeyPair:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: "SSH Keypair for server SSH access. If there no keypairs in this list, you'll need to add a SSH keypair via the EC2 console. See: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#having-ec2-create-your-key-pair."
+    AllowedPattern: ".+"
+  ClassB:
+    Type: String
+    Description: VPC ClassB (10.XX.0.0/16) block to use for internal server IPs.
+    Default: 56
+  AppPlacementGroupStrategy:
+    Type: String
+    Description: "Placement group strategy for app servers. If you only have one app server, this setting has no effect. If you have more than one app server, choose 'cluster' to increase connectivity between servers at the cost of reliability. When using 'cluster', you will have lower latency between users but your service will go down if there is an AZ-wide outage. Choose 'spread' if you would like to ensure higher availability at the cost of latency or maximum throughput between app servers. Choose 'none' if you do not have a preference, will be running more than 7 app servers, or if AWS has been failing to provision servers for you in previous attempts to create the stack. App servers communicate with one another extensively, so 'cluster' is the preferred setting if you can tolerate some risk of downtime if there are AZ-wide outages."
+    Default: cluster
+    AllowedValues:
+      - cluster
+      - spread
+      - none
+  DbBackupRetentionPeriod:
+    Type: Number
+    Default: 14
+  DbPreferredBackupWindow:
+    Type: String
+    Description: "Preferred time for automatic database backups. (Format hh24:mi-hh24:mi)"
+    Default: "09:30-10:00"
+  DbPreferredMaintenanceWindow:
+    Type: String
+    Description: "Preferred time for database maintenence. (Format ddd:hh24:mi-ddd:hh24:mi)"
+    Default: "Sun:08:30-Sun:09:30"
+  DbMaxCapacity:
+    Type: Number
+    Default: 64
+  NewCMKForDbEncryption:
+    Type: String
+    Description: Select 'Yes' if you'd like to create a dedicated CMK in KMS for database encryption. Charges will apply.
+    Default: No
+    AllowedValues:
+      - No
+      - Yes
+
+Mappings:
+  ServicesMeta:
+    RetExternal:
+      Port: 443
+    RetInternal:
+      Port: 4000
+    PostgrestInternal:
+      Port: 3000
+    JanusExternal:
+      Port: 8443
+    JanusAdmin:
+      Port: 7000
+    JanusWebRTCFrom:
+      Port: 20000
+    JanusWebRTCTo:
+      Port: 60000
+    BioCensus:
+      Port: 9631
+
+  InstanceTypeMeta:
+    # Some instance types do not support cluster placement, so use spread
+    t2.micro:
+      PlacementForCluster: spread
+    t2.small:
+      PlacementForCluster: spread
+    t3.medium:
+      PlacementForCluster: spread
+    m3.medium:
+      PlacementForCluster: spread
+    t3.large:
+      PlacementForCluster: spread
+    c5.large:
+      PlacementForCluster: cluster
+    c5.xlarge:
+      PlacementForCluster: cluster
+    c5.2xlarge:
+      PlacementForCluster: cluster
+    c5.4xlarge:
+      PlacementForCluster: cluster
+
+Conditions:
+  HasMangedDomain: !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]]
+  HasStreamingServers: !Not [!Equals [!Ref StreamInstanceCount, 0]]
+  AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
+  StreamIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
+  HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
+  CreateDbEncryptionKey: !Equals [!Ref NewCMKForDbEncryption, "Yes"]
+
+Resources:
+
+# VPC - Two subnets for public + private
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Sub '10.${ClassB}.0.0/16'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} 10.${ClassB}.0.0/16'
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} 10.${ClassB}.0.0/16'
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  SubnetAPublic:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: !Sub '10.${ClassB}.0.0/20'
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} A public'
+      - Key: Reach
+        Value: public
+  SubnetAPrivate:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: !Sub '10.${ClassB}.16.0/20'
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} A private'
+      - Key: Reach
+        Value: private
+  SubnetBPublic:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: !Sub '10.${ClassB}.32.0/20'
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} B public'
+      - Key: Reach
+        Value: public
+  SubnetBPrivate:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: !Sub '10.${ClassB}.48.0/20'
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} B private'
+      - Key: Reach
+        Value: private
+  RouteTableAPublic:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} A public'
+  RouteTableAPrivate:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} A private'
+  RouteTableBPublic:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} B public'
+  RouteTableBPrivate:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} B private'
+  RouteTableAssociationAPublic:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SubnetAPublic
+      RouteTableId: !Ref RouteTableAPublic
+  RouteTableAssociationAPrivate:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SubnetAPrivate
+      RouteTableId: !Ref RouteTableAPrivate
+  RouteTableAssociationBPublic:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SubnetBPublic
+      RouteTableId: !Ref RouteTableBPublic
+  RouteTableAssociationBPrivate:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SubnetBPrivate
+      RouteTableId: !Ref RouteTableBPrivate
+  RouteTablePublicAInternetRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTableAPublic
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref InternetGateway
+  RouteTablePublicBInternetRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTableBPublic
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref InternetGateway
+  NetworkAclPublic:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} Public'
+  NetworkAclPrivate:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName} Private'
+  SubnetNetworkAclAssociationAPublic:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !Ref SubnetAPublic
+      NetworkAclId: !Ref NetworkAclPublic
+  SubnetNetworkAclAssociationAPrivate:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !Ref SubnetAPrivate
+      NetworkAclId: !Ref NetworkAclPrivate
+  SubnetNetworkAclAssociationBPublic:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !Ref SubnetBPublic
+      NetworkAclId: !Ref NetworkAclPublic
+  SubnetNetworkAclAssociationBPrivate:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !Ref SubnetBPrivate
+      NetworkAclId: !Ref NetworkAclPrivate
+  NetworkAclEntryInPublicAllowAll:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref NetworkAclPublic
+      RuleNumber: 99
+      Protocol: -1
+      RuleAction: allow
+      Egress: false
+      CidrBlock: '0.0.0.0/0'
+  NetworkAclEntryOutPublicAllowAll:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref NetworkAclPublic
+      RuleNumber: 99
+      Protocol: -1
+      RuleAction: allow
+      Egress: true
+      CidrBlock: '0.0.0.0/0'
+  NetworkAclEntryInPrivateAllowVPC:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref NetworkAclPrivate
+      RuleNumber: 99
+      Protocol: -1
+      RuleAction: allow
+      Egress: false
+      CidrBlock: '0.0.0.0/0'
+  NetworkAclEntryOutPrivateAllowVPC:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref NetworkAclPrivate
+      RuleNumber: 99
+      Protocol: -1
+      RuleAction: allow
+      Egress: true
+      CidrBlock: '0.0.0.0/0'
+# Lambda Copy
+  CopySpeelycaptorLambda:
+    Type: Custom::CopySpeelycaptorLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt CopyFileFunction.Arn
+      DestBucket: !Ref LambdaBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/speelycaptor/speelycaptor-0.1.2.zip
+  CopyNearsparkLambda:
+    Type: Custom::CopyNearsparkLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt CopyFileFunction.Arn
+      DestBucket: !Ref LambdaBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/nearspark/nearspark-0.1.0.zip
+  CopyPhotomnemonicLambda:
+    Type: Custom::CopyPhotomnemonicLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt CopyFileFunction.Arn
+      DestBucket: !Ref LambdaBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/photomnemonic/photomnemonic-0.1.0.zip
+  CopySesLambda:
+    Type: Custom::CopySesLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt CopyFileFunction.Arn
+      DestBucket: !Ref LambdaBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.3.zip
+
+## route53dependency
+  Route53DependencyLambda:
+    Metadata:
+      Source: https://github.com/sonyxperiadev/amazon-custom-resources/tree/master/route53-dependency
+      Version: 1.0.0
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Lookup Route 53 info
+      Handler: index.handler
+      Role: !GetAtt Route53DependencyRole.Arn
+      Runtime: nodejs8.10
+      Timeout: 900
+      Code:
+        ZipFile: |
+          'use strict';
+
+          function route53Dependency(properties, callback) {
+            if (!properties.Id && !properties.Domain)
+              callback("Zone id or domain not specified");
+
+            var aws = require("aws-sdk");
+            var route53 = new aws.Route53();
+
+            var responseData = {};
+            console.log('route53Dependency', properties);
+            route53.listHostedZones({}, function(err, data) {
+              console.log('listHostedZones', err, data);
+              if (err)
+                return callback(err);
+
+              var zones = data.HostedZones;
+              var matching = zones.filter(function(zone) {
+                if (properties.Id) {
+                  return zone.Id === "/hostedzone/" + properties.Id;
+                } else {
+                  var tldParts = properties.Domain.split(".");
+                  var tld = tldParts[tldParts.length - 2] + "." + tldParts[tldParts.length - 1];
+                  return zone.Name === tld + ".";
+                }
+              });
+              if (matching.length != 1)
+                return callback('Exactly one matching zone is allowed ' + zones);
+              var match = matching[0];
+              delete match.Config;
+              delete match.CallerReference;
+              match.Id = match.Id.split('/')[2];
+              match.Name = match.Name.substring(0, match.Name.length-1);
+              return callback(null, match);
+            });
+          }
+
+          route53Dependency.handler = function(event, context) {
+            console.log(JSON.stringify(event, null, '  '));
+
+            if (event.RequestType == 'Delete') {
+              return sendResponse(event, context, "SUCCESS");
+            }
+
+            route53Dependency(event.ResourceProperties, function(err, result) {
+              var status = err ? 'FAILED' : 'SUCCESS';
+              return sendResponse(event, context, status, result, err);
+            });
+          };
+
+          function getReason(err) {
+            if (err)
+              return err.message;
+            else
+              return '';
+          }
+
+          function sendResponse(event, context, status, data, err) {
+            var responseBody = {
+              StackId: event.StackId,
+              RequestId: event.RequestId,
+              LogicalResourceId: event.LogicalResourceId,
+              PhysicalResourceId: 'route53Dependency-' + event.ResourceProperties.DomainName,
+              Status: status,
+              Reason: getReason(err) + " See details in CloudWatch Log: " + context.logStreamName,
+              Data: data
+            };
+
+            console.log("RESPONSE:\n", responseBody);
+            var json = JSON.stringify(responseBody);
+
+            var https = require("https");
+            var url = require("url");
+
+            var parsedUrl = url.parse(event.ResponseURL);
+            var options = {
+              hostname: parsedUrl.hostname,
+              port: 443,
+              path: parsedUrl.path,
+              method: "PUT",
+              headers: {
+                "content-type": "",
+                "content-length": json.length
+              }
+            };
+
+            var request = https.request(options, function(response) {
+              console.log("STATUS: " + response.statusCode);
+              console.log("HEADERS: " + JSON.stringify(response.headers));
+              context.done(null, data);
+            });
+
+            request.on("error", function(error) {
+              console.log("sendResponse Error:\n", error);
+              context.done(error);
+            });
+
+            request.on("end", function() {
+              console.log("end");
+            });
+            request.write(json);
+            request.end();
+          }
+
+
+          module.exports = route53Dependency;
+  Route53DependencyRole:
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-Route53Dependency"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - route53:ListHostedZones
+                Effect: Allow
+                Resource: "*"
+            Version: '2012-10-17'
+          PolicyName: !Sub '${AWS::StackName}Route53DependencyCustomPolicy'
+    Type: AWS::IAM::Role
+
+# CustomAcmCertificateLambda
+  CustomAcmCertificateLambda:
+    Metadata:
+      Source: https://github.com/dflook/cloudformation-dns-certificate
+      Version: 1.7.1
+    Properties:
+      Code:
+        ZipFile: "T=RuntimeError\nimport copy,hashlib as t,json,logging as B,time\
+          \ as b\nfrom boto3 import client as K\nfrom botocore.exceptions import ClientError\
+          \ as u,ParamValidationError as v\nfrom botocore.vendored import requests\
+          \ as w\nA=B.getLogger()\nA.setLevel(B.INFO)\nD=A.info\nS=A.exception\nd=json.dumps\n\
+          M=copy.copy\ne=b.sleep\ndef handler(event,c):\n\tA9='OldResourceProperties';A8='Update';A7='Delete';A6='None';A5='acm';A4='FAILED';A3='properties';A2='stack-id';A1='logical-id';A0='DNS';s='Old';r='Certificate';q='LogicalResourceId';p='DomainName';o='ValidationMethod';n='Route53RoleArn';m='Region';a='RequestType';Z='Reinvoked';Y='StackId';X=None;R='Status';Q='Key';P='';O=True;N='DomainValidationOptions';L=False;J='ResourceProperties';I='cloudformation:';H='Value';G='CertificateArn';F='Tags';C='PhysicalResourceId';A=event;f=c.get_remaining_time_in_millis;D(A)\n\
+          \tdef g():\n\t\tD=M(B)\n\t\tfor H in ['ServiceToken',m,F,n]:D.pop(H,X)\n\
+          \t\tif o in B:\n\t\t\tif B[o]==A0:\n\t\t\t\tfor I in set([B[p]]+B.get('SubjectAlternativeNames',[])):k(I)\n\
+          \t\t\t\tdel D[N]\n\t\tA[C]=E.request_certificate(IdempotencyToken=y,**D)[G];l()\n\
+          \tdef U(a):\n\t\twhile O:\n\t\t\ttry:E.delete_certificate(**{G:a});return\n\
+          \t\t\texcept u as B:\n\t\t\t\tS(P);A=B.response['Error']['Code']\n\t\t\t\
+          \tif A=='ResourceInUseException':\n\t\t\t\t\tif f()/1000<30:raise\n\t\t\t\
+          \t\te(5);continue\n\t\t\t\tif A in['ResourceNotFoundException','ValidationException']:return\n\
+          \t\t\t\traise\n\t\t\texcept v:return\n\tdef V(props):\n\t\tfor J in E.get_paginator('list_certificates').paginate():\n\
+          \t\t\tfor B in J['CertificateSummaryList']:\n\t\t\t\tD(B);C={A[Q]:A[H]for\
+          \ A in E.list_tags_for_certificate(**{G:B[G]})[F]}\n\t\t\t\tif C.get(I+A1)==A[q]and\
+          \ C.get(I+A2)==A[Y]and C.get(I+A3)==hash(props):return B[G]\n\tdef h():\n\
+          \t\tif A.get(Z,L):raise T('Certificate not issued in time')\n\t\tA[Z]=O;D(A);K('lambda').invoke(FunctionName=c.invoked_function_arn,InvocationType='Event',Payload=d(A).encode())\n\
+          \tdef i():\n\t\twhile f()/1000>30:\n\t\t\tB=E.describe_certificate(**{G:A[C]})[r];D(B)\n\
+          \t\t\tif B[R]=='ISSUED':return O\n\t\t\telif B[R]==A4:raise T(B.get('FailureReason',P))\n\
+          \t\t\te(5)\n\t\treturn L\n\tdef x():B=M(A[s+J]);B.pop(F,X);C=M(A[J]);C.pop(F,X);return\
+          \ B!=C\n\tdef j():\n\t\tW='Type';V='Name';U='HostedZoneId';T='ValidationStatus';S='PENDING_VALIDATION';L='ResourceRecord'\n\
+          \t\tif B.get(o)!=A0:return\n\t\twhile O:\n\t\t\tI=E.describe_certificate(**{G:A[C]})[r];D(I)\n\
+          \t\t\tif I[R]!=S:return\n\t\t\tif not[A for A in I.get(N,[{}])if T not in\
+          \ A or L not in A]:break\n\t\t\tb.sleep(1)\n\t\tfor F in I[N]:\n\t\t\tif\
+          \ F[T]==S:M=k(F[p]);P=M.get(n,B.get(n));J=K('sts').assume_role(RoleArn=P,RoleSessionName=(r+A[q])[:64],DurationSeconds=900)['Credentials']if\
+          \ P is not X else{};Q=K('route53',aws_access_key_id=J.get('AccessKeyId'),aws_secret_access_key=J.get('SecretAccessKey'),aws_session_token=J.get('SessionToken')).change_resource_record_sets(**{U:M[U],'ChangeBatch':{'Comment':'Domain\
+          \ validation for '+A[C],'Changes':[{'Action':'UPSERT','ResourceRecordSet':{V:F[L][V],W:F[L][W],'TTL':60,'ResourceRecords':[{H:F[L][H]}]}}]}});D(Q)\n\
+          \tdef k(n):\n\t\tC='.';n=n.rstrip(C);D={A[p].rstrip(C):A for A in B[N]};A=n.split(C)\n\
+          \t\twhile len(A):\n\t\t\tif C.join(A)in D:return D[C.join(A)]\n\t\t\tA=A[1:]\n\
+          \t\traise T(N+' missing'+' for '+n)\n\thash=lambda v:t.new('md5',d(v,sort_keys=O).encode()).hexdigest()\n\
+          \tdef l():B=M(A[J].get(F,[]));B+=[{Q:I+A1,H:A[q]},{Q:I+A2,H:A[Y]},{Q:I+'stack-name',H:A[Y].split('/')[1]},{Q:I+A3,H:hash(A[J])}];E.add_tags_to_certificate(**{G:A[C],F:B})\n\
+          \tdef W():D(A);B=w.put(A['ResponseURL'],json=A,headers={'content-type':P});B.raise_for_status()\n\
+          \ttry:\n\t\ty=hash(A['RequestId']+A[Y]);B=A[J];E=K(A5,region_name=B.get(m));A[R]='SUCCESS'\n\
+          \t\tif A[a]=='Create':\n\t\t\tif A.get(Z,L)is L:A[C]=A6;g()\n\t\t\tj()\n\
+          \t\t\tif not i():return h()\n\t\telif A[a]==A7:\n\t\t\tif A[C]!=A6:\n\t\t\
+          \t\tif A[C].startswith('arn:'):U(A[C])\n\t\t\t\telse:U(V(B))\n\t\telif A[a]==A8:\n\
+          \t\t\tif x():\n\t\t\t\tD(A8)\n\t\t\t\tif V(B)==A[C]:\n\t\t\t\t\ttry:E=K(A5,region_name=A[A9].get(m));D(A7);U(V(A[A9]))\n\
+          \t\t\t\t\texcept:S(P)\n\t\t\t\t\treturn W()\n\t\t\t\tif A.get(Z,L)is L:g()\n\
+          \t\t\t\tj()\n\t\t\t\tif not i():return h()\n\t\t\telse:\n\t\t\t\tif F in\
+          \ A[s+J]:E.remove_tags_from_certificate(**{G:A[C],F:A[s+J][F]})\n\t\t\t\t\
+          l()\n\t\telse:raise T(A[a])\n\t\treturn W()\n\texcept Exception as z:S(P);A[R]=A4;A['Reason']=str(z);return\
+          \ W()"
+      Description: Cloudformation custom resource for DNS validated certificates
+      Handler: index.handler
+      Role: !GetAtt CustomAcmCertificateLambdaExecutionRole.Arn
+      Runtime: python3.6
+      Timeout: 900
+    Type: AWS::Lambda::Function
+  CustomAcmCertificateLambdaExecutionRole:
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-CustomAcmCertificateLambdaExecution"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - acm:AddTagsToCertificate
+                  - acm:DeleteCertificate
+                  - acm:DescribeCertificate
+                  - acm:RemoveTagsFromCertificate
+                Effect: Allow
+                Resource:
+                  - !Sub 'arn:aws:acm:*:${AWS::AccountId}:certificate/*'
+              - Action:
+                  - acm:RequestCertificate
+                  - acm:ListTagsForCertificate
+                  - acm:ListCertificates
+                Effect: Allow
+                Resource:
+                  - '*'
+              - Action:
+                  - route53:ChangeResourceRecordSets
+                Effect: Allow
+                Resource:
+                  - arn:aws:route53:::hostedzone/*
+            Version: '2012-10-17'
+          PolicyName: !Sub '${AWS::StackName}CustomAcmCertificateLambdaExecutionPolicy'
+    Type: AWS::IAM::Role
+
+# Zones + SSL Certs
+  ExternalZoneInfo:
+    Type: Custom::Route53
+    Properties:
+      Domain: !Ref DomainName
+      ServiceToken: !GetAtt Route53DependencyLambda.Arn
+
+  ShortlinkZoneInfo:
+    Type: Custom::Route53
+    Condition: HasMangedDomain
+    Properties:
+      Id: !Ref ShortlinkZone
+      ServiceToken: !GetAtt Route53DependencyLambda.Arn
+
+  InternalZoneInfo:
+    Type: Custom::Route53
+    Condition: HasMangedDomain
+    Properties:
+      Id: !Ref InternalZone
+      ServiceToken: !GetAtt Route53DependencyLambda.Arn
+
+  EmailZoneInfo:
+    Type: Custom::Route53
+    Condition: HasMangedDomain
+    Properties:
+      Id: !Ref EmailZone
+      ServiceToken: !GetAtt Route53DependencyLambda.Arn
+
+  ExternalZoneSSLCert:
+    Type: Custom::DNSCertificate
+    Condition: HasMangedDomain
+    Properties: 
+      DomainName: !Sub '*.${ExternalZoneInfo.Name}'
+      DomainValidationOptions:
+        - DomainName: !GetAtt ExternalZoneInfo.Name
+          HostedZoneId: !GetAtt ExternalZoneInfo.Id
+      ValidationMethod: DNS
+      Region: !Sub "${AWS::Region}"
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+
+  ExternalZoneSSLCertEast:
+    Type: Custom::DNSCertificate
+    Condition: HasMangedDomain
+    Properties: 
+      DomainName: !Sub '*.${ExternalZoneInfo.Name}'
+      DomainValidationOptions:
+        - DomainName: !GetAtt ExternalZoneInfo.Name
+          HostedZoneId: !GetAtt ExternalZoneInfo.Id
+      ValidationMethod: DNS
+      Region: us-east-1
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+
+  ShortlinkZoneSSLCertEast:
+    Type: Custom::DNSCertificate
+    Properties: 
+      DomainName: !GetAtt ShortlinkZoneInfo.Name
+      DomainValidationOptions:
+        - DomainName: !GetAtt ShortlinkZoneInfo.Name
+          HostedZoneId: !GetAtt ShortlinkZoneInfo.Id
+      ValidationMethod: DNS
+      Region: us-east-1
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+
+  InternalZoneSSLCert:
+    Type: Custom::DNSCertificate
+    Properties: 
+      DomainName: !Sub '*.${InternalZoneInfo.Name}'
+      DomainValidationOptions:
+        - DomainName: !GetAtt InternalZoneInfo.Name
+          HostedZoneId: !Ref InternalZone
+      ValidationMethod: DNS
+      Region: !Sub "${AWS::Region}"
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+
+  InternalZoneSSLCertEast:
+    Type: Custom::DNSCertificate
+    Properties: 
+      DomainName: !Sub '*.${InternalZoneInfo.Name}'
+      DomainValidationOptions:
+        - DomainName: !GetAtt InternalZoneInfo.Name
+          HostedZoneId: !Ref InternalZone
+      ValidationMethod: DNS
+      Region: us-east-1
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+
+# SESDomain
+  SESDomainRole:
+   Type: AWS::IAM::Role
+   Properties:
+     RoleName: !Sub "${AWS::StackName}-SESDOmain"
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Policies:
+       - PolicyName: provision-ses
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - ses:DeleteIdentity
+                 - ses:GetIdentityDkimAttributes
+                 - ses:GetIdentityMailFromDomainAttributes
+                 - ses:GetIdentityVerificationAttributes
+                 - ses:SetIdentityDomainDkim
+                 - ses:SetIdentityMailFromDomain
+                 - ses:VerifyDomainDkim
+                 - ses:VerifyDomainIdentity
+               Resource:
+                 - "*"
+             - Effect: Allow
+               Action:
+                 - logs:*
+               Resource: arn:aws:logs:*:*:*
+
+  SESDomainRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Sub '${EmailZoneInfo.Name}.'
+      RecordSets: !GetAtt SESDomain.Route53RecordSets
+
+  SESDomainFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-aws-cfn-ses-domain"
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.3.zip
+      Handler: index.lambda_handler
+      Role: !GetAtt SESDomainRole.Arn
+      Runtime: python3.6
+      Description: Sets up SES domain for sending email
+      Timeout: 30
+      MemorySize: 128
+    DependsOn:
+      - CopySesLambda
+
+  SESDomain:
+    Type: Custom::SES_Domain
+    Properties:
+      ServiceToken: !GetAtt SESDomainFunction.Arn
+      Domain: !GetAtt EmailZoneInfo.Name
+      EnableReceive: false
+      EnableSend: true
+      MailFromSubdomain: !Ref EmailSubdomain
+      TTL: 1800
+      CustomDMARC: '"v=DMARC1;p=reject;pct=100;aspf=r;"' # We can advise reject since we always send via SES
+      Region: "us-east-1"
+
+  SendEmailUser:
+   Type: AWS::IAM::User
+   Properties:
+     UserName: !Sub "${AWS::StackName}-send-email"
+     Policies:
+       - PolicyName: send-email
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - ses:SendRawEmail
+               Resource: "*"
+               Condition:
+                 StringEquals:
+                   "ses:FromAddress": !Sub "noreply@${SESDomain}"
+
+  SendEmailAccessKey:
+    Type: AWS::IAM::AccessKey
+    DependsOn:
+      - SendEmailUser
+    Properties:
+      UserName: !Sub "${AWS::StackName}-send-email"
+
+# EmptyBucket
+  EmptyBucketRole:
+   Type: AWS::IAM::Role
+   Properties:
+     RoleName: !Sub "${AWS::StackName}-EmptyBucket"
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Path: /
+     Policies:
+       - PolicyName: delete-s3-files
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - s3:DeleteObject
+               Resource:
+                 - !Sub 'arn:aws:s3:::${AssetsBucket}/*'
+                 - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
+                 - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}/*'
+                 - !Sub 'arn:aws:s3:::${SpeelycaptorScratchBucket}/*'
+             - Effect: Allow
+               Action:
+                 - s3:ListBucket
+               Resource:
+                 - !Sub 'arn:aws:s3:::${AssetsBucket}'
+                 - !Sub 'arn:aws:s3:::${LambdaBucket}'
+                 - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}'
+                 - !Sub 'arn:aws:s3:::${SpeelycaptorScratchBucket}'
+
+  EmptyBucketFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python2.7
+      Role: !GetAtt EmptyBucketRole.Arn
+      Timeout: 240
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          from botocore.vendored import requests
+          
+          def handler(event, context):
+              try:
+                  bucket = event['ResourceProperties']['BucketName']
+          
+                  if event['RequestType'] == 'Delete':
+                      s3 = boto3.resource('s3')
+                      bucket = s3.Bucket(bucket)
+                      for obj in bucket.objects.filter():
+                          s3.Object(bucket.name, obj.key).delete()
+          
+                  sendResponseCfn(event, context, "SUCCESS")
+              except Exception as e:
+                  print(e)
+                  sendResponseCfn(event, context, "FAILED")
+          
+          
+          def sendResponseCfn(event, context, responseStatus):
+              response_body = {'Status': responseStatus,
+                               'Reason': 'Log stream name: ' + context.log_stream_name,
+                               'PhysicalResourceId': context.log_stream_name,
+                               'StackId': event['StackId'],
+                               'RequestId': event['RequestId'],
+                               'LogicalResourceId': event['LogicalResourceId'],
+                               'Data': json.loads("{}")}
+          
+              requests.put(event['ResponseURL'], data=json.dumps(response_body))
+
+# CopyFile
+  CopyFileRole:
+   Type: AWS::IAM::Role
+   Properties:
+     RoleName: !Sub "${AWS::StackName}-CopyFile"
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Path: /
+     Policies:
+       - PolicyName: copy-files
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - s3:PutObject
+                 - s3:DeleteObject
+               Resource:
+                 - !Sub 'arn:aws:s3:::${AssetsBucket}/*'
+                 - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
+                 - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}/*'
+
+  CopyFileFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python2.7
+      Role: !GetAtt CopyFileRole.Arn
+      Timeout: 240
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import threading
+          import boto3
+          import cfnresponse
+          def copy_objects(source_bucket, dest_bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              for o in objects:
+                  key = prefix + o
+                  copy_source = {
+                      'Bucket': source_bucket,
+                      'Key': key
+                  }
+                  print('copy_source: %s' % copy_source)
+                  print('dest_bucket = %s'%dest_bucket)
+                  print('key = %s' %key)
+                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
+                        Key=key)
+          def delete_objects(bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              objects = {'Objects': [{'Key': prefix + o} for o in objects]}
+              s3.delete_objects(Bucket=bucket, Delete=objects)
+          def timeout(event, context):
+              logging.error('Execution is about to time out, sending failure response to CloudFormation')
+              cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)
+          def handler(event, context):
+              # make sure we send a failure to CloudFormation if the function
+              # is going to timeout
+              timer = threading.Timer((context.get_remaining_time_in_millis()
+                        / 1000.00) - 0.5, timeout, args=[event, context])
+              timer.start()
+              print('Received event: %s' % json.dumps(event))
+              status = cfnresponse.SUCCESS
+              try:
+                  source_bucket = event['ResourceProperties']['SourceBucket']
+                  dest_bucket = event['ResourceProperties']['DestBucket']
+                  prefix = event['ResourceProperties']['Prefix']
+                  objects = event['ResourceProperties']['Objects']
+                  if event['RequestType'] == 'Delete':
+                      delete_objects(dest_bucket, prefix, objects)
+                  else:
+                      copy_objects(source_bucket, dest_bucket, prefix, objects)
+              except Exception as e:
+                  logging.error('Exception: %s' % e, exc_info=True)
+                  status = cfnresponse.FAILED
+              finally:
+                  timer.cancel()
+                  cfnresponse.send(event, context, status, {}, None)
+
+  LambdaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+  EmptyLambdaBucket:
+    Type: Custom::EmptyLambdaBucket
+    Properties:
+      ServiceToken: !GetAtt EmptyBucketFunction.Arn
+      BucketName: !Ref LambdaBucket
+# Speelycaptor
+  SpeelycaptorInitLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-speelycaptor-initialize"
+  SpeelycaptorConvertLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-speelycaptor-convert"
+  SpeelycaptorScratchBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+  EmptySpeelycaptorScratchBucket:
+    Type: Custom::EmptySpeelycaptorScratchBucket
+    Properties:
+      ServiceToken: !GetAtt EmptyBucketFunction.Arn
+      BucketName: !Ref SpeelycaptorScratchBucket
+  SpeelycaptorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-Speelycaptor"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+          Sid: ""
+      Path: "/"
+  SpeelycaptorRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "speelycaptor-policy"
+      Roles:
+        - !Ref SpeelycaptorRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+          - Effect: Allow
+            Action: s3:PutObjectAcl
+            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}/*"
+          - Effect: Allow
+            Action: s3:ListBucket
+            Resource: !Sub "${SpeelycaptorScratchBucket.Arn}"
+          - Effect: Allow
+            Action: 
+              - ec2:DescribeInstances
+              - ec2:CreateNetworkInterface
+              - ec2:AttachNetworkInterface
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DeleteNetworkInterface
+              - autoscaling:CompleteLifecycleAction
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
+  SpeelycaptorInitLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
+      FunctionName: !Sub "${AWS::StackName}-speelycaptor-initialize"
+      Handler: index.init
+      MemorySize: 1024
+      Role: !GetAtt SpeelycaptorRole.Arn
+      Runtime: nodejs10.x
+      Timeout: 120
+      Environment:
+        Variables:
+          scratchBucketRegion: !Ref "AWS::Region"
+          scratchBucketId: !Ref SpeelycaptorScratchBucket
+    DependsOn:
+      - SpeelycaptorInitLogGroup
+      - CopySpeelycaptorLambda
+  SpeelycaptorConvertLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
+      FunctionName: !Sub "${AWS::StackName}-speelycaptor-convert"
+      Handler: index.convert
+      MemorySize: 3000
+      Role: !GetAtt SpeelycaptorRole.Arn
+      Runtime: nodejs10.x
+      Timeout: 120
+      Environment:
+        Variables:
+          scratchBucketRegion: !Ref "AWS::Region"
+          scratchBucketId: !Ref SpeelycaptorScratchBucket
+    DependsOn:
+      - SpeelycaptorConvertLogGroup
+      - CopySpeelycaptorLambda
+  SpeelycaptorApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: speelycaptor
+      EndpointConfiguration:
+        Types:
+          - EDGE
+  SpeelycaptorApiGatewayResourceInit:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt SpeelycaptorApiGatewayRestApi.RootResourceId
+      PathPart: init
+      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+  SpeelycaptorApiGatewayResourceConvert:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt SpeelycaptorApiGatewayRestApi.RootResourceId
+      PathPart: convert
+      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+  SpeelycaptorApiGatewayMethodInitGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RequestParameters: {}
+      ResourceId: !Ref SpeelycaptorApiGatewayResourceInit
+      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorInitLambdaFunction.Arn}/invocations'
+      MethodResponses: []
+  SpeelycaptorApiGatewayMethodConvertGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RequestParameters: {}
+      ResourceId: !Ref SpeelycaptorApiGatewayResourceConvert
+      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorConvertLambdaFunction.Arn}/invocations'
+      MethodResponses: []
+  SpeelycaptorApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref SpeelycaptorApiGatewayRestApi
+      StageName: prod
+    DependsOn:
+      - SpeelycaptorApiGatewayMethodInitGet
+      - SpeelycaptorApiGatewayMethodConvertGet
+  SpeelycaptorInitLambdaPermissionApiGateway:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt SpeelycaptorInitLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${SpeelycaptorApiGatewayRestApi}/*/*'
+  SpeelycaptorConvertLambdaPermissionApiGateway:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt SpeelycaptorConvertLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${SpeelycaptorApiGatewayRestApi}/*/*'
+
+# Photomnemonic
+  PhotomnemonicRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-Photomnemonic"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+          Sid: ""
+      Path: "/"
+  PhotomnemonicScreenshotLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-photomnemonic-screenshot"
+  PhotomnemonicRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "photomnemonic-policy"
+      Roles:
+        - !Ref PhotomnemonicRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: 
+              - ec2:DescribeInstances
+              - ec2:CreateNetworkInterface
+              - ec2:AttachNetworkInterface
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DeleteNetworkInterface
+              - autoscaling:CompleteLifecycleAction
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
+  PhotomnemonicScreenshotLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/photomnemonic/photomnemonic-0.1.0.zip
+      FunctionName: !Sub "${AWS::StackName}-photomnemonic-screenshot"
+      Handler: index.handler
+      MemorySize: 1024
+      Role: !GetAtt PhotomnemonicRole.Arn
+      Runtime: nodejs8.10
+      Timeout: 30
+    DependsOn:
+      - CopyPhotomnemonicLambda
+      - PhotomnemonicScreenshotLogGroup
+  PhotomnemonicApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: photomnemonic
+      BinaryMediaTypes:
+        - "*/*"
+      EndpointConfiguration:
+        Types:
+          - EDGE
+      Body:
+        swagger: 2.0
+        paths:
+          "/screenshot":
+            get:
+              parameters:
+                - name: url
+                  in: query
+                  required: true
+              x-amazon-apigateway-binary-media-types:
+                - "*/*"
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                responses:
+                  contentHandling: CONVERT_TO_BINARY,
+                type: aws_proxy
+                contentHandling: CONVERT_TO_BINARY
+                uri:
+                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PhotomnemonicScreenshotLambdaFunction.Arn}/invocations
+  PhotomnemonicApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref PhotomnemonicApiGatewayRestApi
+      StageName: prod
+    DependsOn:
+      - PhotomnemonicApiGatewayRestApi
+  PhotomnemonicScreenshotLambdaPermissionApiGateway:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt PhotomnemonicScreenshotLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotomnemonicApiGatewayRestApi}/*/*'
+
+# Nearspark
+  NearsparkRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-Nearspark"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+          Sid: ""
+      Path: "/"
+  NearsparkThumbnailLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-nearspark-thumbnail"
+  NearsparkRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "nearspark-policy"
+      Roles:
+        - !Ref NearsparkRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: 
+              - ec2:DescribeInstances
+              - ec2:CreateNetworkInterface
+              - ec2:AttachNetworkInterface
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DeleteNetworkInterface
+              - autoscaling:CompleteLifecycleAction
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
+  NearsparkThumbnailLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/nearspark/nearspark-0.1.0.zip
+      FunctionName: !Sub "${AWS::StackName}-nearspark-thumbnail"
+      Handler: index.handler
+      MemorySize: 128
+      Role: !GetAtt NearsparkRole.Arn
+      Runtime: nodejs10.x
+      Timeout: 30
+    DependsOn:
+      - CopyNearsparkLambda
+      - NearsparkThumbnailLogGroup
+  NearsparkApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: nearspark
+      BinaryMediaTypes:
+        - "*/*"
+      EndpointConfiguration:
+        Types:
+          - EDGE
+      Body:
+        swagger: 2.0
+        paths:
+          "/thumbnail/{url}":
+            get:
+              consumes:
+                - "application/json"
+              parameters:
+                - name: url
+                  in: path
+                  required: true
+                  type: string
+                - name: width
+                  in: query
+                  required: true
+                  type: number
+                - name: height
+                  in: query
+                  required: true
+                  type: number
+                - name: fit
+                  in: query
+                  required: false
+                  type: string
+                - name: position
+                  in: query
+                  required: false
+                  type: string
+                - name: gravity
+                  in: query
+                  required: false
+                  type: string
+                - name: strategy
+                  in: query
+                  required: false
+                  type: string
+                - name: background
+                  in: query
+                  required: false
+                  type: string
+                - name: withoutEnlargement
+                  in: query
+                  required: false
+                  type: boolean
+              requestTemplates:
+                "application/json": "{\"url\": \"$input.params('url')\"}"
+              x-amazon-apigateway-binary-media-types:
+                - "*/*"
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                responses:
+                  contentHandling: CONVERT_TO_BINARY,
+                type: aws_proxy
+                contentHandling: CONVERT_TO_BINARY
+                uri:
+                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NearsparkThumbnailLambdaFunction.Arn}/invocations
+  NearsparkApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref NearsparkApiGatewayRestApi
+      StageName: prod
+    DependsOn:
+      - NearsparkApiGatewayRestApi
+  NearsparkThumbnailLambdaPermissionApiGateway:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt NearsparkThumbnailLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: !Sub 'apigateway.${AWS::URLSuffix}'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${NearsparkApiGatewayRestApi}/*/*'
+  NearsparkCloudfrontDNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
+      HostedZoneId: !Ref InternalZone
+      Type: A
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt: [ NearsparkCloudfrontDistribution, DomainName ]
+        HostedZoneId: Z2FDTNDATAQYW2
+
+  NearsparkCloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - Id: ApiGateway
+            DomainName: !Sub '${NearsparkApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com'
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [ "TLSv1", "TLSv1.1", "TLSv1.2" ]
+            OriginPath: "/prod"
+        Enabled: true
+        HttpVersion: http2
+        PriceClass: PriceClass_All
+        Aliases:
+          - !Sub 'nearspark.${InternalZoneInfo.Name}'
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: ApiGateway
+          ForwardedValues:
+            QueryString: true
+            Headers: []
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+          MinTTL: '0'
+          DefaultTTL: '3600'
+        ViewerCertificate:
+          AcmCertificateArn: !Ref InternalZoneSSLCertEast
+          SslSupportMethod: sni-only
+
+  AssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-assets", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+  AssetsPublicBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Id: PublicAssets
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${AssetsBucket}/*'
+      Bucket: !Ref AssetsBucket
+  EmptyAssetsBucket:
+    Type: Custom::EmptyAssetsBucket
+    Properties:
+      ServiceToken: !GetAtt EmptyBucketFunction.Arn
+      BucketName: !Ref AssetsBucket
+  CopyPDFJSAssets:
+    Type: Custom::CopyPDFJSAssets
+    UpdateReplacePolicy: Retain
+    DependsOn: AssetsBucket
+    Properties:
+      ServiceToken: !GetAtt CopyFileFunction.Arn
+      DestBucket: !Ref AssetsBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - assets/js/pdfjs-dist@2.1.266/build/pdf.worker.js
+  LinkRedirectorBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-link-redirector", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+            - "*"
+            AllowedMethods:
+            - GET
+            - HEAD
+            AllowedOrigins:
+            - "*"
+            ExposedHeaders:
+            - Date
+            - ETag
+            MaxAge: 31536000
+      WebsiteConfiguration:
+        IndexDocument: link-redirector-index.html
+        ErrorDocument: link-redirector-error.html
+        RoutingRules:
+          - RedirectRule:
+              ReplaceKeyPrefixWith: "link/"
+              Protocol: https
+              HostName: !Ref DomainName
+  EmptyLinkRedirectorBucket:
+    Type: Custom::EmptyLinkRedirectorBucket
+    Properties:
+      ServiceToken: !GetAtt EmptyBucketFunction.Arn
+      BucketName: !Ref LinkRedirectorBucket
+  LinkRedirectorPublicBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Id: PublicLinkRedirector
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${LinkRedirectorBucket}/*'
+      Bucket: !Ref LinkRedirectorBucket
+  CopyLinkRedirectorIndex:
+    Type: Custom::CopyLinkRedirectorIndex
+    UpdateReplacePolicy: Retain
+    DependsOn: LinkRedirectorBucket
+    Properties:
+      ServiceToken: !GetAtt CopyFileFunction.Arn
+      DestBucket: !Ref LinkRedirectorBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - link-redirector-index.html
+        - link-redirector-error.html
+  LinkRedirectorDNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !GetAtt ShortlinkZoneInfo.Name
+      HostedZoneId: !Ref ShortlinkZone
+      Type: A
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt: [ LinkRedirectorCloudfrontDistribution, DomainName ]
+        HostedZoneId: Z2FDTNDATAQYW2
+  LinkRedirectorCloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - Id: !Sub "${AWS::StackName}-link-redirector"
+            DomainName: !Select [2, !Split ["/", !GetAtt LinkRedirectorBucket.WebsiteURL]]
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: http-only
+              OriginSSLProtocols: [  "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
+        Enabled: true
+        PriceClass: PriceClass_All
+        Aliases:
+          - !GetAtt ShortlinkZoneInfo.Name
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: !Sub "${AWS::StackName}-link-redirector"
+          ForwardedValues:
+            QueryString: false
+            Headers: []
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: allow-all
+          MinTTL: 86400
+          DefaultTTL: 86400
+          MaxTTL: 86400
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+            Locations: []
+        ViewerCertificate:
+          AcmCertificateArn: !Ref ShortlinkZoneSSLCertEast
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: "TLSv1"
+
+# App servers
+  AppALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-app-alb"
+      GroupDescription: App ALB
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  BioRingSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-bio-ring"
+      GroupDescription: Bio
+      VpcId: !Ref VPC
+
+  BioRingCensusIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: tcp
+      FromPort: 9631
+      ToPort: 9631
+      SourceSecurityGroupId: !Ref BioRingSecurityGroup
+
+  BioRingCensusEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: tcp
+      FromPort: 9631
+      ToPort: 9631
+      DestinationSecurityGroupId: !Ref BioRingSecurityGroup
+
+  BioRingRPCIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: tcp
+      FromPort: 9638
+      ToPort: 9638
+      SourceSecurityGroupId: !Ref BioRingSecurityGroup
+
+  BioRingRPCEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: tcp
+      FromPort: 9638
+      ToPort: 9638
+      DestinationSecurityGroupId: !Ref BioRingSecurityGroup
+
+  BioRingRPCUDPIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: udp
+      FromPort: 9638
+      ToPort: 9638
+      SourceSecurityGroupId: !Ref BioRingSecurityGroup
+
+  BioRingRPCUDPEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref BioRingSecurityGroup
+      IpProtocol: udp
+      FromPort: 9638
+      ToPort: 9638
+      DestinationSecurityGroupId: !Ref BioRingSecurityGroup
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-app"
+      GroupDescription: App
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, RetExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetExternal, Port]
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+          CidrIp: 0.0.0.0/0
+        # Inbound SSH
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
+          SourceSecurityGroupId: !Ref AppALBSecurityGroup
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
+          ToPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
+          SourceSecurityGroupId: !Ref AppALBSecurityGroup
+      SecurityGroupEgress:
+        # Outbound HTTP
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        # Outbound HTTPS
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        # Outbound SMTP
+        - IpProtocol: tcp
+          FromPort: 587
+          ToPort: 587
+          CidrIp: 0.0.0.0/0
+        # Outbound NTP
+        - IpProtocol: tcp
+          FromPort: 123
+          ToPort: 123
+          CidrIp: 0.0.0.0/0
+        # Outbound NFS
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          DestinationSecurityGroupId: !Ref StorageSecurityGroup
+        # Outbound RTP
+        - IpProtocol: udp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+
+  AppJanusAdminAppIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  AppJanusAdminStreamEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      DestinationSecurityGroupId: !Ref StreamSecurityGroup
+
+  AppEPMDAppIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: 4369
+      ToPort: 4369
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  AppErlangAppIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: 9000
+      ToPort: 9100
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  AppDbEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: !GetAtt AppDb.Endpoint.Port
+      ToPort: !GetAtt AppDb.Endpoint.Port
+      DestinationSecurityGroupId: !Ref DbSecurityGroup
+
+  AppFullSelfEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
+
+  AppALBReticulumEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AppALBSecurityGroup
+      IpProtocol: tcp
+      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
+
+  AppALBPostgrestEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AppALBSecurityGroup
+      IpProtocol: tcp
+      FromPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
+      ToPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
+
+  AppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-app"
+      Policies:
+        - PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:GetUser
+                  - iam:ListAccessKeys
+                Resource: !GetAtt SendEmailUser.Arn
+          PolicyName: !Sub '${AWS::StackName}-send-email-policy'
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - !Ref BasePolicy
+
+  StreamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-stream"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - !Ref BasePolicy
+
+  BasePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 
+              - ec2:DescribeInstances
+            Resource: "*"
+          - Effect: Allow
+            Action: 
+              - ec2:CreateTags
+            Resource: "*"
+          - Effect: Allow
+            Action: 
+              - ec2:DescribeTags
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - ssm:DescribeAssociation
+              - ssm:GetDeployablePatchSnapshotForInstance
+              - ssm:GetDocument
+              - ssm:DescribeDocument
+              - ssm:GetManifest
+              - ssm:GetParameters
+              - ssm:ListAssociations
+              - ssm:ListInstanceAssociations
+              - ssm:PutInventory
+              - ssm:PutComplianceItems
+              - ssm:PutConfigurePackageResult
+              - ssm:UpdateAssociationStatus
+              - ssm:UpdateInstanceAssociationStatus
+              - ssm:UpdateInstanceInformation
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - ssmmessages:CreateControlChannel
+              - ssmmessages:CreateDataChannel
+              - ssmmessages:OpenControlChannel
+              - ssmmessages:OpenDataChannel
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - ec2messages:AcknowledgeMessage
+              - ec2messages:DeleteMessage
+              - ec2messages:FailMessage
+              - ec2messages:GetEndpoint
+              - ec2messages:GetMessages
+              - ec2messages:SendReply
+            Resource: "*"
+          - Effect: Allow
+            Action: 
+              - route53:ChangeResourceRecordSets
+            Resource: arn:aws:route53:::hostedzone/Z26OTGLBBCAHK4
+
+  AppALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${AWS::StackName}-app"
+      SecurityGroups:
+        - !Ref AppALBSecurityGroup
+      Subnets:
+        - !Ref SubnetAPublic
+        - !Ref SubnetBPublic
+
+  AppALBDNS:
+    Type: AWS::Route53::RecordSet
+    Condition: HasMangedDomain
+    Properties:
+      Name: !Ref DomainName
+      HostedZoneId: !GetAtt ExternalZoneInfo.Id
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt AppALB.DNSName
+        HostedZoneId: !GetAtt AppALB.CanonicalHostedZoneID
+
+  AppALBDNSInternal:
+    Type: AWS::Route53::RecordSet
+    Condition: HasMangedDomain
+    Properties:
+      Name: !Sub "${AWS::StackName}.${InternalZoneInfo.Name}"
+      HostedZoneId: !Ref InternalZone
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt AppALB.DNSName
+        HostedZoneId: !GetAtt AppALB.CanonicalHostedZoneID
+
+  AppALBRetTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${AWS::StackName}-ret"
+      VpcId: !Ref VPC
+      Port: !FindInMap [ServicesMeta, RetInternal, Port]
+      Protocol: HTTPS
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: 0
+      HealthCheckPath: "/health"
+      HealthCheckProtocol: HTTPS
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+
+  AppALBRetSSLListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AppALB
+      Port: 443
+      Protocol: HTTPS
+      SslPolicy: ELBSecurityPolicy-2015-05
+      Certificates:
+        - CertificateArn: !If [HasMangedDomain, !Ref ExternalZoneSSLCert, !Ref UnmanagedDomainCertArn]
+      DefaultActions:
+        - TargetGroupArn: !Ref AppALBRetTargetGroup
+          Type: forward
+
+  AppALBRetSSLListenerInternalCert:
+    Type: AWS::ElasticLoadBalancingV2::ListenerCertificate
+    Properties:
+      ListenerArn: !Ref AppALBRetSSLListener
+      Certificates:
+        - CertificateArn: !Ref InternalZoneSSLCert
+
+  AppALBRetClearListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AppALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Port: "443"
+            Protocol: HTTPS
+            StatusCode: HTTP_301
+
+  AppALBRetListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref AppALBRetSSLListener
+      Priority: 1
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref AppALBRetTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values: ["/"]
+
+  AppInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub "${AWS::StackName}-app"
+      Roles:
+        - !Ref AppRole
+
+  StreamInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub "${AWS::StackName}-stream"
+      Roles:
+        - !Ref StreamRole
+
+  AppAssetsCloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: !Sub "${AWS::StackName}-app-assets"
+            DomainName: !GetAtt AssetsBucket.DomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+            Locations: []
+        Aliases:
+          - !Sub '${AWS::StackName}-assets.${InternalZoneInfo.Name}'
+        HttpVersion: http2
+        PriceClass: PriceClass_All
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 500
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 502
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 503
+            ErrorCachingMinTTL: 0
+        DefaultCacheBehavior:
+          Compress: true
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: !Sub "${AWS::StackName}-app-assets"
+          ForwardedValues:
+            QueryString: true
+            Headers: ["Origin", "Content-Type"]
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: https-only
+          MinTTL: 0
+          DefaultTTL: 3600
+          MaxTTL: 3600
+        ViewerCertificate:
+          AcmCertificateArn: !Ref InternalZoneSSLCertEast
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1
+
+  StreamSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-stream"
+      GroupDescription: Stream
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          CidrIp: 0.0.0.0/0
+        # Inbound WebRTC
+        - IpProtocol: udp
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+          CidrIp: 0.0.0.0/0
+        # Inbound WebRTC
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+          CidrIp: 0.0.0.0/0
+        # Inbound SSH
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        # Outbound NTP
+        - IpProtocol: tcp
+          FromPort: 123
+          ToPort: 123
+          CidrIp: 0.0.0.0/0
+        # Outbound RTP
+        - IpProtocol: udp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+
+  StreamJanusAdminAppIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref StreamSecurityGroup
+      IpProtocol: tcp
+      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  StreamFullSelfEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref StreamSecurityGroup
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+      DestinationSecurityGroupId: !Ref StreamSecurityGroup
+
+  StorageCloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: !Sub "${AWS::StackName}-storage"
+            DomainName: !Sub '${AWS::StackName}.${InternalZoneInfo.Name}'
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [ "TLSv1", "TLSv1.1", "TLSv1.2" ]
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+            Locations: []
+        Aliases:
+          - !Sub '${AWS::StackName}-storage.${InternalZoneInfo.Name}'
+        HttpVersion: http2
+        PriceClass: PriceClass_All
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 500
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 502
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 503
+            ErrorCachingMinTTL: 0
+        DefaultCacheBehavior:
+          Compress: true
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: !Sub "${AWS::StackName}-storage"
+          ForwardedValues:
+            QueryString: true
+            Headers: ["Origin", "Content-Type", "Authorization"]
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: https-only
+          MinTTL: 0
+          DefaultTTL: 3600
+          MaxTTL: 3600
+        ViewerCertificate:
+          AcmCertificateArn: !Ref InternalZoneSSLCertEast
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1
+
+  StorageDNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Sub '${AWS::StackName}-storage.${InternalZoneInfo.Name}'
+      HostedZoneId: !Ref InternalZone
+      Type: A
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt: [ StorageCloudfrontDistribution, DomainName ]
+        HostedZoneId: Z2FDTNDATAQYW2
+
+  AppLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 128
+      IamInstanceProfile: !Ref AppInstanceProfile
+      InstanceType: !Ref AppInstanceType
+      SecurityGroups:
+        - !Ref AppSecurityGroup
+        - !Ref BioRingSecurityGroup
+      ImageId: ami-be7753db
+      KeyName: !Ref KeyPair
+
+  AppPlacementGroup:
+    Type: AWS::EC2::PlacementGroup
+    Properties:
+      Strategy: !If [ AppIsClusterPlacement, !FindInMap [ InstanceTypeMeta, !Ref AppInstanceType, PlacementForCluster ], !Ref AppPlacementGroupStrategy ]
+
+  AppASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub "${AWS::StackName}-app"
+      AvailabilityZones: !If [AppIsClusterPlacement, [!GetAtt SubnetAPublic.AvailabilityZone], [!GetAtt SubnetAPublic.AvailabilityZone, !GetAtt SubnetBPublic.AvailabilityZone]]
+      VPCZoneIdentifier: !If [AppIsClusterPlacement, [!Ref SubnetAPublic], [!Ref SubnetAPublic, !Ref SubnetBPublic]]
+      TargetGroupARNs:
+        - !Ref AppALBRetTargetGroup
+      MinSize: 1
+      MaxSize: 64
+      DesiredCapacity: !Ref AppInstanceCount
+      PlacementGroup: !Ref AppPlacementGroup
+      LaunchConfigurationName: !Ref AppLaunchConfiguration
+      Tags:
+      - Key: polycosm-roles
+        Value: !If [HasStreamingServers, "app stream", "app"]
+        PropagateAtLaunch: true
+      - Key: bio-ring
+        Value: !Sub "${AWS::StackName}"
+        PropagateAtLaunch: true
+
+  StreamLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 128
+      IamInstanceProfile: !Ref StreamInstanceProfile
+      InstanceType: !Ref StreamInstanceType
+      SecurityGroups:
+        - !Ref StreamSecurityGroup
+        - !Ref BioRingSecurityGroup
+      ImageId: ami-be7753db
+      KeyName: !Ref KeyPair
+
+  StreamASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub "${AWS::StackName}-stream"
+      AvailabilityZones: [!GetAtt SubnetAPublic.AvailabilityZone, !GetAtt SubnetBPublic.AvailabilityZone]
+      VPCZoneIdentifier: [!Ref SubnetAPublic, !Ref SubnetBPublic]
+      MinSize: 0
+      MaxSize: 64
+      DesiredCapacity: !Ref StreamInstanceCount
+      LaunchConfigurationName: !Ref StreamLaunchConfiguration
+      Tags:
+      - Key: polycosm-roles
+        Value: stream
+        PropagateAtLaunch: true
+      - Key: bio-ring
+        Value: !Sub "${AWS::StackName}"
+        PropagateAtLaunch: true
+
+  StorageEFS:
+    Type: AWS::EFS::FileSystem
+    DeletionPolicy: Retain
+    Properties:
+      PerformanceMode: generalPurpose
+      FileSystemTags:
+        - 
+          Key: backup
+          Value: daily
+        - 
+          Key: Name
+          Value: !Sub "${AWS::StackName}-storage"
+
+  StorageEFSAppMountTargetAPrivate:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref StorageEFS
+      SecurityGroups:
+        - !Ref StorageSecurityGroup
+      SubnetId: !Ref SubnetAPrivate
+
+  StorageEFSAppMountTargetBPrivate:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref StorageEFS
+      SecurityGroups:
+        - !Ref StorageSecurityGroup
+      SubnetId: !Ref SubnetBPrivate
+
+  StorageSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-storage-fs"
+      GroupDescription: Storage EFS
+      VpcId: !Ref VPC
+
+  StorageConnectSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-storage-fs-connect"
+      GroupDescription: Storage EFS Connect
+      VpcId: !Ref VPC
+
+  StorageFSConnectIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref StorageSecurityGroup
+      IpProtocol: tcp
+      FromPort: 2049
+      ToPort: 2049
+      SourceSecurityGroupId: !Ref StorageConnectSecurityGroup
+
+  DailyBackupKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Encryption key for daily backups
+      EnableKeyRotation: True
+      Enabled: True
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+          Action:
+          - kms:*
+          Resource: "*"
+
+  DailyBackupVault:
+    Type: AWS::Backup::BackupVault
+    Properties:
+      BackupVaultName: !Sub "${AWS::StackName}-daily-backup"
+      EncryptionKeyArn: !GetAtt DailyBackupKey.Arn
+
+  DailyBackupPlan:
+    Type: AWS::Backup::BackupPlan
+    Properties:
+      BackupPlan:
+        BackupPlanName: !Sub "${AWS::StackName}-daily-backup-plan"
+        BackupPlanRule:
+          -
+            RuleName: "Daily"
+            TargetBackupVault: !Ref DailyBackupVault
+            ScheduleExpression: "cron(0 10 ? * * *)" # 3AM PST
+    DependsOn: DailyBackupVault
+
+  DailyBackupRole:
+    Type: AWS::IAM::Role
+    Properties:
+     AssumeRolePolicyDocument:
+       Version: "2012-10-17"
+       Statement:
+         -
+          Effect: Allow
+          Principal:
+            Service:
+              - backup.amazonaws.com
+          Action:
+            - "sts:AssumeRole"
+     ManagedPolicyArns:
+       -
+        "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+
+  DailyBackupSelection:
+    Type: AWS::Backup::BackupSelection
+    Properties:
+      BackupSelection:
+        SelectionName: !Sub "${AWS::StackName}-daily-backup-selection"
+        IamRoleArn: !GetAtt DailyBackupRole.Arn
+        ListOfTags:
+         -
+           ConditionType: "STRINGEQUALS"
+           ConditionKey: backup
+           ConditionValue: daily
+      BackupPlanId: !Ref DailyBackupPlan
+    DependsOn: DailyBackupPlan
+
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-db"
+      GroupDescription: DB
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !GetAtt AppDb.Endpoint.Port
+          ToPort: !GetAtt AppDb.Endpoint.Port
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  AppDbKmsKey:
+    Type: AWS::KMS::Key
+    Condition: CreateDbEncryptionKey
+    DeletionPolicy: Retain
+    Properties:
+      Description: DB encryption key
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+          Action: 'kms:*'
+          Resource: '*'
+        - Effect: Allow
+          Principal:
+            AWS: '*'
+          Action:
+          - 'kms:Encrypt'
+          - 'kms:Decrypt'
+          - 'kms:ReEncrypt*'
+          - 'kms:GenerateDataKey*'
+          - 'kms:CreateGrant'
+          - 'kms:ListGrants'
+          - 'kms:DescribeKey'
+          Resource: '*'
+          Condition:
+            StringEquals:
+              'kms:CallerAccount': !Ref 'AWS::AccountId'
+              'kms:ViaService': !Sub 'rds.${AWS::Region}.amazonaws.com'
+
+  AppDbKmsKeyAlias:
+    Type: AWS::KMS::Alias
+    Condition: CreateDbEncryptionKey
+    DeletionPolicy: Retain
+    DependsOn: AppDb
+    Properties:
+      AliasName: !Sub 'alias/db-${AppDb}'
+      TargetKeyId: !Ref AppDbKmsKey
+
+  AppDbSubnet:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: app-db
+      DBSubnetGroupName: !Sub "${AWS::StackName}-app-db"
+      SubnetIds:
+        - !Ref SubnetAPrivate
+        - !Ref SubnetBPrivate
+
+  AppDbSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'App db secret'
+      GenerateSecretString:
+        SecretStringTemplate: '{ "username": "postgres" }'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+  AppDbSecretAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref AppDbSecret
+      TargetId: !Ref AppDb
+      TargetType: AWS::RDS::DBCluster
+
+  AppDbSecretResourcePolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties: 
+      SecretId: !Ref AppDbSecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: "Deny"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "secretsmanager:DeleteSecret"
+            Resource: "*"
+
+  AppDb:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      AvailabilityZones:
+        - !GetAtt SubnetAPrivate.AvailabilityZone
+        - !GetAtt SubnetBPrivate.AvailabilityZone
+      BackupRetentionPeriod: !Ref DbBackupRetentionPeriod
+      DatabaseName: polycosm_production
+      DBClusterIdentifier: !Sub "${AWS::StackName}-app-db"
+      DBSubnetGroupName: !Ref AppDbSubnet
+      Engine: aurora-postgresql
+      EngineMode: serverless
+      EngineVersion: 10.7
+      KmsKeyId: !If [CreateDbEncryptionKey, !Ref AppDbKmsKey, !Ref "AWS::NoValue"]
+      StorageEncrypted: true
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]
+      PreferredBackupWindow: !Ref DbPreferredBackupWindow
+      PreferredMaintenanceWindow: !Ref DbPreferredMaintenanceWindow
+      ScalingConfiguration:
+        AutoPause: true
+        MaxCapacity: !Ref DbMaxCapacity
+        MinCapacity: 2
+        SecondsUntilAutoPause: 300
+
+Outputs:
+  DomainName:
+    Description: Primary WebSpaces domain name
+    Value: !Ref DomainName
+
+  AppALBDomain:
+    Description: Domain name for app servers. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable WebSpaces on your site.
+    Value: !GetAtt AppALB.DNSName
+
+  AssetsEndpoint:
+    Description: URL for CDN assets
+    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}'
+
+  NearsparkEndpoint:
+    Description: URL of the nearspark service endpoint
+    Value: !Sub 'https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
+
+  SpeelycaptorEndpoint:
+    Description: URL of the speelycaptor service endpoint
+    Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
+
+  PhotomnemonicEndpoint:
+    Description: URL of the photomnemonic service endpoint
+    Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
+
+  StorageEFSId:
+    Description: Storage EFS volume id
+    Value: !Ref StorageEFS
+
+  AppDbAddress:
+    Description: Domain name for app db
+    Value: !GetAtt AppDb.Endpoint.Address
+
+  AppDbPort:
+    Description: Port for app db
+    Value: !GetAtt AppDb.Endpoint.Port
+
+  AppDbSecret:
+    Description: Secret for app db
+    Value: !Ref AppDbSecret
+
+  SmtpSendUser:
+    Description: SMTP send user for email zone
+    Value: !GetAtt SendEmailUser.Arn
+
+  SmtpSendFromAddress:
+    Description: SMTP send from address
+    Value: !Sub "noreply@${SESDomain}"
+
+  RetExternalPort:
+    Description: Reticulum External Port
+    Value: !FindInMap [ServicesMeta, RetExternal, Port]
+
+  RetInternalPort:
+    Description: Reticulum Internal Port
+    Value: !FindInMap [ServicesMeta, RetInternal, Port]
+
+  PostgrestInternalPort:
+    Description: PostgREST Internal Port
+    Value: !FindInMap [ServicesMeta, PostgrestInternal, Port]
+
+  JanusExternalPort:
+    Description: Janus External Port
+    Value: !FindInMap [ServicesMeta, JanusExternal, Port]
+
+  JanusAdminPort:
+    Description: Janus Admin Port
+    Value: !FindInMap [ServicesMeta, JanusAdmin, Port]
+
+  JanusWebRTCFromPort:
+    Description: Janus WebRTC From Port
+    Value: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+
+  JanusWebRTCToPort:
+    Description: Janus WebRTC To Port
+    Value: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+
+  InternalZoneId:
+    Description: Internal Zone Id
+    Value: !GetAtt InternalZoneInfo.Id
+
+  InternalZoneDomainName:
+    Description: Internal Zone Domain Name
+    Value: !GetAtt InternalZoneInfo.Name
+
+  ShortlinkDomainName:
+    Description: Shortlink Domain Name
+    Value: !GetAtt ShortlinkZoneInfo.Name
