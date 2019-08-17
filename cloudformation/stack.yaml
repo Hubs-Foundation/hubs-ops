@@ -930,7 +930,7 @@ Resources:
                  - !Sub 'arn:aws:s3:::${SpeelycaptorScratchBucket}/*'
              - Effect: Allow
                Action:
-                 - s3:ListObjects
+                 - s3:ListBucket
                Resource:
                  - !Sub 'arn:aws:s3:::${AssetsBucket}'
                  - !Sub 'arn:aws:s3:::${LambdaBucket}'
