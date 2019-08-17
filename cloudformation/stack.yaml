@@ -202,6 +202,8 @@ Mappings:
       Port: 60000
     BioCensus:
       Port: 9631
+    Ssh:
+      Port: 2022
 
   InstanceTypeMeta:
     # Some instance types do not support cluster placement, so use spread
@@ -1789,10 +1791,9 @@ Resources:
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
           CidrIp: 0.0.0.0/0
-        # Inbound SSH
         - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
+          FromPort: !FindInMap [ServicesMeta, Ssh, Port]
+          ToPort: !FindInMap [ServicesMeta, Ssh, Port]
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
@@ -2174,20 +2175,17 @@ Resources:
           FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           CidrIp: 0.0.0.0/0
-        # Inbound WebRTC
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
           CidrIp: 0.0.0.0/0
-        # Inbound WebRTC
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
           CidrIp: 0.0.0.0/0
-        # Inbound SSH
         - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
+          FromPort: !FindInMap [ServicesMeta, Ssh, Port]
+          ToPort: !FindInMap [ServicesMeta, Ssh, Port]
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         # Outbound NTP
@@ -2680,6 +2678,10 @@ Outputs:
   BioCensusPort:
     Description: Bio census HTTP port
     Value: !FindInMap [ServicesMeta, BioCensus, Port]
+
+  SshPort:
+    Description: SSH port
+    Value: !FindInMap [ServicesMeta, Ssh, Port]
 
   InternalZoneId:
     Description: Internal Zone Id
