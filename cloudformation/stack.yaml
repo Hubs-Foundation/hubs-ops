@@ -2605,13 +2605,13 @@ Outputs:
     Description: URL of the nearspark service endpoint
     Value: !Sub 'https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
 
-          #  SpeelycaptorEndpoint:
-          #    Description: URL of the speelycaptor service endpoint
-          #    Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
-          #
-          #  PhotomnemonicEndpoint:
-          #    Description: URL of the photomnemonic service endpoint
-          #    Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
+   SpeelycaptorEndpoint:
+     Description: URL of the speelycaptor service endpoint
+     Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
+
+   PhotomnemonicEndpoint:
+     Description: URL of the photomnemonic service endpoint
+     Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
 
   StorageEFSId:
     Description: Storage EFS volume id
