@@ -164,6 +164,7 @@ Parameters:
       - none
   DbBackupRetentionPeriod:
     Type: Number
+    Description: "Number of days your AWS Aurora database backups will be retained for."
     Default: 14
   DbPreferredBackupWindow:
     Type: String
