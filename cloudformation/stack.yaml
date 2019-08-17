@@ -203,7 +203,7 @@ Mappings:
     BioCensus:
       Port: 9631
     Ssh:
-      Port: 2022
+      Port: 22
 
   InstanceTypeMeta:
     # Some instance types do not support cluster placement, so use spread
