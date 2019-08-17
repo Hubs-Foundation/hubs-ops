@@ -90,7 +90,7 @@ Parameters:
     ConstraintDescription: You didn't specify a short link Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53, ideally one short and easy to type.
   InternalZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: Your AWS Route 53 Zone for an internal domain name (eg mywebspaces-internal.com.) You'll need to register a new internal domain name of your choice with Route 53 to be used internally by WebSpaces. It should *not* be the same domain as the WebSpaces domain name that you specified above. This domain will not be seen by visitors and can be anything you like.
+    Description: Your AWS Route 53 Zone for an internal domain name (eg mywebspaces-internal.com.) You'll need to register a new internal domain name of your choice with Route 53. This domain will be used internally by WebSpaces. It should *not* be the same domain as the WebSpaces domain name that you specified above. This domain will not be seen by visitors and can be anything you like.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
   EmailZone:
