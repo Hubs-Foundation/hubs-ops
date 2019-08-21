@@ -21,26 +21,26 @@ pkg_build_deps=(
     core/rust
     core/cacerts
     core/git
-    mozillareality/gnutls
-    mozillareality/gengetopt
+    mozillareality/gnutls/3.6.9
+    mozillareality/gengetopt/2.23
 )
 
 # versions are pinned for convenience building with Habitat, not because we give a crap about
 # having these versions in particular -- latest versions of everything should be sufficient
 pkg_deps=(
-    core/gcc/7.3.0/20180608051919 # reqd for libasan
-    core/glib/2.50.3/20180718153537
-    core/openssl/1.0.2n/20180608102213
-    core/p11-kit/0.23.10/20180608191918
-    core/sqlite/3130000/20180608141313
-    core/util-linux/2.31.1/20180608101132
+    core/gcc
+    core/glib
+    core/openssl
+    core/p11-kit
+    core/sqlite
+    core/util-linux
 
-    mozillareality/jansson/2.10/20170922013102
-    mozillareality/libmicrohttpd/0.9.55/20170923183119
-    mozillareality/libnice/0.1.15/20180914001451
-    mozillareality/libsrtp/2.1.0/20170923183826
-    mozillareality/libwebsockets/2.4.2/20180702225550
-    mozillareality/opus/1.2.1/20170922184322
+    mozillareality/jansson/2.12
+    mozillareality/libmicrohttpd/0.9.66
+    mozillareality/libnice/0.1.16
+    mozillareality/libsrtp/2.2.0
+    mozillareality/libwebsockets/2.4.2
+    mozillareality/opus/1.3.1
     mozillareality/usrsctp/0.9.4.0/20170923224507
 
     # https://github.com/habitat-sh/habitat/issues/3303

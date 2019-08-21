@@ -7,9 +7,9 @@ pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 #
 # 0.1.15 isn't released yet
 
-pkg_version="0.1.15"
+pkg_version="0.1.16"
 pkg_license=('MPL')
-pkg_shasum="61112d9f3be933a827c8365f20551563953af6718057928f51f487bfe88419e1"
+pkg_shasum="06b678066f94dde595a4291588ed27acd085ee73775b8c4e8399e28c01eeefdf"
 pkg_lib_dirs=(lib)
 pkg_include_dirs=(include)
 
@@ -36,7 +36,7 @@ pkg_deps=(
   core/nettle
   core/pcre
   core/libtasn1
-  mozillareality/gnutls/3.6.1
+  mozillareality/gnutls/3.6.9
 )
 
 pkg_description="Libnice is an implementation of the IETF's Interactive Connectivity Establishment (ICE) standard (RFC 5245)"
