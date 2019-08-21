@@ -48,7 +48,6 @@
     copy:
       src: "perms.pub.der.{{ env }}"
       dest: "{{ work_dir.path }}/perms.pub.der"
-    when: env != 'local'
 
   - name: "Generate local cert"
     shell: "openssl req -newkey rsa:2048 -nodes -keyout \"{{ work_dir.path }}/{{ item }}.key\" -x509 -days 365 -out \"{{ work_dir.path }}/{{ item }}.pem\" -subj '/C=US/ST=California/L=Mountain View/O=YourOrg/OU=YourDept/CN=yoursite.com'"
