@@ -2,9 +2,9 @@ pkg_name=usrsctp
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 
-pkg_version="0.9.4.0"
+pkg_version="0.9.6.0"
 pkg_source="https://github.com/gfodor/usrsctp/archive/${pkg_version}.tar.gz"
-pkg_shasum="7077e275125ef98d33c8bf2d88d457a806b7c5e7811c1f614d60bbca0723f69c"
+pkg_shasum="a7d1b2f68d744a4778ce5fb266eaa71844a79442d8390d285539592ed1d54000"
 pkg_license=('BSD-3')
 pkg_build_deps=(
   core/make

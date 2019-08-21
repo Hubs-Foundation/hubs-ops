@@ -41,15 +41,15 @@ pkg_deps=(
     mozillareality/libsrtp/2.2.0
     mozillareality/libwebsockets/2.4.2
     mozillareality/opus/1.3.1
-    mozillareality/usrsctp/0.9.4.0/20170923224507
+    mozillareality/usrsctp/0.9.4.0
 
     # https://github.com/habitat-sh/habitat/issues/3303
-    core/zlib/1.2.11/20180608050617
-    core/glibc/2.27/20180608041157
-    core/gcc-libs/7.3.0/20180608091701
-    core/nettle/3.4/20180609173754
-    core/pcre/8.41/20180608092740
-    core/libtasn1/4.13/20180608191858
+    core/zlib
+    core/glibc
+    core/gcc-libs
+    core/nettle
+    core/pcre
+    core/libtasn1
 )
 
 git-get () {
