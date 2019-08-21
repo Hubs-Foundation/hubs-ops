@@ -36,7 +36,7 @@ pkg_deps=(
   core/nettle
   core/pcre
   core/libtasn1
-  mozillareality/gnutls
+  mozillareality/gnutls/3.6.1
 )
 
 pkg_description="Libnice is an implementation of the IETF's Interactive Connectivity Establishment (ICE) standard (RFC 5245)"

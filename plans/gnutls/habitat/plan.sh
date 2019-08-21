@@ -16,7 +16,7 @@ pkg_deps=(
   core/nettle
   core/libidn2
   core/libtasn1
-  mozillareality/unbound
+  mozillareality/unbound/1.6.3
 )
 pkg_build_deps=(
   core/gcc
