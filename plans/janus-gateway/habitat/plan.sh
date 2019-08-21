@@ -2,7 +2,7 @@ pkg_name=janus-gateway
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 
-pkg_version="0.4.3"
+pkg_version="0.7.3"
 pkg_license=('GPLv3')
 pkg_description="Janus is an open source, general purpose, WebRTC gateway"
 pkg_upstream_url="https://janus.conf.meetecho.com/"
@@ -23,6 +23,7 @@ pkg_build_deps=(
     core/git
     mozillareality/gnutls/3.6.9
     mozillareality/gengetopt/2.23
+    mozillareality/libconfig/1.7.2
 )
 
 # versions are pinned for convenience building with Habitat, not because we give a crap about
@@ -72,8 +73,8 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get meetecho/janus-gateway 3c5ad1b125f696a32c85420f31a24eec79b35028
-  git-get mozilla/janus-plugin-sfu 97be0ad45747d5c04f2e10a5b3e74cc997445d89
+  git-get meetecho/janus-gateway e0ad1ff
+  git-get mozilla/janus-plugin-sfu 4e510ed
 
   popd
 }
