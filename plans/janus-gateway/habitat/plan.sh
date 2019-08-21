@@ -23,7 +23,6 @@ pkg_build_deps=(
     core/git
     mozillareality/gnutls/3.6.9
     mozillareality/gengetopt/2.23
-    mozillareality/libconfig/1.7.2
 )
 
 # versions are pinned for convenience building with Habitat, not because we give a crap about
@@ -43,6 +42,7 @@ pkg_deps=(
     mozillareality/libwebsockets/2.4.2
     mozillareality/opus/1.3.1
     mozillareality/usrsctp/0.9.4.0
+    mozillareality/libconfig/1.7.2
 
     # https://github.com/habitat-sh/habitat/issues/3303
     core/zlib
@@ -74,7 +74,7 @@ do_download() {
   pushd $HAB_CACHE_SRC_PATH
 
   git-get meetecho/janus-gateway e0ad1ff
-  git-get mozilla/janus-plugin-sfu 4e510ed
+  git-get mozilla/janus-plugin-sfu f01680a
 
   popd
 }
