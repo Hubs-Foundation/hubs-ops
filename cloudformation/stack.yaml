@@ -1181,7 +1181,7 @@ Resources:
       ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
-      ServiceName: reticulum
+      ServiceName: "reticulum.default"
       Org: !Ref "AWS::StackName"
 
   BioJanusServiceKey:
@@ -1190,7 +1190,7 @@ Resources:
       ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
-      ServiceName: janus-gateway
+      ServiceName: "janus-gateway.default"
       Org: !Ref "AWS::StackName"
 
   BioPostgrestServiceKey:
@@ -1199,7 +1199,7 @@ Resources:
       ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
-      ServiceName: postgrest
+      ServiceName: "postgrest.default"
       Org: !Ref "AWS::StackName"
 
   BioYTDLServiceKey:
@@ -1208,7 +1208,7 @@ Resources:
       ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
-      ServiceName: youtube-dl-api-server
+      ServiceName: "youtube-dl-api-server.default"
       Org: !Ref "AWS::StackName"
 
 # Speelycaptor
