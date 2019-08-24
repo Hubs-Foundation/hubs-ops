@@ -150,7 +150,7 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
     Description: "SSH Keypair for server SSH access. If there no keypairs in this list, you'll need to add a SSH keypair via the EC2 console. See: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#having-ec2-create-your-key-pair."
     AllowedPattern: ".+"
-    ConstraintDescription: You must choose an SSH keypair. To create one, see: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#having-ec2-create-your-key-pair.
+    ConstraintDescription: "You must choose an SSH keypair. To create one, see: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#having-ec2-create-your-key-pair."
   ClassB:
     Type: String
     Description: VPC ClassB (10.XX.0.0/16) block to use for internal server IPs.
@@ -483,6 +483,17 @@ Resources:
       Prefix: ""
       Objects:
         - lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.3.zip
+  CopyKeymasterLambda:
+    Type: Custom::CopyKeymasterLambda
+    UpdateReplacePolicy: Retain
+    DependsOn: LambdaBucket
+    Properties:
+      ServiceToken: !GetAtt CopyFileFunction.Arn
+      DestBucket: !Ref LambdaBucket
+      SourceBucket: assets.polycosm-prod-b99b35f30242f894
+      Prefix: ""
+      Objects:
+        - lambdas/keymaster/keymaster-0.1.0.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -904,6 +915,63 @@ Resources:
     Properties:
       UserName: !Sub "${AWS::StackName}-send-email"
 
+  WriteBoxKeysRole:
+   Type: AWS::IAM::Role
+   Properties:
+     RoleName: !Sub "${AWS::StackName}-WriteBoxKeys"
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Path: /
+     Policies:
+       - PolicyName: write-box-keys
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - s3:PutObject
+               Resource:
+                 - !Sub 'arn:aws:s3:::${BoxKeysBucket}/*'
+
+  GenerateBioRingKeyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/keymaster/keymaster-0.1.0.zip
+      Handler: index.generate_ring_key
+      Role: !GetAtt WriteBoxKeysRole.Arn
+      Runtime: nodejs10.x
+      Description: Generates bio ring key
+      Timeout: 30
+      MemorySize: 128
+    DependsOn:
+      - CopyKeymasterLambda
+
+  GenerateBioServiceKeyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/keymaster/keymaster-0.1.0.zip
+      Handler: index.generate_service_key
+      Role: !GetAtt WriteBoxKeysRole.Arn
+      Runtime: nodejs10.x
+      Description: Generates bio service key
+      Timeout: 30
+      MemorySize: 128
+    DependsOn:
+      - CopyKeymasterLambda
+
 # EmptyBucket
   EmptyBucketRole:
    Type: AWS::IAM::Role
@@ -932,6 +1000,7 @@ Resources:
                  - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
                  - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}/*'
                  - !Sub 'arn:aws:s3:::${SpeelycaptorScratchBucket}/*'
+                 - !Sub 'arn:aws:s3:::${BoxKeysBucket}/*'
              - Effect: Allow
                Action:
                  - s3:ListBucket
@@ -939,7 +1008,7 @@ Resources:
                  - !Sub 'arn:aws:s3:::${AssetsBucket}'
                  - !Sub 'arn:aws:s3:::${LambdaBucket}'
                  - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}'
-                 - !Sub 'arn:aws:s3:::${SpeelycaptorScratchBucket}'
+                 - !Sub 'arn:aws:s3:::${BoxKeysBucket}'
 
   EmptyBucketFunction:
     Type: AWS::Lambda::Function
@@ -960,6 +1029,14 @@ Resources:
           
                   if event['RequestType'] == 'Delete':
                       s3 = boto3.resource('s3')
+
+                      try: 
+                          s3.meta.client.head_bucket(Bucket=bucket)
+                      except ClientError:
+                          # Bucket already removed/never existed
+                          sendResponseCfn(event, context, "SUCCESS")
+                          return
+
                       bucket = s3.Bucket(bucket)
                       for obj in bucket.objects.filter():
                           s3.Object(bucket.name, obj.key).delete()
@@ -1078,6 +1155,62 @@ Resources:
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
       BucketName: !Ref LambdaBucket
+  BoxKeysBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-box-keys", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+  EmptyBoxKeysBucket:
+    Type: Custom::EmptyBoxKeysBucket
+    Properties:
+      ServiceToken: !GetAtt EmptyBucketFunction.Arn
+      BucketName: !Ref BoxKeysBucket
+
+# Bio Keys
+  BioRingKey:
+    Type: Custom::BioRingKey
+    Properties:
+      ServiceToken: !GetAtt GenerateBioRingKeyFunction.Arn
+      BucketName: !Ref BoxKeysBucket
+      BucketRegion: !Ref "AWS::Region"
+      KeyName: !Ref "AWS::StackName"
+
+  BioReticulumServiceKey:
+    Type: Custom::BioReticulumServiceKey
+    Properties:
+      ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
+      BucketName: !Ref BoxKeysBucket
+      BucketRegion: !Ref "AWS::Region"
+      ServiceName: reticulum
+      Org: !Ref "AWS::StackName"
+
+  BioJanusServiceKey:
+    Type: Custom::BioJanusServiceKey
+    Properties:
+      ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
+      BucketName: !Ref BoxKeysBucket
+      BucketRegion: !Ref "AWS::Region"
+      ServiceName: janus-gateway
+      Org: !Ref "AWS::StackName"
+
+  BioPostgrestServiceKey:
+    Type: Custom::BioPostgrestServiceKey
+    Properties:
+      ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
+      BucketName: !Ref BoxKeysBucket
+      BucketRegion: !Ref "AWS::Region"
+      ServiceName: postgrest
+      Org: !Ref "AWS::StackName"
+
+  BioYTDLServiceKey:
+    Type: Custom::BioYTDLServiceKey
+    Properties:
+      ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
+      BucketName: !Ref BoxKeysBucket
+      BucketRegion: !Ref "AWS::Region"
+      ServiceName: youtube-dl-api-server
+      Org: !Ref "AWS::StackName"
+
 # Speelycaptor
   SpeelycaptorInitLogGroup:
     Type: AWS::Logs::LogGroup
@@ -1922,7 +2055,10 @@ Resources:
                   - iam:GetUser
                   - iam:ListAccessKeys
                 Resource: !GetAtt SendEmailUser.Arn
-          PolicyName: !Sub '${AWS::StackName}-send-email-policy'
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub "${BoxKeysBucket.Arn}/*"
+          PolicyName: !Sub "${AWS::StackName}-app-box-policy"
       AssumeRolePolicyDocument:
         Statement:
           - Action:
