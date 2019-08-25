@@ -996,28 +996,19 @@ Resources:
                Action:
                  - s3:DeleteObject
                Resource:
-                 - !Sub 'arn:aws:s3:::${AssetsBucket}/*'
-                 - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
-                 - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}/*'
-                 - !Sub 'arn:aws:s3:::${SpeelycaptorScratchBucket}/*'
-                 - !Sub 'arn:aws:s3:::${BoxKeysBucket}/*'
-             - Effect: Allow
-               Action:
-                 - s3:ListObjects
-               Resource:
-                 - !Sub 'arn:aws:s3:::${AssetsBucket}'
-                 - !Sub 'arn:aws:s3:::${LambdaBucket}'
-                 - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}'
-                 - !Sub 'arn:aws:s3:::${SpeelycaptorScratchBucket}/*'
-                 - !Sub 'arn:aws:s3:::${BoxKeysBucket}'
+                 - !Sub '${AssetsBucket.Arn}/*'
+                 - !Sub '${LambdaBucket.Arn}/*'
+                 - !Sub '${LinkRedirectorBucket.Arn}/*'
+                 - !Sub '${SpeelycaptorScratchBucket.Arn}/*'
+                 - !Sub '${BoxKeysBucket.Arn}/*'
              - Effect: Allow
                Action:
                  - s3:ListBucket
                Resource:
-                 - !Sub 'arn:aws:s3:::${AssetsBucket}'
-                 - !Sub 'arn:aws:s3:::${LambdaBucket}'
-                 - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}'
-                 - !Sub 'arn:aws:s3:::${BoxKeysBucket}'
+                 - !Sub '${AssetsBucket.Arn}'
+                 - !Sub '${LambdaBucket.Arn}'
+                 - !Sub '${LinkRedirectorBucket.Arn}'
+                 - !Sub '${BoxKeysBucket.Arn}'
 
   EmptyBucketFunction:
     Type: AWS::Lambda::Function
