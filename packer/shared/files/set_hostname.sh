@@ -24,7 +24,7 @@ attempt_generate_hostname() {
   DNS_IP=$(dig $NEW_HOSTNAME.$HOSTED_ZONE_NAME A +short)
 
   if [[ ! -z "$DNS_IP" ]] ; then
-    EXISTING_IP=$(aws ec2 --region $REGION describe-instances | grep $DNS_IP)
+    EXISTING_IP=$(aws ec2 --region $REGION describe-instances --no-paginate | grep $DNS_IP)
   fi
 }
 
