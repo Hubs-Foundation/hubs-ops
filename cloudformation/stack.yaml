@@ -1155,6 +1155,8 @@ Resources:
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
       BucketName: !Ref LambdaBucket
+    DependsOn:
+      - EmptyBucketRole
   BoxKeysBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -1165,6 +1167,8 @@ Resources:
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
       BucketName: !Ref BoxKeysBucket
+    DependsOn:
+      - EmptyBucketRole
 
 # Bio Keys
   BioRingKey:
@@ -1230,6 +1234,8 @@ Resources:
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
       BucketName: !Ref SpeelycaptorScratchBucket
+    DependsOn:
+      - EmptyBucketRole
   SpeelycaptorRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1705,6 +1711,8 @@ Resources:
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
       BucketName: !Ref AssetsBucket
+    DependsOn:
+      - EmptyBucketRole
   CopyPDFJSAssets:
     Type: Custom::CopyPDFJSAssets
     UpdateReplacePolicy: Retain
@@ -1747,6 +1755,8 @@ Resources:
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
       BucketName: !Ref LinkRedirectorBucket
+    DependsOn:
+      - EmptyBucketRole
   LinkRedirectorPublicBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -2058,6 +2068,9 @@ Resources:
               - Effect: Allow
                 Action: s3:GetObject
                 Resource: !Sub "${BoxKeysBucket.Arn}/*"
+              - Effect: Allow
+                Action: cloudformation:DescribeStacks
+                Resource: !Ref "AWS::StackId"
           PolicyName: !Sub "${AWS::StackName}-app-box-policy"
       AssumeRolePolicyDocument:
         Statement:
@@ -2425,7 +2438,7 @@ Resources:
   AppLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      AssociatePublicIpAddress: false
+      AssociatePublicIpAddress: true
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
