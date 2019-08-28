@@ -2056,22 +2056,6 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${AWS::StackName}-app"
-      Policies:
-        - PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - iam:GetUser
-                  - iam:ListAccessKeys
-                Resource: !GetAtt SendEmailUser.Arn
-              - Effect: Allow
-                Action: s3:GetObject
-                Resource: !Sub "${BoxKeysBucket.Arn}/*"
-              - Effect: Allow
-                Action: cloudformation:DescribeStacks
-                Resource: !Ref "AWS::StackId"
-          PolicyName: !Sub "${AWS::StackName}-app-box-policy"
       AssumeRolePolicyDocument:
         Statement:
           - Action:
@@ -2152,7 +2136,23 @@ Resources:
           - Effect: Allow
             Action: 
               - route53:ChangeResourceRecordSets
-            Resource: arn:aws:route53:::hostedzone/Z26OTGLBBCAHK4
+            Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+          - Effect: Allow
+            Action:
+              - iam:GetUser
+              - iam:ListAccessKeys
+            Resource: !GetAtt SendEmailUser.Arn
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "${BoxKeysBucket.Arn}/*"
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+            Resource:
+              - !Sub '${BoxKeysBucket.Arn}'
+          - Effect: Allow
+            Action: cloudformation:DescribeStacks
+            Resource: !Ref "AWS::StackId"
 
   AppALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -2448,7 +2448,7 @@ Resources:
       SecurityGroups:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
-      ImageId: ami-be7753db
+      ImageId: ami-0c716aefe0045ab94
       KeyName: !Ref KeyPair
 
   AppPlacementGroup:
@@ -2473,9 +2473,18 @@ Resources:
       - Key: polycosm-roles
         Value: !If [HasStreamingServers, "app stream", "app"]
         PropagateAtLaunch: true
+      - Key: polycosm-type
+        Value: !If [HasStreamingServers, "stream", "app"]
+        PropagateAtLaunch: true
       - Key: bio-ring
         Value: !Sub "${AWS::StackName}"
         PropagateAtLaunch: true
+    DependsOn:
+      - BioRingKey
+      - BioReticulumServiceKey
+      - BioJanusServiceKey
+      - BioYTDLServiceKey
+      - BioPostgrestServiceKey
 
   StreamLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
@@ -2490,7 +2499,7 @@ Resources:
       SecurityGroups:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
-      ImageId: ami-be7753db
+      ImageId: ami-03e8177efea0dc5e9
       KeyName: !Ref KeyPair
 
   StreamASG:
@@ -2510,6 +2519,12 @@ Resources:
       - Key: bio-ring
         Value: !Sub "${AWS::StackName}"
         PropagateAtLaunch: true
+    DependsOn:
+      - BioRingKey
+      - BioReticulumServiceKey
+      - BioJanusServiceKey
+      - BioYTDLServiceKey
+      - BioPostgrestServiceKey
 
   StorageEFS:
     Type: AWS::EFS::FileSystem
@@ -2841,3 +2856,11 @@ Outputs:
   ShortlinkDomainName:
     Description: Shortlink Domain Name
     Value: !GetAtt ShortlinkZoneInfo.Name
+
+  BoxKeyBucketName:
+    Description: Box Keys Bucket Name
+    Value: !Ref BoxKeysBucket
+
+  BoxKeyBucketRegion:
+    Description: Box Keys Bucket Region
+    Value: !Ref "AWS::Region"
