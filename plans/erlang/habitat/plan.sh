@@ -1,14 +1,14 @@
 pkg_name=erlang
 pkg_origin=core
-pkg_version=21.0
+pkg_version=22.0
 pkg_description="A programming language for massively scalable soft real-time systems."
 pkg_upstream_url="http://www.erlang.org/"
 pkg_dirname=otp_src_${pkg_version}
 pkg_license=('Apache-2.0')
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
-pkg_source=http://www.erlang.org/download/otp_src_${pkg_version}.tar.gz
+pkg_source=http://erlang.org/download/otp_src_${pkg_version}.tar.gz
 pkg_filename=otp_src_${pkg_version}.tar.gz
-pkg_shasum=c7d247c0cad2d2e718eaca2e2dff051136a1347a92097abf19ebf65ea2870131
+pkg_shasum=042e168d74055a501c75911694758a30597446accd8c82ec569552b9e9fcd272
 pkg_deps=(core/glibc core/zlib core/ncurses core/openssl core/sed)
 pkg_build_deps=(core/coreutils core/gcc core/make core/openssl core/perl core/m4)
 pkg_bin_dirs=(bin)
@@ -31,6 +31,7 @@ do_prepare() {
 do_build() {
   sed -i 's/std_ssl_locations=.*/std_ssl_locations=""/' erts/configure.in
   sed -i 's/std_ssl_locations=.*/std_ssl_locations=""/' erts/configure
+  export CFLAGS="-O2 -g"
   ./configure --prefix="${pkg_prefix}" \
               --enable-threads \
               --enable-smp-support \
