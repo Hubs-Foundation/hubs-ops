@@ -2857,10 +2857,10 @@ Outputs:
     Description: Shortlink Domain Name
     Value: !GetAtt ShortlinkZoneInfo.Name
 
-  BoxKeyBucketName:
+  BoxKeysBucketName:
     Description: Box Keys Bucket Name
     Value: !Ref BoxKeysBucket
 
-  BoxKeyBucketRegion:
+  BoxKeysBucketRegion:
     Description: Box Keys Bucket Region
     Value: !Ref "AWS::Region"
