@@ -456,7 +456,7 @@ resource "aws_cloudfront_distribution" "ret-uploads" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin", "Content-Type", "Authorization"]
+      headers = ["Origin", "Content-Type", "Authorization", "Range"]
       cookies { forward = "none" }
     }
 
