@@ -14,6 +14,7 @@ Metadata:
         Parameters:
           - EmailZone
           - EmailSubdomain
+          - ContactEmailAddress
       - Label:
           default: Server Configuration
         Parameters:
@@ -49,6 +50,8 @@ Metadata:
         default: Outgoing Email Route 53 Zone
       EmailSubdomain:
         default: Outgoing Email Subdomain Prefix
+      ContactEmailAddress:
+        default: Administrator Email Address
       UnmanagedDomainCertArn:
         default: Unmanaged Domain SSL Certificate ARN
       AppInstanceCount:
@@ -102,6 +105,9 @@ Parameters:
     Type: String
     Description: The Subdomain prefix to use for outgoing emails. For example, if your Outgoing Email Route 53 Zone is set to mywebspaces.com, setting this field to "mail" will send email from the domain mail.mywebspaces.com. If you have a third party email provider (eg Mailchimp) you can ignore this field.
     Default: mail
+  ContactEmailAddress:
+    Type: String
+    Description: Contact Email address for administrator of this stack. This will be shared with LetsEncrypt for urgent SSL renewal or security updates. By deploying this stack you agree to the LetsEncrypt TOS. (https://letsencrypt.org/repository/)
   UnmanagedDomainCertArn:
     Type: String
     Description: You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to upload your domain's SSL certificate to AWS Certificate Manager before completing this form. Make sure you upload your SSL certificate to the AWS region you'd like to use for your WebSpaces stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console.
@@ -2864,3 +2870,7 @@ Outputs:
   BoxKeysBucketRegion:
     Description: Box Keys Bucket Region
     Value: !Ref "AWS::Region"
+
+  ContactEmailAddress:
+    Description: Administrator Email Address
+    Value: !Ref ContactEmailAddress
