@@ -501,7 +501,7 @@ Resources:
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
       Objects:
-        - lambdas/keymaster/keymaster-0.1.1.zip
+        - lambdas/keymaster/keymaster-0.1.2.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -954,7 +954,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.1.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.2.zip
       Handler: index.generate_ring_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -970,7 +970,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.1.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.2.zip
       Handler: index.generate_service_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -986,11 +986,27 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-totp"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.1.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.2.zip
       Handler: index.generate_totp
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
       Description: Generates ssh TOTP
+      Timeout: 30
+      MemorySize: 128
+    DependsOn:
+      - CopyKeymasterLambda
+
+  GenerateJWTKeys:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-generate-jwt-keys"
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/keymaster/keymaster-0.1.2.zip
+      Handler: index.generate_jwt_keys
+      Role: !GetAtt WriteBoxKeysRole.Arn
+      Runtime: nodejs10.x
+      Description: Generates JWT keys
       Timeout: 30
       MemorySize: 128
     DependsOn:
@@ -1202,6 +1218,14 @@ Resources:
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
+
+# JWT Keys
+  JWTKeys:
+    Type: Custom::JWTKeys
+    Properties:
+      ServiceToken: !GetAtt GenerateJWTKeys.Arn
+      BucketName: !Ref BoxKeysBucket
+      BucketRegion: !Ref "AWS::Region"
 
 # Bio Keys
   BioRingKey:
@@ -2482,7 +2506,7 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-04a082231c278bf59
+      ImageId: ami-0809f91f41c408816
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
