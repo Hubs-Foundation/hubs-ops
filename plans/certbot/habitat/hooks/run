@@ -1,0 +1,55 @@
+#!{{pkgPathFor "core/bash"}}/bin/bash
+# shellcheck disable=SC2239
+# shellcheck disable=SC1083
+exec 2>&1
+
+service_group() {
+  pkg_ident=$1
+  hab svc status \
+    | grep ${pkg_ident} \
+    | grep -v "^package" \
+    | awk '{print $7}'
+  return $?
+}
+
+get_certificates() {
+  # shellcheck disable=SC2154
+  echo "$(date) Getting any needed LetsEncrypt certificates for '{{cfg.domain}}'"
+  certbot certonly \
+    --{{cfg.plugin}} \
+    --agree-tos \
+    --config-dir='{{pkg.svc_data_path}}' \
+    --domain='{{cfg.domain}}' \
+    --email='{{cfg.admin_email}}' \
+    --logs-dir='{{pkg.svc_path}}/logs' \
+    --noninteractive \
+    --rsa-key-size='4096' \
+    --server='{{cfg.server}}' \
+    --work-dir='{{pkg.svc_var_path}}'
+  return $?
+}
+
+renew_certificates() {
+  echo "$(date) Renewing LetsEncrypt certificates if neccessary"
+  certbot renew \
+    --{{cfg.plugin}} \
+    --config-dir='{{pkg.svc_data_path}}' \
+    --logs-dir='{{pkg.svc_path}}/logs'
+  return $?
+}
+
+contains_pem() {
+  local pem=$1
+  local domain=$2
+  grep '\-\-\-\-\-BEGIN ' "$pem" &> '/dev/null' \
+    && grep '\-\-\-\-\-END ' "$pem" &> '/dev/null'
+  return $?
+}
+
+get_certificates
+
+while true
+do
+  renew_certificates
+  sleep {{cfg.renewal_interval}}
+done
