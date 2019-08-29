@@ -2144,6 +2144,11 @@ Resources:
               - route53:ChangeResourceRecordSets
             Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
           - Effect: Allow
+            Action: 
+              - route53:ListHostedZones
+              - route53:GetChange
+            Resource: "*"
+          - Effect: Allow
             Action:
               - iam:GetUser
               - iam:ListAccessKeys
