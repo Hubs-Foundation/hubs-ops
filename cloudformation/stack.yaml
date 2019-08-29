@@ -1975,11 +1975,6 @@ Resources:
           FromPort: 123
           ToPort: 123
           CidrIp: 0.0.0.0/0
-        # Outbound NFS
-        - IpProtocol: tcp
-          FromPort: 2049
-          ToPort: 2049
-          DestinationSecurityGroupId: !Ref StorageSecurityGroup
         # Outbound RTP
         - IpProtocol: udp
           FromPort: 0
@@ -2459,8 +2454,13 @@ Resources:
       SecurityGroups:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
-      ImageId: ami-0c716aefe0045ab94
+        - !Ref StorageConnectSecurityGroup
+      ImageId: ami-04a082231c278bf59
       KeyName: !Ref KeyPair
+      UserData:
+        Fn::Base64: |
+          #!/usr/bin/env bash
+          /usr/bin/polycosm_boot.sh app
 
   AppPlacementGroup:
     Type: AWS::EC2::PlacementGroup
@@ -2510,8 +2510,13 @@ Resources:
       SecurityGroups:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
-      ImageId: ami-03e8177efea0dc5e9
+        - !Ref StorageConnectSecurityGroup
+      ImageId: ami-04a082231c278bf59
       KeyName: !Ref KeyPair
+      UserData:
+        Fn::Base64: |
+          #!/usr/bin/env bash
+          /usr/bin/polycosm_boot.sh stream
 
   StreamASG:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -2579,6 +2584,12 @@ Resources:
       GroupName: !Sub "${AWS::StackName}-storage-fs-connect"
       GroupDescription: Storage EFS Connect
       VpcId: !Ref VPC
+      SecurityGroupEgress:
+        # Outbound NFS
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          DestinationSecurityGroupId: !Ref StorageSecurityGroup
 
   StorageFSConnectIngress:
     Type: AWS::EC2::SecurityGroupIngress
