@@ -2506,7 +2506,7 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-0809f91f41c408816
+      ImageId: ami-0416d3a76ab26b0b2
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
