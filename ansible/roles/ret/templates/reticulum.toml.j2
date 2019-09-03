@@ -39,7 +39,7 @@ password = "{{ ret_db_password }}"
 hostname = "{{ ret_db_hostname }}"
 database = "ret_production"
 pool_size = 16
-migrate_post_start = "true"
+auto_migrate = "true"
 
 [aws]
 {% if alb_target_group_arn is defined %}
