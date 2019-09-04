@@ -4,5 +4,10 @@ revoke usage on schema ret0 from ret_admin;
 drop role ret_admin;
 revoke postgrest_anonymous from postgrest_authenticator;
 drop role postgrest_anonymous;
-revoke connect on database ret_production from postgrest_authenticator;
+do 
+$$ 
+begin
+  execute format('revoke connect on database %I from postgrest_authenticator', current_database());
+end;
+$$;
 drop role postgrest_authenticator;
