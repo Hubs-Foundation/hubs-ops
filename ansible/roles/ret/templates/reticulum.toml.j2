@@ -13,9 +13,9 @@ static_url_host = "{{ phoenix_static_url_host }}"
 {% if phoenix_static_url_port is defined %}
 static_url_port = "{{ phoenix_static_url_port }}"
 {% endif %}
-cors_proxy_host = "{{ phoenix_cors_proxy_host }}"
-{% if phoenix_cors_proxy_port is defined %}
-cors_proxy_port = "{{ phoenix_cors_proxy_port }}"
+cors_proxy_url_host = "{{ phoenix_cors_proxy_url_host }}"
+{% if phoenix_cors_proxy_url_port is defined %}
+cors_proxy_url_port = "{{ phoenix_cors_proxy_url_port }}"
 {% endif %}
 admin_access_key = "{{ phoenix_admin_access_key }}"
 
