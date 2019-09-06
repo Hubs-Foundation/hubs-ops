@@ -89,6 +89,18 @@ resource "aws_route53_record" "ret-alb-dns" {
   }
 }
 
+resource "aws_route53_record" "ret-alb-cors-proxy-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "cors-proxy-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_alb.ret.dns_name}"
+    zone_id = "${aws_alb.ret.zone_id}"
+    evaluate_target_health = true
+  }
+}
+
 resource "aws_alb" "ret" {
   name = "${var.shared["env"]}-ret"
   security_groups = ["${aws_security_group.ret-alb.id}"]
@@ -527,6 +539,18 @@ resource "aws_route53_record" "ret-assets-dns" {
 resource "aws_route53_record" "ret-smoke-alb-dns" {
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
   name = "smoke-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_alb.ret.dns_name}"
+    zone_id = "${aws_alb.ret.zone_id}"
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "ret-smoke-alb-cors-proxy-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "smoke-cors-proxy-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
   type = "A"
 
   alias {

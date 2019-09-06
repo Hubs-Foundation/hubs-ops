@@ -4,15 +4,16 @@ set -e
 
 HOST=$1
 SECONDARY_HOST=$2
-POOL=$3
-ENVIRONMENT=$4
+CORS_HOST=$3
+POOL=$4
+ENVIRONMENT=$5
 [[ -z "$ENVIRONMENT" ]] && ENVIRONMENT=dev
 
 REGION="us-west-1"
 
 if [ -z "$HOST" ] || [ "$HOST" == "--help" ] || ( [ "$POOL" != "earth" ] && [ "$POOL" != "arbre" ] ); then
   echo -e "
-Usage: ret_alb_to_pool.h <host> <secondary-host> <earth|arbre> [environment]
+Usage: ret_alb_to_pool.h <host> <secondary-host> <cors-host> <earth|arbre> [environment]
 
 Flips the ret-alb in the given enviroment to route traffic to the given ret pool (eg "arbre") with the given primary and secondary host (eg hubs.mozilla.com, prod.reticulum.io). The other pool will have traffic routed to it from the smoke hostname.
 
@@ -30,11 +31,11 @@ ARBRE_RULE_ARN=$(aws --region us-west-1 elbv2 describe-rules --listener-arn $LIS
 ARBRE_SMOKE_RULE_ARN=$(aws --region us-west-1 elbv2 describe-rules --listener-arn $LISTENER_ARN | jq -r ". | .Rules | map(select(any(.Actions[] ; .TargetGroupArn | contains(\"$ENVIRONMENT-arbre-smoke-ret\")))) | .[] | select(.Priority != \"default\") | .RuleArn")
 
 if [ $POOL == "earth" ]; then
-  aws --region $REGION elbv2 modify-rule --rule-arn $EARTH_RULE_ARN --conditions Field=host-header,Values="$HOST,$SECONDARY_HOST"
-  aws --region $REGION elbv2 modify-rule --rule-arn $ARBRE_SMOKE_RULE_ARN --conditions Field=host-header,Values="smoke-$HOST"
+  aws --region $REGION elbv2 modify-rule --rule-arn $EARTH_RULE_ARN --conditions Field=host-header,Values="$HOST,$SECONDARY_HOST,$CORS_HOST"
+  aws --region $REGION elbv2 modify-rule --rule-arn $ARBRE_SMOKE_RULE_ARN --conditions Field=host-header,Values="smoke-$HOST,smoke-$CORS_HOST"
   aws --region $REGION elbv2 set-rule-priorities --rule-priorities "RuleArn=$EARTH_RULE_ARN,Priority=1" "RuleArn=$ARBRE_SMOKE_RULE_ARN,Priority=2" "RuleArn=$EARTH_SMOKE_RULE_ARN,Priority=3" "RuleArn=$ARBRE_RULE_ARN,Priority=4"
 else
-  aws --region $REGION elbv2 modify-rule --rule-arn $ARBRE_RULE_ARN --conditions Field=host-header,Values="$HOST,$SECONDARY_HOST"
-  aws --region $REGION elbv2 modify-rule --rule-arn $EARTH_SMOKE_RULE_ARN --conditions Field=host-header,Values="smoke-$HOST"
+  aws --region $REGION elbv2 modify-rule --rule-arn $ARBRE_RULE_ARN --conditions Field=host-header,Values="$HOST,$SECONDARY_HOST,$CORS_HOST"
+  aws --region $REGION elbv2 modify-rule --rule-arn $EARTH_SMOKE_RULE_ARN --conditions Field=host-header,Values="smoke-$HOST,smoke-$CORS_HOST"
   aws --region $REGION elbv2 set-rule-priorities --rule-priorities "RuleArn=$ARBRE_RULE_ARN,Priority=1" "RuleArn=$EARTH_SMOKE_RULE_ARN,Priority=2" "RuleArn=$ARBRE_SMOKE_RULE_ARN,Priority=3" "RuleArn=$EARTH_RULE_ARN,Priority=4"
 fi
