@@ -7,6 +7,7 @@ HOSTED_ZONE_ID="Z26OTGLBBCAHK4"
 HOSTED_ZONE_NAME="reticulum.io"
 
 if [[ ! -z "$(hostname | grep $HOSTED_ZONE_NAME)" ]] ; then
+  sudo hostname > /var/run/generated_hostname
   echo "Hostname already set, exiting."
   exit 0
 fi
