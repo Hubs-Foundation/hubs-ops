@@ -2481,6 +2481,59 @@ Resources:
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1
 
+  CorsProxyCloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: !Sub "${AWS::StackName}-cors-proxy"
+            DomainName: !Sub '${AWS::StackName}.${InternalZoneInfo.Name}'
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [  "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+            Locations: []
+        Aliases:
+          - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
+        HttpVersion: http2
+        PriceClass: PriceClass_All
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 500
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 502
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 503
+            ErrorCachingMinTTL: 0
+        DefaultCacheBehavior:
+          Compress: true
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: !Sub "${AWS::StackName}-cors-proxy"
+          ForwardedValues:
+            QueryString: true
+            Headers: ["Origin", "Content-Type", "Range"]
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: https-only
+        ViewerCertificate:
+          AcmCertificateArn: !Ref InternalZoneSSLCertEast
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1
+
   StorageDNS:
     Type: AWS::Route53::RecordSet
     Properties:
@@ -2490,6 +2543,17 @@ Resources:
       AliasTarget:
         DNSName:
           Fn::GetAtt: [ StorageCloudfrontDistribution, DomainName ]
+        HostedZoneId: Z2FDTNDATAQYW2
+
+  CorsProxyDNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
+      HostedZoneId: !Ref InternalZone
+      Type: A
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt: [ CorsProxyCloudfrontDistribution, DomainName ]
         HostedZoneId: Z2FDTNDATAQYW2
 
   AppLaunchConfiguration:
@@ -2941,3 +3005,11 @@ Outputs:
   ContactEmailAddress:
     Description: Administrator Email Address
     Value: !Ref ContactEmailAddress
+
+  StorageDNS:
+    Description: Storage Domain Name
+    Value: !Ref StorageDNS
+
+  CorsProxyDNS:
+    Description: CORS Proxy Domain Name
+    Value: !Ref CorsProxyDNS
