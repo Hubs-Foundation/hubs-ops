@@ -2929,8 +2929,8 @@ Resources:
       GenerateSecretString:
         SecretStringTemplate: '{ "username": "postgres" }'
         GenerateStringKey: 'password'
-        PasswordLength: 32
-        ExcludeCharacters: '"@/\\'
+        PasswordLength: 64
+        ExcludePunctuation: true
 
   AppDbSecretAttachment:
     Type: AWS::SecretsManager::SecretTargetAttachment
@@ -2992,6 +2992,7 @@ Resources:
         SecretStringTemplate: '{}'
         GenerateStringKey: 'password'
         PasswordLength: 32
+        ExcludePunctuation: true
 
   JanusAdminSecretResourcePolicy:
     Type: AWS::SecretsManager::ResourcePolicy
