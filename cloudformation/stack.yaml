@@ -3183,7 +3183,7 @@ Outputs:
     Value: !Sub "mailto:info@${SESDomain}"
 
   ReticulumOAuthTokenSecret:
-    Description: Reticulum OAuth Token Secret [reticulum/guardian/oauth_token_key!read-aws-secret-as-oct]
+    Description: Reticulum OAuth Token Secret [reticulum/guardian/oauth_token_key!read-aws-secret]
     Value: !Ref ReticulumOAuthTokenSecret
 
   ReticulumCookieSecret:
