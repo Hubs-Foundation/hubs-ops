@@ -200,8 +200,6 @@ Mappings:
       Port: 443
     RetInternal:
       Port: 4000
-    PostgrestInternal:
-      Port: 3000
     JanusExternal:
       Port: 8443
     JanusAdmin:
@@ -210,6 +208,8 @@ Mappings:
       Port: 20000
     JanusWebRTCTo:
       Port: 60000
+    YTDL:
+      Port: 8080
     BioCensus:
       Port: 9631
     Ssh:
@@ -501,7 +501,7 @@ Resources:
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
       Objects:
-        - lambdas/keymaster/keymaster-0.1.2.zip
+        - lambdas/keymaster/keymaster-0.1.3.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -954,7 +954,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.2.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.3.zip
       Handler: index.generate_ring_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -970,7 +970,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.2.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.3.zip
       Handler: index.generate_service_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -986,7 +986,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-totp"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.2.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.3.zip
       Handler: index.generate_totp
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -1002,11 +1002,27 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-jwt-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.2.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.3.zip
       Handler: index.generate_jwt_keys
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
       Description: Generates JWT keys
+      Timeout: 30
+      MemorySize: 128
+    DependsOn:
+      - CopyKeymasterLambda
+
+  GenerateVapidKeys:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-generate-vapid-keys"
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/keymaster/keymaster-0.1.3.zip
+      Handler: index.generate_vapid_keys
+      Role: !GetAtt WriteBoxKeysRole.Arn
+      Runtime: nodejs10.x
+      Description: Generates Vapid keys
       Timeout: 30
       MemorySize: 128
     DependsOn:
@@ -1224,6 +1240,14 @@ Resources:
     Type: Custom::JWTKeys
     Properties:
       ServiceToken: !GetAtt GenerateJWTKeys.Arn
+      BucketName: !Ref BoxKeysBucket
+      BucketRegion: !Ref "AWS::Region"
+
+# Vapid Keys
+  VapidKeys:
+    Type: Custom::VapidKeys
+    Properties:
+      ServiceToken: !GetAtt GenerateVapidKeys.Arn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
 
@@ -2001,10 +2025,6 @@ Resources:
           FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
           ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
           SourceSecurityGroupId: !Ref AppALBSecurityGroup
-        - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
-          ToPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
-          SourceSecurityGroupId: !Ref AppALBSecurityGroup
       SecurityGroupEgress:
         # Outbound HTTP
         - IpProtocol: tcp
@@ -2093,15 +2113,6 @@ Resources:
       IpProtocol: tcp
       FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
       ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
-
-  AppALBPostgrestEgress:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !Ref AppALBSecurityGroup
-      IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
-      ToPort: !FindInMap [ServicesMeta, PostgrestInternal, Port]
       DestinationSecurityGroupId: !Ref AppSecurityGroup
 
   AppRole:
@@ -2848,8 +2859,8 @@ Resources:
       GenerateSecretString:
         SecretStringTemplate: '{ "username": "postgres" }'
         GenerateStringKey: 'password'
-        PasswordLength: 16
-        ExcludeCharacters: '"@/\'
+        PasswordLength: 32
+        ExcludeCharacters: '"@/\\'
 
   AppDbSecretAttachment:
     Type: AWS::SecretsManager::SecretTargetAttachment
@@ -2901,14 +2912,303 @@ Resources:
         MinCapacity: 2
         SecondsUntilAutoPause: 300
 
-Outputs:
-  DomainName:
-    Description: Primary WebSpaces domain name
-    Value: !Ref DomainName
+# Secrets
 
+  JanusAdminSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Janus admin password'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 32
+
+  JanusAdminSecretResourcePolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties: 
+      SecretId: !Ref JanusAdminSecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: "Deny"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "secretsmanager:DeleteSecret"
+            Resource: "*"
+
+  PhoenixKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Phoenix secret base key'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 128
+        ExcludePunctuation: true
+
+  PhoenixKeySecretResourcePolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties: 
+      SecretId: !Ref PhoenixKeySecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: "Deny"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "secretsmanager:DeleteSecret"
+            Resource: "*"
+
+  RetAdminAccessKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Reticulum admin access key'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 128
+        ExcludePunctuation: true
+
+  RetAdminAccessKeySecretResourcePolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties: 
+      SecretId: !Ref RetAdminAccessKeySecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: "Deny"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "secretsmanager:DeleteSecret"
+            Resource: "*"
+
+  GuardianSecretKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Reticulum admin access key'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 128
+        ExcludePunctuation: true
+
+  GuardianSecretKeySecretResourcePolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties: 
+      SecretId: !Ref GuardianSecretKeySecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: "Deny"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "secretsmanager:DeleteSecret"
+            Resource: "*"
+
+  ReticulumOAuthTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Reticulum admin access key'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 128
+        ExcludePunctuation: true
+
+  ReticulumOAuthTokenSecretResourcePolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties: 
+      SecretId: !Ref ReticulumOAuthTokenSecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: "Deny"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "secretsmanager:DeleteSecret"
+            Resource: "*"
+
+  ReticulumCookieSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Reticulum admin access key'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 64
+        ExcludePunctuation: true
+
+  ReticulumCookieSecretResourcePolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties: 
+      SecretId: !Ref ReticulumCookieSecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: "Deny"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "secretsmanager:DeleteSecret"
+            Resource: "*"
+
+  ReticulumBotAccessKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Reticulum admin access key'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 128
+        ExcludePunctuation: true
+
+  ReticulumBotAccessKeySecretResourcePolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties: 
+      SecretId: !Ref ReticulumBotAccessKeySecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: "Deny"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "secretsmanager:DeleteSecret"
+            Resource: "*"
+
+Outputs:
   AppALBDomain:
     Description: Domain name for app servers. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable WebSpaces on your site.
     Value: !GetAtt AppALB.DNSName
+
+  DomainName:
+    Description: Primary WebSpaces domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/phx/cors_origins]
+    Value: !Ref DomainName
+
+  JanusAdminSecret:
+    Description: Janus Admin Secret [janus-gateway/general/admin-secret!read-aws-secret,reticulum/janus/admin_secret!read-aws-secret]
+    Value: !Ref JanusAdminSecret
+
+  JanusMediaRtpPortRange:
+    Description: Janus WebRTC Port Range [janus-gateway/media/rtp_port_range]
+    Value: !Join ["-", [!FindInMap [ServicesMeta, JanusWebRTCFrom, Port], !FindInMap [ServicesMeta, JanusWebRTCTo, Port] ] ]
+
+  JanusNatIceIgnoreList:
+    Description: Janus ICE Ignore List [janus-gateway/nat/ice_ignore_list]
+    Value: eth0:0
+
+  JanusExternalPort:
+    Description: Janus External Port [janus-gateway/transports.websockets/wss_port]
+    Value: !FindInMap [ServicesMeta, JanusExternal, Port]
+
+  JanusAdminPort:
+    Description: Janus Admin Port [janus-gateway/transports.http/admin_port,reticulum/janus/admin_port]
+    Value: !FindInMap [ServicesMeta, JanusAdmin, Port]
+
+  JanusServiceName:
+    Description: Janus Service Name [reticulum/janus/service_name]
+    Value: janus-gateway
+
+  RetInternalPort:
+    Description: Reticulum Internal Port [reticulum/phx/port]
+    Value: !FindInMap [ServicesMeta, RetInternal, Port]
+
+  RetPhoenixSecretKey:
+    Description: Reticulum Phoenix Secret Key [reticulum/phx/secret_key!read-aws-secret]
+    Value: !Ref PhoenixKeySecret
+
+  RetExternalPort:
+    Description: Reticulum URL Port [reticulum/phx/url_port]
+    Value: !FindInMap [ServicesMeta, RetExternal, Port]
+
+  CorsProxyDNS:
+    Description: CORS Proxy Domain Name [reticulum/phx/cors_proxy_url_host]
+    Value: !Ref CorsProxyDNS
+
+  RetAdminAccessKeySecret:
+    Description: Reticulum Admin Access Key [reticulum/phx/admin_access_key!read-aws-secret]
+    Value: !Ref RetAdminAccessKeySecret
+
+  RetHostnameDNSSuffix:
+    Description: Reticulum Hostname DNS Suffix [reticulum/phx/hostname_dns_suffix]
+    Value: -local
+
+  GuardianSecretKeySecret:
+    Description: Guardian Secret Key [reticulum/guardian/secret_key!read-aws-secret]
+    Value: !Ref GuardianSecretKeySecret
+
+  ReticulumPermsKey:
+    Description: Reticulum Perms Key [reticulum/guardian/perms_key!read-s3-file]
+    Value: !Sub "s3://${BoxKeysBucket}/jwt-key.pem"
+
+  ReticulumVapidKeys:
+    Description: Reticulum Vapid Keys [reticulum/guardian/web_push/public_key!read-s3-file-as-json(publicKey),reticulum/guardian/web_push/private_key!read-s3-file-as-json(privateKey)]
+    Value: !Sub "s3://${BoxKeysBucket}/vapid.json"
+
+  ReticulumWebPushSubject:
+    Description: Reticulum Web Push Subject [reticulum/web_push/subject]
+    Value: !Sub "mailto:info@${SESDomain}"
+
+  ReticulumOAuthTokenSecret:
+    Description: Reticulum OAuth Token Secret [reticulum/guardian/oauth_token_key!read-aws-secret-as-oct]
+    Value: !Ref ReticulumOAuthTokenSecret
+
+  ReticulumCookieSecret:
+    Description: Reticulum Cookie Secret [reticulum/erlang/node_cookie!read-aws-secret]
+    Value: !Ref ReticulumCookieSecret
+
+  ReticulumBotAccessKeySecret:
+    Description: Reticulum Bot Access Key Secret [reticulum/ret/bot_access_key!read-aws-secret]
+    Value: !Ref ReticulumBotAccessKeySecret
+
+  AppDbAddress:
+    Description: App DB Domain Name [reticulum/db/hostname]
+    Value: !GetAtt AppDb.Endpoint.Address
+
+  AppDbSecret:
+    Description: App DB Secret [reticulum/db/password!read-aws-secret]
+    Value: !Ref AppDbSecret
+
+  AppDbDatabase:
+    Description: App DB Database [reticulum/db/database]
+    Value: polycosm_production
+
+  PostgrestDbURI:
+    Description: Postgrest DB URI [postgrest/db/uri!inject-aws-secrets]
+    Value: !Sub "postgres://postgrest_authenticator:{${AppDbSecret}}@${AppDb.Endpoint.Address}/polycosm_production"
 
   AssetsEndpoint:
     Description: URL for CDN assets
@@ -2919,67 +3219,40 @@ Outputs:
     Value: !Sub 'https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
 
   SpeelycaptorEndpoint:
-    Description: URL of the speelycaptor service endpoint
+    Description: Speelycaptor Service URL [reticulum/speelycaptor/speelycaptor_endpoint]
     Value: !Sub 'https://${SpeelycaptorApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
 
   PhotomnemonicEndpoint:
-    Description: URL of the photomnemonic service endpoint
+    Description: Photomnemonic Service URL [reticulum/resolver/photomnemonic_endpoint]
     Value: !Sub 'https://${PhotomnemonicApiGatewayRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod'
 
   StorageEFSId:
     Description: Storage EFS volume id
     Value: !Ref StorageEFS
 
-  AppDbAddress:
-    Description: Domain name for app db
-    Value: !GetAtt AppDb.Endpoint.Address
+  StoragePath:
+    Description: Storage EFS Path [reticulum/uploads/storage_path]
+    Value: "/storage"
 
-  AppDbPort:
-    Description: Port for app db
-    Value: !GetAtt AppDb.Endpoint.Port
+  ReticulumCSP:
+    Description: Default Reticulum Content Security Policy [reticulum/security/content_security_policy!overridable]
+    Value: !Sub |
+      default-src 'none'; manifest-src 'self'; script-src 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; child-src 'self' blob:; worker-src https://${AWS::StackName}-assets.${InternalZoneInfo.Name} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com 'unsafe-inline'; connect-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:8443 https://cdn.aframe.io https://www.youtube.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';
 
-  AppDbSecret:
-    Description: Secret for app db
-    Value: !Ref AppDbSecret
-
-  SmtpSendUser:
-    Description: SMTP send user for email zone
-    Value: !GetAtt SendEmailUser.Arn
+  SmtpSendAccessKey:
+    Description: SMTP send access key for email zone [reticulum/email/username!read-iam-access-key-id,reticulum/email/password!read-iam-secret-access-key-as-ses-password]
+    Value: !Ref SendEmailAccessKey
 
   SmtpSendFromAddress:
-    Description: SMTP send from address
+    Description: SMTP send from address [reticulum/email/from]
     Value: !Sub "noreply@${SESDomain}"
 
-  RetExternalPort:
-    Description: Reticulum External Port
-    Value: !FindInMap [ServicesMeta, RetExternal, Port]
-
-  RetInternalPort:
-    Description: Reticulum Internal Port
-    Value: !FindInMap [ServicesMeta, RetInternal, Port]
-
-  PostgrestInternalPort:
-    Description: PostgREST Internal Port
-    Value: !FindInMap [ServicesMeta, PostgrestInternal, Port]
-
-  JanusExternalPort:
-    Description: Janus External Port
-    Value: !FindInMap [ServicesMeta, JanusExternal, Port]
-
-  JanusAdminPort:
-    Description: Janus Admin Port
-    Value: !FindInMap [ServicesMeta, JanusAdmin, Port]
-
-  JanusWebRTCFromPort:
-    Description: Janus WebRTC From Port
-    Value: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
-
-  JanusWebRTCToPort:
-    Description: Janus WebRTC To Port
-    Value: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+  StmpServer:
+    Description: SMTP server [reticulum/email/server]
+    Value: email-smtp.us-east-1.amazonaws.com
 
   BioCensusPort:
-    Description: Bio census HTTP port
+    Description: Bio census HTTP port [reticulum/habitat/http_port]
     Value: !FindInMap [ServicesMeta, BioCensus, Port]
 
   InternalZoneId:
@@ -2990,10 +3263,6 @@ Outputs:
     Description: Internal Zone Domain Name
     Value: !GetAtt InternalZoneInfo.Name
 
-  ShortlinkDomainName:
-    Description: Shortlink Domain Name
-    Value: !GetAtt ShortlinkZoneInfo.Name
-
   BoxKeysBucketName:
     Description: Box Keys Bucket Name
     Value: !Ref BoxKeysBucket
@@ -3002,14 +3271,22 @@ Outputs:
     Description: Box Keys Bucket Region
     Value: !Ref "AWS::Region"
 
+  ShortlinkDomainName:
+    Description: Shortlink Domain Name
+    Value: !GetAtt ShortlinkZoneInfo.Name
+
   ContactEmailAddress:
     Description: Administrator Email Address
     Value: !Ref ContactEmailAddress
 
-  StorageDNS:
-    Description: Storage Domain Name
-    Value: !Ref StorageDNS
+  YTDLURL:
+    Description: YT-DL URL [reticulum/resolver/ytdl_host]
+    Value: !Sub ["http://localhost:${Port}", { Port: !FindInMap [ServicesMeta, YTDL, Port] }]
 
-  CorsProxyDNS:
-    Description: CORS Proxy Domain Name
-    Value: !Ref CorsProxyDNS
+  YTDLBindIP:
+    Description: YT-DL Bind IP [youtube-dl-api-server/general/bind_ip]
+    Value: 127.0.0.1
+
+  YTDLPort:
+    Description: YT-DL Port [youtube-dl-api-server/general/port]
+    Value: 8080
