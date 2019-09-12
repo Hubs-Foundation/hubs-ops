@@ -3175,7 +3175,7 @@ Outputs:
     Value: !Sub "s3://${BoxKeysBucket}/jwt-key.pem"
 
   ReticulumVapidKeys:
-    Description: Reticulum Vapid Keys [reticulum/guardian/web_push/public_key!read-s3-file-as-json(publicKey),reticulum/guardian/web_push/private_key!read-s3-file-as-json(privateKey)]
+    Description: Reticulum Vapid Keys [reticulum/web_push/public_key!read-s3-file-as-json(publicKey),reticulum/web_push/private_key!read-s3-file-as-json(privateKey)]
     Value: !Sub "s3://${BoxKeysBucket}/vapid.json"
 
   ReticulumWebPushSubject:
