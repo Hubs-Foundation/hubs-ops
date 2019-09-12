@@ -1114,6 +1114,68 @@ Resources:
           
               requests.put(event['ResponseURL'], data=json.dumps(response_body))
 
+  SESPasswordFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python2.7
+      Role: !GetAtt EmptyBucketRole.Arn
+      Timeout: 240
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import hmac
+          import hashlib
+          import base64
+          import argparse
+          from botocore.vendored import requests
+
+          DATE = "11111111"
+          SERVICE = "ses"
+          MESSAGE = "SendRawEmail"
+          TERMINAL = "aws4_request"
+          VERSION = 0x04
+          
+          def sign(key, msg):
+              return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
+
+          def calculateKey(secretAccessKey, region):
+              signature = sign(("AWS4" + secretAccessKey).encode('utf-8'), DATE)
+              signature = sign(signature, region)
+              signature = sign(signature, SERVICE)
+              signature = sign(signature, TERMINAL)
+              signature = sign(signature, MESSAGE)
+              signatureAndVersion = bytes([VERSION]) + signature
+              smtpPassword = base64.b64encode(signatureAndVersion)
+              return smtpPassword.decode('utf-8')
+
+          def handler(event, context):
+              try:
+                  if event['RequestType'] == 'Delete':
+                      sendResponseCfn(event, context, "SUCCESS", {})
+                      return
+
+                  secretAccessKey = event['ResourceProperties']['SecretAccessKey']
+                  region = event['ResourceProperties']['Region']
+                  key = calculateKey(secretAccessKey, region)
+                  sendResponseCfn(event, context, "SUCCESS", { "Key": key })
+              except Exception as e:
+                  print(e)
+                  sendResponseCfn(event, context, "FAILED", {})
+          
+          
+          def sendResponseCfn(event, context, responseStatus, data):
+              response_body = {'Status': responseStatus,
+                               'Reason': 'Log stream name: ' + context.log_stream_name,
+                               'PhysicalResourceId': context.log_stream_name,
+                               'StackId': event['StackId'],
+                               'RequestId': event['RequestId'],
+                               'LogicalResourceId': event['LogicalResourceId'],
+                               'Data': data}
+          
+              requests.put(event['ResponseURL'], data=json.dumps(response_body))
+
 # CopyFile
   CopyFileRole:
    Type: AWS::IAM::Role
@@ -1213,6 +1275,14 @@ Resources:
       BucketName: !Ref LambdaBucket
     DependsOn:
       - EmptyBucketRole
+  SendEmailPassword:
+    Type: Custom::SendEmailPassword
+    Properties:
+      ServiceToken: !GetAtt SESPasswordFunction.Arn
+      SecretAccessKey: !GetAtt SendEmailAccessKey.SecretAccessKey
+      Region: "us-east-1"
+    DependsOn:
+      - SendEmailUser
   BoxKeysBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -3109,6 +3179,30 @@ Resources:
             Action: "secretsmanager:DeleteSecret"
             Resource: "*"
 
+  SendEmailPasswordSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Send email password'
+      SecretString: !Sub "{ \"password\": \"${SendEmailPassword.Key}\" }"
+
+  SendEmailPasswordSecretResourcePolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties: 
+      SecretId: !Ref SendEmailPasswordSecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: "Deny"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "secretsmanager:DeleteSecret"
+            Resource: "*"
+
 Outputs:
   AppALBDomain:
     Description: Domain name for app servers. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Platform on your site.
@@ -3207,7 +3301,7 @@ Outputs:
     Value: polycosm_production
 
   PostgrestDbURI:
-    Description: Postgrest DB URI [postgrest/db/uri!inject-aws-secrets]
+    Description: Postgrest DB URI [postgrest/db/uri!inject-aws-secret]
     Value: !Sub "postgres://postgrest_authenticator:{${AppDbSecret}}@${AppDb.Endpoint.Address}/polycosm_production"
 
   AssetsEndpoint:
@@ -3242,6 +3336,10 @@ Outputs:
   SmtpSendAccessKey:
     Description: SMTP send access key for email zone [reticulum/email/username,reticulum/email/password!read-iam-secret-access-key-as-ses-password]
     Value: !Ref SendEmailAccessKey
+
+  SmtpSendPassword:
+    Description: SMTP send password [reticulum/email/password!read-aws-secret]
+    Value: !Ref SendEmailPasswordSecret
 
   SmtpSendFromAddress:
     Description: SMTP send from address [reticulum/email/from]
