@@ -3290,15 +3290,15 @@ Outputs:
     Value: !Ref ReticulumBotAccessKeySecret
 
   AppDbAddress:
-    Description: App DB Domain Name [reticulum/db/hostname]
+    Description: App DB Domain Name [reticulum/db/hostname,ita/db/hostname]
     Value: !GetAtt AppDb.Endpoint.Address
 
   AppDbSecret:
-    Description: App DB Secret [reticulum/db/password!read-aws-secret]
+    Description: App DB Secret [reticulum/db/password!read-aws-secret,ita/db/password!read-aws-secret]
     Value: !Ref AppDbSecret
 
   AppDbDatabase:
-    Description: App DB Database [reticulum/db/database]
+    Description: App DB Database [reticulum/db/database,ita/db/database]
     Value: polycosm_production
 
   PostgrestDbURI:
