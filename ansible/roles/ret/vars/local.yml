@@ -8,6 +8,7 @@ phoenix_url_host: "hubs.local"
 phoenix_url_port: 4000
 phoenix_static_url_host: "hubs.local"
 phoenix_static_url_port: 4000
+phoenix_cors_proxy_url_host: "hubs-proxy.com"
 phoenix_allow_all_origins: "true"
 hubs_page_origin: "https://hubs.local:8080"
 spoke_page_origin: "https://hubs.local:9090"

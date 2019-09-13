@@ -2651,7 +2651,7 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-0416d3a76ab26b0b2
+      ImageId: ami-04b5574799eaf36d4
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
@@ -2707,7 +2707,7 @@ Resources:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-04a082231c278bf59
+      ImageId: ami-04b5574799eaf36d4
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
@@ -3328,6 +3328,10 @@ Outputs:
   StoragePath:
     Description: Storage EFS Path [reticulum/uploads/storage_path]
     Value: "/storage"
+
+  StorageDNS:
+    Description: Storage URL Host [reticulum/uploads/host]
+    Value: !Ref StorageDNS
 
   ReticulumCSP:
     Description: Default Reticulum Content Security Policy [reticulum/security/content_security_policy]
