@@ -214,6 +214,8 @@ Mappings:
       Port: 9631
     Ssh:
       Port: 22
+    PostgreSQL:
+      Port: 5432
 
   InstanceTypeMeta:
     # Some instance types do not support cluster placement, so use spread
@@ -2163,9 +2165,9 @@ Resources:
     Properties:
       GroupId: !Ref AppSecurityGroup
       IpProtocol: tcp
-      FromPort: !GetAtt AppDb.Endpoint.Port
-      ToPort: !GetAtt AppDb.Endpoint.Port
-      DestinationSecurityGroupId: !Ref DbSecurityGroup
+      ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+      FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+      DestinationSecurityGroupId: !Ref AppDbSecurityGroup
 
   AppFullSelfEgress:
     Type: AWS::EC2::SecurityGroupEgress
@@ -2651,7 +2653,7 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-04b5574799eaf36d4
+      ImageId: ami-0b68ecb2b63717d46
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
@@ -2707,7 +2709,7 @@ Resources:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-04b5574799eaf36d4
+      ImageId: ami-0b68ecb2b63717d46
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
@@ -2861,16 +2863,16 @@ Resources:
       BackupPlanId: !Ref DailyBackupPlan
     DependsOn: DailyBackupPlan
 
-  DbSecurityGroup:
+  AppDbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub "${AWS::StackName}-db"
+      GroupName: !Sub "${AWS::StackName}-app-db"
       GroupDescription: DB
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: !GetAtt AppDb.Endpoint.Port
-          ToPort: !GetAtt AppDb.Endpoint.Port
+          ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+          FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
           SourceSecurityGroupId: !Ref AppSecurityGroup
 
   AppDbKmsKey:
@@ -2981,6 +2983,8 @@ Resources:
         MaxCapacity: !Ref DbMaxCapacity
         MinCapacity: 2
         SecondsUntilAutoPause: 300
+      VpcSecurityGroupIds:
+        - !Ref AppDbSecurityGroup
 
 # Secrets
 
@@ -3289,9 +3293,9 @@ Outputs:
     Description: Reticulum Bot Access Key Secret [reticulum/ret/bot_access_key!read-aws-secret]
     Value: !Ref ReticulumBotAccessKeySecret
 
-  AppDbAddress:
-    Description: App DB Domain Name [reticulum/db/hostname,ita/db/hostname]
-    Value: !GetAtt AppDb.Endpoint.Address
+  AppDbUsername:
+    Description: App DB Username [reticulum/db/username,ita/db/username]
+    Value: postgres
 
   AppDbSecret:
     Description: App DB Secret [reticulum/db/password!read-aws-secret,ita/db/password!read-aws-secret]
@@ -3300,6 +3304,10 @@ Outputs:
   AppDbDatabase:
     Description: App DB Database [reticulum/db/database,ita/db/database]
     Value: polycosm_production
+
+  AppDbHostname:
+    Description: App DB Hostname [reticulum/db/hostname,ita/db/hostname]
+    Value: !GetAtt AppDb.Endpoint.Address
 
   PostgrestDbURI:
     Description: Postgrest DB URI [postgrest/db/uri!inject-aws-secret]
