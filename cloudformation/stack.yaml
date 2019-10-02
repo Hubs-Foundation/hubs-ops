@@ -3214,7 +3214,7 @@ Outputs:
     Value: !GetAtt AppALB.DNSName
 
   DomainName:
-    Description: Primary Hubs Platform domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/phx/cors_origins]
+    Description: Primary Hubs Platform domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/security/cors_origins]
     Value: !Ref DomainName
 
   JanusAdminSecret:
@@ -3270,7 +3270,7 @@ Outputs:
     Value: !Ref GuardianSecretKeySecret
 
   ReticulumPermsKey:
-    Description: Reticulum Perms Key [reticulum/guardian/perms_key!read-s3-file]
+    Description: Reticulum Perms Key [reticulum/guardian/perms_key!read-s3-file-escaped]
     Value: !Sub "s3://${BoxKeysBucket}/jwt-key.pem"
 
   ReticulumVapidKeys:
@@ -3339,7 +3339,7 @@ Outputs:
 
   StorageDNS:
     Description: Storage URL Host [reticulum/uploads/host]
-    Value: !Ref StorageDNS
+    Value: !Sub "https://${StorageDNS}"
 
   ReticulumCSP:
     Description: Default Reticulum Content Security Policy [reticulum/security/content_security_policy]
@@ -3361,6 +3361,10 @@ Outputs:
   StmpServer:
     Description: SMTP server [reticulum/email/server]
     Value: email-smtp.us-east-1.amazonaws.com
+
+  StmpPort:
+    Description: SMTP port [reticulum/email/port]
+    Value: 587
 
   BioCensusPort:
     Description: Bio census HTTP port [reticulum/habitat/http_port]
