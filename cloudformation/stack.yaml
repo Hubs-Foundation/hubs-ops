@@ -175,14 +175,6 @@ Parameters:
     Type: Number
     Description: "Number of days your AWS Aurora database backups will be retained for."
     Default: 14
-  DbPreferredBackupWindow:
-    Type: String
-    Description: "Preferred time for automatic database backups. (Format hh24:mi-hh24:mi in UTC)"
-    Default: "09:30-10:00"
-  DbPreferredMaintenanceWindow:
-    Type: String
-    Description: "Preferred time for database maintenence. (Format ddd:hh24:mi-ddd:hh24:mi in UTC)"
-    Default: "Sun:08:30-Sun:09:30"
   DbMaxCapacity:
     Type: Number
     Default: 64
@@ -2293,6 +2285,16 @@ Resources:
           - Effect: Allow
             Action: cloudformation:DescribeStacks
             Resource: !Ref "AWS::StackId"
+          - Effect: Allow
+            Action:
+              - ssm:PutParameter
+              - ssm:DeleteParameter
+              - ssm:GetParameterHistory
+              - ssm:GetParametersByPath
+              - ssm:GetParameters
+              - ssm:GetParameter
+              - ssm:DeleteParameters
+            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ita/${AWS::StackName}/*"
 
   AppALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -2653,7 +2655,7 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-0b68ecb2b63717d46
+      ImageId: ami-0140812465d72f773
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
@@ -2709,7 +2711,7 @@ Resources:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-0b68ecb2b63717d46
+      ImageId: ami-0140812465d72f773
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
@@ -2976,8 +2978,6 @@ Resources:
       StorageEncrypted: true
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]
-      PreferredBackupWindow: !Ref DbPreferredBackupWindow
-      PreferredMaintenanceWindow: !Ref DbPreferredMaintenanceWindow
       ScalingConfiguration:
         AutoPause: true
         MaxCapacity: !Ref DbMaxCapacity
