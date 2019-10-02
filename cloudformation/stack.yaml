@@ -2655,12 +2655,12 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-0140812465d72f773
+      ImageId: ami-018e71728d03206e9
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
           #!/usr/bin/env bash
-          /usr/bin/polycosm_boot.sh app
+          /usr/bin/polycosm_boot.sh app polycosm-20191002
 
   AppPlacementGroup:
     Type: AWS::EC2::PlacementGroup
@@ -2711,12 +2711,12 @@ Resources:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-0140812465d72f773
+      ImageId: ami-018e71728d03206e9
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
           #!/usr/bin/env bash
-          /usr/bin/polycosm_boot.sh stream
+          /usr/bin/polycosm_boot.sh stream polycosm-20191002
 
   StreamASG:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -3214,11 +3214,11 @@ Outputs:
     Value: !GetAtt AppALB.DNSName
 
   DomainName:
-    Description: Primary Hubs Platform domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/security/cors_origins]
+    Description: Primary Hubs Platform domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/security/cors_origins,hubs/general/reticulum_server,hubs/general/non_cors_proxy_domains]
     Value: !Ref DomainName
 
   JanusAdminSecret:
-    Description: Janus Admin Secret [janus-gateway/general/admin-secret!read-aws-secret,reticulum/janus/admin_secret!read-aws-secret]
+    Description: Janus Admin Secret [janus-gateway/general/admin_secret!read-aws-secret,reticulum/janus/admin_secret!read-aws-secret]
     Value: !Ref JanusAdminSecret
 
   JanusMediaRtpPortRange:
@@ -3254,7 +3254,7 @@ Outputs:
     Value: !FindInMap [ServicesMeta, RetExternal, Port]
 
   CorsProxyDNS:
-    Description: CORS Proxy Domain Name [reticulum/phx/cors_proxy_url_host]
+    Description: CORS Proxy Domain Name [reticulum/phx/cors_proxy_url_host,hubs/general/cors_proxy_server]
     Value: !Ref CorsProxyDNS
 
   RetAdminAccessKeySecret:
@@ -3313,13 +3313,29 @@ Outputs:
     Description: Postgrest DB URI [postgrest/db/uri!inject-aws-secret]
     Value: !Sub "postgres://postgrest_authenticator:{${AppDbSecret}}@${AppDb.Endpoint.Address}/polycosm_production"
 
-  AssetsEndpoint:
-    Description: URL for CDN assets
-    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}'
+  HubsBaseAssetsPath:
+    Description: Base assets path for hubs CDN assets [hubs/general/base_assets_path]
+    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/hubs/assets/'
+
+  HubsPageOrigin:
+    Description: Hubs page origin [reticulum/pages/hubs_page_origin]
+    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/hubs/pages/latest'
+
+  SpokeBaseAssetsPath:
+    Description: Base assets path for hubs CDN assets [spoke/general/base_assets_path]
+    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/spoke/assets/'
+
+  SpokePageOrigin:
+    Description: Spoke page origin [reticulum/pages/spoke_page_origin]
+    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/spoke/pages/latest'
 
   NearsparkEndpoint:
     Description: URL of the nearspark service endpoint
     Value: !Sub 'https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
+
+  NearsparkHost:
+    Description: Host of the nearspark service endpoint [hubs/general/thumbnail_server]
+    Value: !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
 
   SpeelycaptorEndpoint:
     Description: Speelycaptor Service URL [reticulum/speelycaptor/speelycaptor_endpoint]
@@ -3343,8 +3359,7 @@ Outputs:
 
   ReticulumCSP:
     Description: Default Reticulum Content Security Policy [reticulum/security/content_security_policy]
-    Value: !Sub |
-      default-src 'none'; manifest-src 'self'; script-src 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; child-src 'self' blob:; worker-src https://${AWS::StackName}-assets.${InternalZoneInfo.Name} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com 'unsafe-inline'; connect-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:8443 https://cdn.aframe.io https://www.youtube.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';
+    Value: !Sub "default-src 'none'; manifest-src 'self'; script-src 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; child-src 'self' blob:; worker-src https://${AWS::StackName}-assets.${InternalZoneInfo.Name} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com 'unsafe-inline'; connect-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:8443 https://cdn.aframe.io https://www.youtube.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';"
 
   SmtpSendAccessKey:
     Description: SMTP send access key for email zone [reticulum/email/username,reticulum/email/password!read-iam-secret-access-key-as-ses-password]
