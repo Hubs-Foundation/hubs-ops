@@ -940,7 +940,7 @@ Resources:
                Action:
                  - s3:PutObject
                Resource:
-                 - !Sub 'arn:aws:s3:::${BoxKeysBucket}/*'
+                 - !Sub '${BoxKeysBucket.Arn}/*'
 
   GenerateBioRingKeyFunction:
     Type: AWS::Lambda::Function
@@ -1195,9 +1195,9 @@ Resources:
                  - s3:PutObject
                  - s3:DeleteObject
                Resource:
-                 - !Sub 'arn:aws:s3:::${AssetsBucket}/*'
-                 - !Sub 'arn:aws:s3:::${LambdaBucket}/*'
-                 - !Sub 'arn:aws:s3:::${LinkRedirectorBucket}/*'
+                 - !Sub '${AssetsBucket.Arn}/*'
+                 - !Sub '${LambdaBucket.Arn}/*'
+                 - !Sub '${LinkRedirectorBucket.Arn}/*'
 
   CopyFileFunction:
     Type: AWS::Lambda::Function
@@ -1849,7 +1849,7 @@ Resources:
             Effect: Allow
             Principal: '*'
             Action: 's3:GetObject'
-            Resource: !Sub 'arn:aws:s3:::${AssetsBucket}/*'
+            Resource: !Sub '${AssetsBucket.Arn}/*'
       Bucket: !Ref AssetsBucket
   EmptyAssetsBucket:
     Type: Custom::EmptyAssetsBucket
@@ -1913,7 +1913,7 @@ Resources:
             Effect: Allow
             Principal: '*'
             Action: 's3:GetObject'
-            Resource: !Sub 'arn:aws:s3:::${LinkRedirectorBucket}/*'
+            Resource: !Sub '${LinkRedirectorBucket.Arn}/*'
       Bucket: !Ref LinkRedirectorBucket
   CopyLinkRedirectorIndex:
     Type: Custom::CopyLinkRedirectorIndex
@@ -2283,6 +2283,20 @@ Resources:
             Resource:
               - !Sub '${BoxKeysBucket.Arn}'
           - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:DeleteObject
+              - s3:PutObject
+              - s3:PutObjectAcl
+            Resource:
+              - !Sub '${AssetsBucket.Arn}/hubs/*'
+              - !Sub '${AssetsBucket.Arn}/spoke/*'
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+            Resource:
+              - !Sub '${AssetsBucket.Arn}'
+          - Effect: Allow
             Action: cloudformation:DescribeStacks
             Resource: !Ref "AWS::StackId"
           - Effect: Allow
@@ -2456,6 +2470,17 @@ Resources:
           AcmCertificateArn: !Ref InternalZoneSSLCertEast
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1
+
+  AppAssetsDNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Sub "${AWS::StackName}-assets.${InternalZoneInfo.Name}"
+      HostedZoneId: !Ref InternalZone
+      Type: A
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt: [ AppAssetsCloudfrontDistribution, DomainName ]
+        HostedZoneId: Z2FDTNDATAQYW2
 
   StreamSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -2655,7 +2680,7 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-018e71728d03206e9
+      ImageId: ami-07cee0d17549db6d5
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
@@ -2711,12 +2736,12 @@ Resources:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-018e71728d03206e9
+      ImageId: ami-07cee0d17549db6d5
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
           #!/usr/bin/env bash
-          /usr/bin/polycosm_boot.sh stream polycosm-20191002
+          /usr/bin/polycosm_boot.sh stream
 
   StreamASG:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -3262,7 +3287,7 @@ Outputs:
     Value: !Ref RetAdminAccessKeySecret
 
   RetHostnameDNSSuffix:
-    Description: Reticulum Hostname DNS Suffix [reticulum/phx/hostname_dns_suffix]
+    Description: Reticulum Hostname DNS Suffix [reticulum/run/hostname_dns_suffix]
     Value: -local
 
   GuardianSecretKeySecret:
@@ -3313,21 +3338,29 @@ Outputs:
     Description: Postgrest DB URI [postgrest/db/uri!inject-aws-secret]
     Value: !Sub "postgres://postgrest_authenticator:{${AppDbSecret}}@${AppDb.Endpoint.Address}/polycosm_production"
 
+  AssetsBucket:
+    Description: Assets bucket name [hubs/deploy/target]
+    Value: !Ref AssetsBucket
+
   HubsBaseAssetsPath:
     Description: Base assets path for hubs CDN assets [hubs/general/base_assets_path]
-    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/hubs/assets/'
+    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/hubs/'
 
   HubsPageOrigin:
     Description: Hubs page origin [reticulum/pages/hubs_page_origin]
     Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/hubs/pages/latest'
 
   SpokeBaseAssetsPath:
-    Description: Base assets path for hubs CDN assets [spoke/general/base_assets_path]
-    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/spoke/assets/'
+    Description: Base assets path for spoke CDN assets [spoke/general/base_assets_path]
+    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/spoke/'
 
   SpokePageOrigin:
     Description: Spoke page origin [reticulum/pages/spoke_page_origin]
     Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/spoke/pages/latest'
+
+  ClientDeployType:
+    Description: Client deploy type [hubs/deploy/type]
+    Value: s3
 
   NearsparkEndpoint:
     Description: URL of the nearspark service endpoint
@@ -3397,8 +3430,12 @@ Outputs:
     Description: Box Keys Bucket Name
     Value: !Ref BoxKeysBucket
 
-  BoxKeysBucketRegion:
+  BoxKeysBucketRegion: # TODO remove me after next AMI build
     Description: Box Keys Bucket Region
+    Value: !Ref "AWS::Region"
+
+  BucketRegion:
+    Description: Bucket Region [hubs/deploy/region]
     Value: !Ref "AWS::Region"
 
   ShortlinkDomainName:
