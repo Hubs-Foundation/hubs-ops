@@ -2986,6 +2986,34 @@ Resources:
             Action: "secretsmanager:DeleteSecret"
             Resource: "*"
 
+  AppPostgrestDbSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'App postgrest db secret'
+      GenerateSecretString:
+        SecretStringTemplate: '{ "username": "postgrest_authenticator" }'
+        GenerateStringKey: 'password'
+        PasswordLength: 64
+        ExcludePunctuation: true
+
+  AppPostgrestDbSecretResourcePolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties: 
+      SecretId: !Ref AppPostgrestDbSecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: "Deny"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "secretsmanager:DeleteSecret"
+            Resource: "*"
+
   AppDb:
     Type: AWS::RDS::DBCluster
     Properties:
@@ -3326,6 +3354,10 @@ Outputs:
     Description: App DB Secret [reticulum/db/password!read-aws-secret,ita/db/password!read-aws-secret]
     Value: !Ref AppDbSecret
 
+  AppPostgrestDbSecret:
+    Description: App PostgREST DB Secret [reticulum/db/postgrest_password!read-aws-secret]
+    Value: !Ref AppPostgrestDbSecret
+
   AppDbDatabase:
     Description: App DB Database [reticulum/db/database,ita/db/database]
     Value: polycosm_production
@@ -3336,7 +3368,7 @@ Outputs:
 
   PostgrestDbURI:
     Description: Postgrest DB URI [postgrest/db/uri!inject-aws-secret]
-    Value: !Sub "postgres://postgrest_authenticator:{${AppDbSecret}}@${AppDb.Endpoint.Address}/polycosm_production"
+    Value: !Sub "postgres://postgrest_authenticator:{${AppPostgrestDbSecret}}@${AppDb.Endpoint.Address}/polycosm_production"
 
   AssetsBucket:
     Description: Assets bucket name [hubs/deploy/target]
