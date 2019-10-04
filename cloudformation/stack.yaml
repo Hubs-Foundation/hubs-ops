@@ -495,7 +495,7 @@ Resources:
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
       Objects:
-        - lambdas/keymaster/keymaster-0.1.3.zip
+        - lambdas/keymaster/keymaster-0.1.4.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -948,7 +948,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.3.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.4.zip
       Handler: index.generate_ring_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -964,7 +964,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.3.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.4.zip
       Handler: index.generate_service_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -980,7 +980,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-totp"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.3.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.4.zip
       Handler: index.generate_totp
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -996,7 +996,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-jwt-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.3.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.4.zip
       Handler: index.generate_jwt_keys
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -1012,7 +1012,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-vapid-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.3.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.4.zip
       Handler: index.generate_vapid_keys
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -3267,7 +3267,7 @@ Outputs:
     Value: !GetAtt AppALB.DNSName
 
   DomainName:
-    Description: Primary Hubs Platform domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/security/cors_origins,hubs/general/reticulum_server,hubs/general/non_cors_proxy_domains]
+    Description: Primary Hubs Platform domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/security/cors_origins,hubs/general/reticulum_server,hubs/general/non_cors_proxy_domains,spoke/general/reticulum_server,spoke/general/non_cors_proxy_domain]
     Value: !Ref DomainName
 
   JanusAdminSecret:
@@ -3307,7 +3307,7 @@ Outputs:
     Value: !FindInMap [ServicesMeta, RetExternal, Port]
 
   CorsProxyDNS:
-    Description: CORS Proxy Domain Name [reticulum/phx/cors_proxy_url_host,hubs/general/cors_proxy_server]
+    Description: CORS Proxy Domain Name [reticulum/phx/cors_proxy_url_host,hubs/general/cors_proxy_server,spoke/general/cors_proxy_server]
     Value: !Ref CorsProxyDNS
 
   RetAdminAccessKeySecret:
@@ -3371,7 +3371,7 @@ Outputs:
     Value: !Sub "postgres://postgrest_authenticator:{${AppPostgrestDbSecret}}@${AppDb.Endpoint.Address}/polycosm_production"
 
   AssetsBucket:
-    Description: Assets bucket name [hubs/deploy/target]
+    Description: Assets bucket name [hubs/deploy/target,spoke/deploy/target]
     Value: !Ref AssetsBucket
 
   HubsBaseAssetsPath:
@@ -3391,7 +3391,7 @@ Outputs:
     Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/spoke/pages/latest'
 
   ClientDeployType:
-    Description: Client deploy type [hubs/deploy/type]
+    Description: Client deploy type [hubs/deploy/type,spoke/deploy/type]
     Value: s3
 
   NearsparkEndpoint:
@@ -3399,7 +3399,7 @@ Outputs:
     Value: !Sub 'https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
 
   NearsparkHost:
-    Description: Host of the nearspark service endpoint [hubs/general/thumbnail_server]
+    Description: Host of the nearspark service endpoint [hubs/general/thumbnail_server,spoke/general/thumbnail_server]
     Value: !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
 
   SpeelycaptorEndpoint:
@@ -3462,12 +3462,8 @@ Outputs:
     Description: Box Keys Bucket Name
     Value: !Ref BoxKeysBucket
 
-  BoxKeysBucketRegion: # TODO remove me after next AMI build
-    Description: Box Keys Bucket Region
-    Value: !Ref "AWS::Region"
-
   BucketRegion:
-    Description: Bucket Region [hubs/deploy/region]
+    Description: Bucket Region [hubs/deploy/region,spoke/deploy/region]
     Value: !Ref "AWS::Region"
 
   ShortlinkDomainName:
@@ -3475,7 +3471,7 @@ Outputs:
     Value: !GetAtt ShortlinkZoneInfo.Name
 
   ContactEmailAddress:
-    Description: Administrator Email Address
+    Description: Administrator Email Address [certbot/general/admin_email]
     Value: !Ref ContactEmailAddress
 
   YTDLURL:
@@ -3489,3 +3485,11 @@ Outputs:
   YTDLPort:
     Description: YT-DL Port [youtube-dl-api-server/general/port]
     Value: 8080
+
+  CertBotPlugin:
+    Description: Certbot plugin [certbot/general/plugin]
+    Value: dns-route53
+
+  Stack Name:
+    Description: Stack name [reticulum/ret/pool]
+    Value: !Ref "AWS::StackName"
