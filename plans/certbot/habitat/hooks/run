@@ -12,9 +12,9 @@ service_group() {
 
 get_certificates() {
   # shellcheck disable=SC2154
-  echo "$(date) Getting any needed LetsEncrypt certificates for '{{cfg.domain}}'"
+  echo "$(date) Getting any needed LetsEncrypt certificates for '{{cfg.general.domain}}'"
   certbot certonly \
-    --{{cfg.plugin}} \
+    --{{cfg.general.plugin}} \
     --config='{{pkg.svc_config_path}}/certbot.ini' \
     --noninteractive
   return $?
@@ -23,7 +23,7 @@ get_certificates() {
 renew_certificates() {
   echo "$(date) Renewing LetsEncrypt certificates if neccessary"
   certbot renew \
-    --{{cfg.plugin}} \
+    --{{cfg.general.plugin}} \
     --config='{{pkg.svc_config_path}}/certbot.ini'
   return $?
 }
@@ -41,5 +41,5 @@ get_certificates
 while true
 do
   renew_certificates
-  sleep {{cfg.renewal_interval}}
+  sleep {{cfg.general.renewal_interval}}
 done
