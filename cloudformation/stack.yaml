@@ -763,7 +763,7 @@ Resources:
     Type: Custom::DNSCertificate
     Condition: HasMangedDomain
     Properties: 
-      DomainName: ExternalZoneInfo.Name
+      DomainName: !GetAtt ExternalZoneInfo.Name
       DomainValidationOptions:
         - DomainName: !GetAtt ExternalZoneInfo.Name
           HostedZoneId: !GetAtt ExternalZoneInfo.Id
@@ -2716,6 +2716,9 @@ Resources:
         Value: !Sub "${AWS::StackName}"
         PropagateAtLaunch: true
     DependsOn:
+      - SshTOTP
+      - JWTKeys
+      - VapidKeys
       - BioRingKey
       - BioReticulumServiceKey
       - BioJanusServiceKey
@@ -2761,6 +2764,9 @@ Resources:
         Value: !Sub "${AWS::StackName}"
         PropagateAtLaunch: true
     DependsOn:
+      - SshTOTP
+      - JWTKeys
+      - VapidKeys
       - BioRingKey
       - BioReticulumServiceKey
       - BioJanusServiceKey
