@@ -2680,12 +2680,18 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-07cee0d17549db6d5
+      ImageId: ami-008203ae8fb21b1bc
       KeyName: !Ref KeyPair
       UserData:
-        Fn::Base64: |
-          #!/usr/bin/env bash
-          /usr/bin/polycosm_boot.sh app polycosm-20191002
+        Fn::Base64:
+          Fn::If:
+            - HasStreamingServers
+            - |
+                #!/usr/bin/env bash
+                /usr/bin/polycosm_boot.sh app polycosm-20191002
+            - |
+                #!/usr/bin/env bash
+                /usr/bin/polycosm_boot.sh app,stream polycosm-20191002
 
   AppPlacementGroup:
     Type: AWS::EC2::PlacementGroup
@@ -2736,7 +2742,7 @@ Resources:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-07cee0d17549db6d5
+      ImageId: ami-008203ae8fb21b1bc
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
@@ -3394,10 +3400,6 @@ Outputs:
     Description: Client deploy type [hubs/deploy/type,spoke/deploy/type]
     Value: s3
 
-  NearsparkEndpoint:
-    Description: URL of the nearspark service endpoint
-    Value: !Sub 'https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
-
   NearsparkHost:
     Description: Host of the nearspark service endpoint [hubs/general/thumbnail_server,spoke/general/thumbnail_server]
     Value: !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
@@ -3414,10 +3416,6 @@ Outputs:
     Description: Storage EFS volume id
     Value: !Ref StorageEFS
 
-  StoragePath:
-    Description: Storage EFS Path [reticulum/uploads/storage_path]
-    Value: "/storage"
-
   StorageDNS:
     Description: Storage URL Host [reticulum/uploads/host]
     Value: !Sub "https://${StorageDNS}"
@@ -3429,10 +3427,6 @@ Outputs:
   SmtpSendAccessKey:
     Description: SMTP send access key for email zone [reticulum/email/username,reticulum/email/password!read-iam-secret-access-key-as-ses-password]
     Value: !Ref SendEmailAccessKey
-
-  SmtpSendPassword:
-    Description: SMTP send password [reticulum/email/password!read-aws-secret]
-    Value: !Ref SendEmailPasswordSecret
 
   SmtpSendFromAddress:
     Description: SMTP send from address [reticulum/email/from]
@@ -3490,6 +3484,6 @@ Outputs:
     Description: Certbot plugin [certbot/general/plugin]
     Value: dns-route53
 
-  Stack Name:
+  StackName:
     Description: Stack name [reticulum/ret/pool]
     Value: !Ref "AWS::StackName"
