@@ -2849,7 +2849,7 @@ Resources:
     Type: AWS::Backup::BackupVault
     DeletionPolicy: Retain
     Properties:
-      BackupVaultName: !Sub "${AWS::StackName}-daily-backup"
+      BackupVaultName: !Join ["-", [ !Sub "${AWS::StackName}-daily-backup", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
       EncryptionKeyArn: !If [CreateDiskEncryptionKey, !GetAtt DiskKmsKey.Arn, !Ref "AWS::NoValue"]
 
   DailyBackupPlan:
@@ -2944,7 +2944,7 @@ Resources:
     DeletionPolicy: Retain
     DependsOn: AppDb
     Properties:
-      AliasName: !Sub 'alias/db-${AppDb}'
+      AliasName: !Join ["-", [ !Sub "alias/db-app-db-${AWS::StackName}", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
       TargetKeyId: !Ref DiskKmsKey
 
   AppDbSubnet:
