@@ -125,7 +125,6 @@ Parameters:
       - t2.micro
       - t2.small
       - t3.medium
-      - m3.medium
       - t3.large
       - c5.large
       - c5.xlarge
@@ -144,7 +143,6 @@ Parameters:
       - t2.micro
       - t2.small
       - t3.medium
-      - m3.medium
       - t3.large
       - c5.large
       - c5.xlarge
@@ -214,8 +212,6 @@ Mappings:
       PlacementForCluster: spread
     t3.medium:
       PlacementForCluster: spread
-    m3.medium:
-      PlacementForCluster: spread
     t3.large:
       PlacementForCluster: spread
     c5.large:
@@ -230,6 +226,7 @@ Mappings:
 Conditions:
   HasMangedDomain: !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]]
   HasStreamingServers: !Not [!Equals [!Ref StreamInstanceCount, 0]]
+  AppIsNoPlacement: !Equals [!Ref AppPlacementGroupStrategy, none]
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
   CreateDiskEncryptionKey: !Equals [!Ref NewCMKForDiskEncryption, "Yes - Create a new CMK"]
@@ -766,7 +763,7 @@ Resources:
     Type: Custom::DNSCertificate
     Condition: HasMangedDomain
     Properties: 
-      DomainName: !Sub '*.${ExternalZoneInfo.Name}'
+      DomainName: ExternalZoneInfo.Name
       DomainValidationOptions:
         - DomainName: !GetAtt ExternalZoneInfo.Name
           HostedZoneId: !GetAtt ExternalZoneInfo.Id
@@ -2693,7 +2690,7 @@ Resources:
   AppPlacementGroup:
     Type: AWS::EC2::PlacementGroup
     Properties:
-      Strategy: !If [ AppIsClusterPlacement, !FindInMap [ InstanceTypeMeta, !Ref AppInstanceType, PlacementForCluster ], !Ref AppPlacementGroupStrategy ]
+      Strategy: !If [AppIsNoPlacement, cluster, !If [ AppIsClusterPlacement, !FindInMap [ InstanceTypeMeta, !Ref AppInstanceType, PlacementForCluster ], !Ref AppPlacementGroupStrategy ] ]
 
   AppASG:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -2706,7 +2703,7 @@ Resources:
       MinSize: 1
       MaxSize: 64
       DesiredCapacity: !Ref AppInstanceCount
-      PlacementGroup: !Ref AppPlacementGroup
+      PlacementGroup: !If [AppIsNoPlacement, !Ref "AWS::NoValue", !Ref AppPlacementGroup]
       LaunchConfigurationName: !Ref AppLaunchConfiguration
       Tags:
       - Key: polycosm-roles
