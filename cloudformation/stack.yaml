@@ -1072,6 +1072,7 @@ Resources:
           import json
           import boto3
           from botocore.vendored import requests
+          from botocore.exceptions import ClientError
           
           def handler(event, context):
               try:
@@ -2833,6 +2834,7 @@ Resources:
 
   DailyBackupKey:
     Type: AWS::KMS::Key
+    DeletionPolicy: Retain
     Properties:
       Description: Encryption key for daily backups
       EnableKeyRotation: True
@@ -2849,6 +2851,7 @@ Resources:
 
   DailyBackupVault:
     Type: AWS::Backup::BackupVault
+    DeletionPolicy: Retain
     Properties:
       BackupVaultName: !Sub "${AWS::StackName}-daily-backup"
       EncryptionKeyArn: !GetAtt DailyBackupKey.Arn
