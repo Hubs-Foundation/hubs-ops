@@ -30,13 +30,13 @@ Metadata:
       - Label:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
+          - NewCMKForDiskEncryption
           - ClassB
           - AppPlacementGroupStrategy
           - DbBackupRetentionPeriod
           - DbPreferredBackupWindow
           - DbPreferredMaintenanceWindow
           - DbMaxCapacity
-          - NewCMKForDbEncryption
     ParameterLabels:
       DomainName:
         default: Domain Name
@@ -64,22 +64,18 @@ Metadata:
         default: Voice/video streaming server EC2 instance type
       ClassB:
         default: Class B IP Block
-      NewCMKForDbEncryption:
-        default: Create a dedicated CMK for database encryption?
+      NewCMKForDiskEncryption:
+        default: Create a dedicated CMK for database and backup encryption?
       AppPlacementGroupStrategy:
         default: App server placement group strategy
       DbBackupRetentionPeriod:
         default: "Database backup retention period (in days)"
-      DbPreferredBackupWindow:
-        default: "Preferred database backup window."
-      DbPreferredMaintenanceWindow:
-        default: "Preferred database maintenance window."
       DbMaxCapacity:
         default: "Max database capacity (in ACUs)"
 Parameters:
   DomainName:
     Type: String
-    Description: Domain name Hubs Platform will be hosted on. (eg mywebspaces.com or webspaces.mydomain.com.) This should be a domain you already own, either on a third party provider (eg GoDaddy or Namecheap) or on AWS Route 53.
+    Description: Domain name Hubs Cloud will be hosted on. (eg myhubs.com or hubs.mydomain.com.) This should be a domain you already own, either on a third party provider (eg GoDaddy or Namecheap) or on AWS Route 53.
     AllowedPattern: ^((?:([a-z0-9]\.|[a-z0-9][a-z0-9\-]{0,61}[a-z0-9])\.)+)([a-z0-9]{2,63}|(?:[a-z0-9][a-z0-9\-]{0,61}[a-z0-9]))\.?$
     ConstraintDescription: Must be a valid domain name (eg mywebspaces.com or webspaces.mycompany.com)
   IsDomainOnRoute53:
@@ -88,17 +84,17 @@ Parameters:
     AllowedValues: ["Yes - My domain is set up on Route 53.", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section."]
   ShortlinkZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: Your AWS Route 53 Zone for short room permalinks and entry codes. (eg mywebspaces.link) It should *not* be the same domain as the any of the Hubs Platform domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type.
+    Description: Your AWS Route 53 Zone for short room permalinks and entry codes. (eg mywebspaces.link) It should *not* be the same domain as the any of the Hubs Cloud domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify a short link Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53, ideally one short and easy to type.
   InternalZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: Your AWS Route 53 Zone for an internal domain name (eg mywebspaces-internal.com.) You'll need to register a new internal domain name of your choice with Route 53. This domain will be used internally by Hubs Platform. It should *not* be the same domain as the Hubs Platform domain name that you specified above. This domain will not be seen by visitors and can be anything you like.
+    Description: Your AWS Route 53 Zone for an internal domain name (eg mywebspaces-internal.com.) You'll need to register a new internal domain name of your choice with Route 53. This domain will be used internally by Hubs Cloud. It should *not* be the same domain as the Hubs Cloud domain name that you specified above. This domain will not be seen by visitors and can be anything you like.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
   EmailZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: To verify email addresses, Hubs Platform needs to be able to send email. If you do not have an existing SMTP provider, create and choose a Route 53 Zone for the domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing email provider you'd like to send email from (eg Mailchimp) or already have a verified domain in AWS Simple Email Service select the same zone you chose above for 'Internal Route 53 Zone' and you'll be able to enter the login credentials from your email provider later.
+    Description: To verify email addresses, Hubs Cloud needs to be able to send email. If you do not have an existing SMTP provider, create and choose a Route 53 Zone for the domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing email provider you'd like to send email from (eg Mailchimp) or already have a verified domain in AWS Simple Email Service select the same zone you chose above for 'Internal Route 53 Zone' and you'll be able to enter the login credentials from your email provider later.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an Route 53 Zone to send email from. Please choose one. If you already have email set up, just choose your Internal Route 53 Zone.
   EmailSubdomain:
@@ -112,12 +108,12 @@ Parameters:
     ConstraintDescription: "You must enter a contact email address."
   UnmanagedDomainCertArn:
     Type: String
-    Description: You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to upload your domain's SSL certificate to AWS Certificate Manager before completing this form. Make sure you upload your SSL certificate to the AWS region you'd like to use for your Hubs Platform stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console.
+    Description: You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to upload your domain's SSL certificate to AWS Certificate Manager before completing this form. Make sure you upload your SSL certificate to the AWS region you'd like to use for your Hubs Cloud stack. Once you've uploaded the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console.
     AllowedPattern: "^$|^arn:aws:acm:"
     ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
   AppInstanceCount:
     Type: Number
-    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for Hubs Platform. You must run at least one app server.
+    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for Hubs Cloud. You must run at least one app server.
     Default: 1
     MinValue: 1
     ConstraintDescription: You must run at least one app server.
@@ -177,10 +173,11 @@ Parameters:
     Default: 14
   DbMaxCapacity:
     Type: Number
+    Description: "Maximum ACU Capacity for the database. The database will be a serverless Aurora PostgreSQL-compatible cluster."
     Default: 64
-  NewCMKForDbEncryption:
+  NewCMKForDiskEncryption:
     Type: String
-    Description: "Select 'Yes' if you'd like to create a dedicated CMK in KMS for database encryption. Charges will apply."
+    Description: "Select 'Yes' if you'd like to create a dedicated CMK in KMS for database and backup encryption. KMS charges for a single managed key will apply."
     Default: "No - Use the AWS Managed Key"
     AllowedValues:
       - No - Use the AWS Managed Key
@@ -236,7 +233,7 @@ Conditions:
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   StreamIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
-  CreateDbEncryptionKey: !Equals [!Ref NewCMKForDbEncryption, "Yes - Create a new CMK"]
+  CreateDiskEncryptionKey: !Equals [!Ref NewCMKForDiskEncryption, "Yes - Create a new CMK"]
 
 Resources:
 
@@ -2854,7 +2851,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       BackupVaultName: !Sub "${AWS::StackName}-daily-backup"
-      EncryptionKeyArn: !GetAtt DailyBackupKey.Arn
+      EncryptionKeyArn: !If [CreateDiskEncryptionKey, !GetAtt DiskKmsKey.Arn, !Ref "AWS::NoValue"]
 
   DailyBackupPlan:
     Type: AWS::Backup::BackupPlan
@@ -2911,9 +2908,9 @@ Resources:
           FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
           SourceSecurityGroupId: !Ref AppSecurityGroup
 
-  AppDbKmsKey:
+  DiskKmsKey:
     Type: AWS::KMS::Key
-    Condition: CreateDbEncryptionKey
+    Condition: CreateDiskEncryptionKey
     DeletionPolicy: Retain
     Properties:
       Description: DB encryption key
@@ -2942,14 +2939,14 @@ Resources:
               'kms:CallerAccount': !Ref 'AWS::AccountId'
               'kms:ViaService': !Sub 'rds.${AWS::Region}.amazonaws.com'
 
-  AppDbKmsKeyAlias:
+  DiskKmsKeyAlias:
     Type: AWS::KMS::Alias
-    Condition: CreateDbEncryptionKey
+    Condition: CreateDiskEncryptionKey
     DeletionPolicy: Retain
     DependsOn: AppDb
     Properties:
       AliasName: !Sub 'alias/db-${AppDb}'
-      TargetKeyId: !Ref AppDbKmsKey
+      TargetKeyId: !Ref DiskKmsKey
 
   AppDbSubnet:
     Type: AWS::RDS::DBSubnetGroup
@@ -3036,7 +3033,7 @@ Resources:
       Engine: aurora-postgresql
       EngineMode: serverless
       EngineVersion: 10.7
-      KmsKeyId: !If [CreateDbEncryptionKey, !Ref AppDbKmsKey, !Ref "AWS::NoValue"]
+      KmsKeyId: !If [CreateDiskEncryptionKey, !Ref DiskKmsKey, !Ref "AWS::NoValue"]
       StorageEncrypted: true
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]
@@ -3272,11 +3269,11 @@ Resources:
 
 Outputs:
   AppALBDomain:
-    Description: Domain name for app servers. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Platform on your site.
+    Description: Domain name for app servers. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Cloud on your site.
     Value: !GetAtt AppALB.DNSName
 
   DomainName:
-    Description: Primary Hubs Platform domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/security/cors_origins,hubs/general/reticulum_server,hubs/general/non_cors_proxy_domains,spoke/general/reticulum_server,spoke/general/non_cors_proxy_domain]
+    Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/security/cors_origins,hubs/general/reticulum_server,hubs/general/non_cors_proxy_domains,spoke/general/reticulum_server,spoke/general/non_cors_proxy_domain]
     Value: !Ref DomainName
 
   JanusAdminSecret:
