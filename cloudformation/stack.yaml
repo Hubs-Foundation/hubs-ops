@@ -2735,7 +2735,7 @@ Resources:
         Value: !If [HasStreamingServers, "app stream", "app"]
         PropagateAtLaunch: true
       - Key: polycosm-type
-        Value: !If [HasStreamingServers, "stream", "app"]
+        Value: !If [HasStreamingServers, "app", "stream"]
         PropagateAtLaunch: true
       - Key: bio-ring
         Value: !Sub "${AWS::StackName}"
@@ -2783,6 +2783,9 @@ Resources:
       LaunchConfigurationName: !Ref StreamLaunchConfiguration
       Tags:
       - Key: polycosm-roles
+        Value: stream
+        PropagateAtLaunch: true
+      - Key: polycosm-type
         Value: stream
         PropagateAtLaunch: true
       - Key: bio-ring
@@ -3013,6 +3016,11 @@ Resources:
               AWS: !GetAtt AppRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt StreamRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
           - Effect: "Deny"
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
@@ -3039,6 +3047,11 @@ Resources:
           - Effect: Allow
             Principal:
               AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt StreamRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
           - Effect: "Deny"
@@ -3096,6 +3109,11 @@ Resources:
               AWS: !GetAtt AppRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt StreamRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
           - Effect: "Deny"
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
@@ -3122,6 +3140,11 @@ Resources:
           - Effect: Allow
             Principal:
               AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt StreamRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
           - Effect: "Deny"
@@ -3152,6 +3175,11 @@ Resources:
               AWS: !GetAtt AppRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt StreamRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
           - Effect: "Deny"
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
@@ -3178,6 +3206,11 @@ Resources:
           - Effect: Allow
             Principal:
               AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt StreamRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
           - Effect: "Deny"
@@ -3208,6 +3241,11 @@ Resources:
               AWS: !GetAtt AppRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt StreamRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
           - Effect: "Deny"
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
@@ -3234,6 +3272,11 @@ Resources:
           - Effect: Allow
             Principal:
               AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt StreamRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
           - Effect: "Deny"
@@ -3264,6 +3307,11 @@ Resources:
               AWS: !GetAtt AppRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt StreamRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
           - Effect: "Deny"
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
@@ -3286,6 +3334,11 @@ Resources:
           - Effect: Allow
             Principal:
               AWS: !GetAtt AppRole.Arn
+            Action: secretsmanager:GetSecretValue
+            Resource: "*"
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt StreamRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
           - Effect: "Deny"
