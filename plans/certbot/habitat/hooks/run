@@ -38,6 +38,12 @@ contains_pem() {
 
 get_certificates
 
+if [[ "{{ cfg.general.domain }}" == "" ]] ; then
+do
+  echo "No domain configured for certbot."
+  sleep 99999999999
+fi
+
 while true
 do
   renew_certificates
