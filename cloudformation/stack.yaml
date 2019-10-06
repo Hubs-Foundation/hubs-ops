@@ -3016,11 +3016,6 @@ Resources:
               AWS: !GetAtt AppRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt StreamRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
           - Effect: "Deny"
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
@@ -3047,11 +3042,6 @@ Resources:
           - Effect: Allow
             Principal:
               AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt StreamRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
           - Effect: "Deny"
@@ -3109,11 +3099,6 @@ Resources:
               AWS: !GetAtt AppRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt StreamRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
           - Effect: "Deny"
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
@@ -3140,11 +3125,6 @@ Resources:
           - Effect: Allow
             Principal:
               AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt StreamRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
           - Effect: "Deny"
@@ -3175,11 +3155,6 @@ Resources:
               AWS: !GetAtt AppRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt StreamRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
           - Effect: "Deny"
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
@@ -3206,11 +3181,6 @@ Resources:
           - Effect: Allow
             Principal:
               AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt StreamRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
           - Effect: "Deny"
@@ -3241,11 +3211,6 @@ Resources:
               AWS: !GetAtt AppRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt StreamRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
           - Effect: "Deny"
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
@@ -3272,11 +3237,6 @@ Resources:
           - Effect: Allow
             Principal:
               AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt StreamRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
           - Effect: "Deny"
@@ -3307,11 +3267,6 @@ Resources:
               AWS: !GetAtt AppRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt StreamRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
           - Effect: "Deny"
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
@@ -3334,11 +3289,6 @@ Resources:
           - Effect: Allow
             Principal:
               AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt StreamRole.Arn
             Action: secretsmanager:GetSecretValue
             Resource: "*"
           - Effect: "Deny"
