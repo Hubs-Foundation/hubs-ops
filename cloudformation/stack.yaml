@@ -2109,6 +2109,11 @@ Resources:
           FromPort: 0
           ToPort: 65535
           CidrIp: 0.0.0.0/0
+        # Outbound DNS
+        - IpProtocol: tcp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: 0.0.0.0/0
 
   AppJanusAdminAppIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -2500,6 +2505,16 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, Ssh, Port]
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
+        # Outbound HTTP
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        # Outbound HTTPS
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
         # Outbound NTP
         - IpProtocol: tcp
           FromPort: 123
@@ -2509,6 +2524,16 @@ Resources:
         - IpProtocol: udp
           FromPort: 0
           ToPort: 65535
+          CidrIp: 0.0.0.0/0
+        # Outbound NTP
+        - IpProtocol: tcp
+          FromPort: 123
+          ToPort: 123
+          CidrIp: 0.0.0.0/0
+        # Outbound DNS
+        - IpProtocol: tcp
+          FromPort: 53
+          ToPort: 53
           CidrIp: 0.0.0.0/0
 
   StreamJanusAdminAppIngress:
@@ -2674,7 +2699,7 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-008203ae8fb21b1bc
+      ImageId: ami-043b646a2517b464c
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64:
@@ -2739,7 +2764,7 @@ Resources:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-008203ae8fb21b1bc
+      ImageId: ami-043b646a2517b464c
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
