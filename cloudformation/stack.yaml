@@ -2699,7 +2699,7 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-00dfed5659daa3910
+      ImageId: ami-080f41c4ca8c5455e
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64:
@@ -2764,7 +2764,7 @@ Resources:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-00dfed5659daa3910
+      ImageId: ami-080f41c4ca8c5455e
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
