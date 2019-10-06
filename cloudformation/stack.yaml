@@ -2732,7 +2732,7 @@ Resources:
       LaunchConfigurationName: !Ref AppLaunchConfiguration
       Tags:
       - Key: polycosm-roles
-        Value: !If [HasStreamingServers, "app stream", "app"]
+        Value: !If [HasStreamingServers, "app", "app stream"]
         PropagateAtLaunch: true
       - Key: polycosm-type
         Value: !If [HasStreamingServers, "app", "stream"]
