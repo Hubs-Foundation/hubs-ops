@@ -182,6 +182,9 @@ Parameters:
       - Yes - Create a new CMK
 
 Mappings:
+  Regions:
+    us-east-2:
+      ImageId: ami-0c8cb83ee06aa6377
   ServicesMeta:
     RetExternal:
       Port: 443
@@ -2726,7 +2729,7 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-041d0e53fd7697fd6
+      ImageId: !FindInMap [Regions, !Ref "AWS::Region", ImageId]
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64:
@@ -2791,7 +2794,7 @@ Resources:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-041d0e53fd7697fd6
+      ImageId: !FindInMap [Regions, !Ref "AWS::Region", ImageId]
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
@@ -3330,8 +3333,12 @@ Outputs:
     Value: !GetAtt AppALB.DNSName
 
   DomainName:
-    Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/security/cors_origins,hubs/general/reticulum_server,spoke/general/reticulum_server]
+    Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server]
     Value: !Ref DomainName
+
+  CorsOrigins:
+    Description: Allowed CORS origins [reticulum/security/cors_origins]
+    Value: !Sub "https://${DomainName},https://${ShortlinkZoneInfo.Name}"
 
   NonCorsProxyDomains:
     Description: Non-CORS proxied domains [hubs/general/non_cors_proxy_domains,spoke/general/non_cors_proxy_domains]
