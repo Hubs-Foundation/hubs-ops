@@ -2436,7 +2436,7 @@ Resources:
         Enabled: true
         Origins:
           - Id: !Sub "${AWS::StackName}-app-assets"
-            DomainName: !GetAtt AssetsBucket.DomainName
+            DomainName: !GetAtt AssetsBucket.RegionalDomainName
             S3OriginConfig:
               OriginAccessIdentity: ""
         Restrictions:
@@ -2711,7 +2711,7 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-02296e556cf8ce65d
+      ImageId: ami-085d148dd6647c10c
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64:
@@ -2776,7 +2776,7 @@ Resources:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-02296e556cf8ce65d
+      ImageId: ami-085d148dd6647c10c
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
