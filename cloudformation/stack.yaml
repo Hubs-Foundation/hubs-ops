@@ -1832,6 +1832,18 @@ Resources:
     Properties:
       AccessControl: PublicRead
       BucketName: !Join ["-", [ !Sub "${AWS::StackName}-assets", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - HEAD
+            AllowedOrigins:
+              - !Sub "https://${DomainName}"
+              - !Sub "https://${ShortlinkZoneInfo.Name}"
+            ExposedHeaders: []
+            MaxAge: 31536000
   AssetsPublicBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -3303,8 +3315,12 @@ Outputs:
     Value: !GetAtt AppALB.DNSName
 
   DomainName:
-    Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/security/cors_origins,hubs/general/reticulum_server,hubs/general/non_cors_proxy_domains,spoke/general/reticulum_server,spoke/general/non_cors_proxy_domain]
+    Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,reticulum/security/cors_origins,hubs/general/reticulum_server,spoke/general/reticulum_server]
     Value: !Ref DomainName
+
+  NonCorsProxyDomains:
+    Description: Non-CORS proxied domains [hubs/general/non_cors_proxy_domains,spoke/general/non_cors_proxy_domains]
+    Value: !Sub "${DomainName},${InternalZoneInfo.Name}"
 
   JanusAdminSecret:
     Description: Janus Admin Secret [janus-gateway/general/admin_secret!read-aws-secret,reticulum/janus/admin_secret!read-aws-secret]
@@ -3319,7 +3335,7 @@ Outputs:
     Value: eth0:0
 
   JanusExternalPort:
-    Description: Janus External Port [janus-gateway/transports.websockets/wss_port]
+    Description: Janus External Port [janus-gateway/transports.websockets/wss_port,reticulum/janus/janus_port]
     Value: !FindInMap [ServicesMeta, JanusExternal, Port]
 
   JanusAdminPort:

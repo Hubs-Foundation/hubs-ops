@@ -36,12 +36,12 @@ contains_pem() {
   return $?
 }
 
-get_certificates
-
 if [[ "{{ cfg.general.domain }}" == "" ]] ; then
   echo "No domain configured for certbot."
   sleep 99999999999
 fi
+
+get_certificates
 
 while true
 do
