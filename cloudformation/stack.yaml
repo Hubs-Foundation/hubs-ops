@@ -1943,6 +1943,7 @@ Resources:
         DNSName:
           Fn::GetAtt: [ LinkRedirectorCloudfrontDistribution, DomainName ]
         HostedZoneId: Z2FDTNDATAQYW2
+
   LinkRedirectorCloudfrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -2330,6 +2331,13 @@ Resources:
       Subnets:
         - !Ref SubnetAPublic
         - !Ref SubnetBPublic
+    # Add some slower items here, so domain doesn't come up too early
+    DependsOn:
+      - AppAssetsCloudfrontDistribution
+      - StorageCloudfrontDistribution
+      - CorsProxyCloudfrontDistribution
+      - NearsparkCloudfrontDistribution
+      - LinkRedirectorCloudfrontDistribution
 
   AppALBDNS:
     Type: AWS::Route53::RecordSet
