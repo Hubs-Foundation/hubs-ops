@@ -488,7 +488,7 @@ Resources:
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
       Objects:
-        - lambdas/keymaster/keymaster-0.1.4.zip
+        - lambdas/keymaster/keymaster-0.1.5.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -820,7 +820,7 @@ Resources:
   SESDomainRole:
    Type: AWS::IAM::Role
    Properties:
-     RoleName: !Sub "${AWS::StackName}-SESDOmain"
+     RoleName: !Sub "${AWS::StackName}-SES"
      AssumeRolePolicyDocument:
        Version: '2012-10-17'
        Statement:
@@ -901,6 +901,13 @@ Resources:
                Resource: "*"
                Condition:
                  StringEquals:
+                   "ses:FromAddress": !Sub "noreply@${EmailSubdomain}.${SESDomain}"
+             - Effect: Allow
+               Action:
+                 - ses:SendRawEmail
+               Resource: "*"
+               Condition:
+                 StringEquals:
                    "ses:FromAddress": !Sub "noreply@${SESDomain}"
 
   SendEmailAccessKey:
@@ -941,7 +948,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.4.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.5.zip
       Handler: index.generate_ring_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -957,7 +964,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.4.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.5.zip
       Handler: index.generate_service_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -973,7 +980,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-totp"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.4.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.5.zip
       Handler: index.generate_totp
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -989,7 +996,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-jwt-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.4.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.5.zip
       Handler: index.generate_jwt_keys
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -1005,7 +1012,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-vapid-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.4.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.5.zip
       Handler: index.generate_vapid_keys
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -2719,7 +2726,7 @@ Resources:
         - !Ref AppSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-085d148dd6647c10c
+      ImageId: ami-041d0e53fd7697fd6
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64:
@@ -2784,7 +2791,7 @@ Resources:
         - !Ref StreamSecurityGroup
         - !Ref BioRingSecurityGroup
         - !Ref StorageConnectSecurityGroup
-      ImageId: ami-085d148dd6647c10c
+      ImageId: ami-041d0e53fd7697fd6
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64: |
@@ -3488,7 +3495,11 @@ Outputs:
 
   SmtpSendFromAddress:
     Description: SMTP send from address [reticulum/email/from]
-    Value: !Sub "noreply@${SESDomain}"
+    Value:
+      Fn::If:
+        - HasEmailSubdomain
+        - !Sub "noreply@${EmailSubdomain}.${SESDomain}"
+        - !Sub "noreply@${SESDomain}"
 
   StmpServer:
     Description: SMTP server [reticulum/email/server]
