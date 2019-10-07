@@ -2684,7 +2684,7 @@ Resources:
           TargetOriginId: !Sub "${AWS::StackName}-cors-proxy"
           ForwardedValues:
             QueryString: true
-            Headers: ["Origin", "Content-Type", "Range"]
+            Headers: ["Origin", "Content-Type", "Range", "Host"]
             Cookies:
               Forward: none
           ViewerProtocolPolicy: https-only
