@@ -420,4 +420,24 @@ resource "aws_kms_key" "lambda-kms-key" {
 resource "aws_s3_bucket" "polycosm-assets" {
   bucket = "assets.polycosm-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
   acl = "private"
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Stmt1570547452881",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetObject"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:s3:::assets.polycosm-${var.shared["env"]}-${random_id.bucket-identifier.hex}",
+        "arn:aws:s3:::assets.polycosm-${var.shared["env"]}-${random_id.bucket-identifier.hex}/*"
+      ],
+      "Principal": "*"
+    }
+  ]
+}
+POLICY
 }

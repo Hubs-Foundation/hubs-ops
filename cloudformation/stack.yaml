@@ -84,12 +84,12 @@ Parameters:
     AllowedValues: ["Yes - My domain is set up on Route 53.", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section."]
   ShortlinkZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: Your AWS Route 53 Zone for short room permalinks and entry codes. (eg myhubs.link) It should *not* be the same domain as the any of the Hubs Cloud domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type.
+    Description: Your AWS Route 53 Zone for short room permalinks, entry codes, and device linking. (eg myhubs.link) It should *not* be the same domain as the any of the Hubs Cloud domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type since it will be typed by users on mobile devices and in VR.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify a short link Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53, ideally one short and easy to type.
   InternalZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: Your AWS Route 53 Zone for an internal domain name (eg myhubs-internal.com.) You'll need to register a new internal domain name of your choice with Route 53. This domain will be used internally by Hubs Cloud. It should *not* be the same domain as the Hubs Cloud domain name that you specified above. This domain will not be seen by visitors and can be anything you like.
+    Description: Your AWS Route 53 Zone for internal routing by Hubs Cloud. If your primary domain is on Route 53 and you're not using it for anything else, you can choose it here. Otherwise, you'll need to register a new internal domain name on Route 53 for this (eg myhubs-internal.com). URLs on the internal domain will not be seen by visitors.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
   EmailZone:
@@ -1194,6 +1194,13 @@ Resources:
          PolicyDocument:
            Version: '2012-10-17'
            Statement:
+             - Effect: Allow
+               Action:
+                 - s3:ListBucket
+                 - s3:GetObject
+               Resource:
+                 - arn:aws:s3:::assets.polycosm-prod-b99b35f30242f894
+                 - arn:aws:s3:::assets.polycosm-prod-b99b35f30242f894/*
              - Effect: Allow
                Action:
                  - s3:PutObject
