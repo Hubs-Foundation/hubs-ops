@@ -283,9 +283,19 @@ sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-pkg-promote
 sudo echo 'hab pkg promote -z $(cat /hab/cache/keys/mozillareality-github.token) $1 $2' >> /usr/bin/hab-pkg-promote
 sudo chmod +x /usr/bin/hab-pkg-promote
 
+sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-pkg-install
+sudo echo 'hab pkg install $1' >> /usr/bin/hab-pkg-install
+sudo chmod +x /usr/bin/hab-pkg-install
+
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-docker-studio" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-upload" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-promote" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-install" >> /etc/sudoers
+
+chown root:hab /hab/sup/default
+chown root:hab /hab/sup/default/CTL_SECRET
+chmod 0750 /hab/sup/default
+chmod 0640 /hab/sup/default/CTL_SECRET
 
 sudo apt-get install -y docker.io
 sudo /usr/bin/hab svc load mozillareality/jenkins-war --strategy at-once --url https://bldr.habitat.sh --channel stable
