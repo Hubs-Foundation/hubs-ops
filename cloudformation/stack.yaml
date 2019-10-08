@@ -740,6 +740,7 @@ Resources:
     Properties:
       Domain: !Ref DomainName
       ServiceToken: !GetAtt Route53DependencyLambda.Arn
+    Condition: HasMangedDomain
 
   ShortlinkZoneInfo:
     Type: Custom::Route53
