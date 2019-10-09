@@ -212,6 +212,11 @@ resource "aws_iam_policy" "ci-upload-assets-s3-policy" {
       },
       {
           "Effect": "Allow",
+          "Action": "s3:DeleteObject",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.assets_bucket_id}/*"
+      },
+      {
+          "Effect": "Allow",
           "Action": "s3:PutObjectAcl",
           "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.assets_bucket_id}/*"
       },
@@ -223,6 +228,11 @@ resource "aws_iam_policy" "ci-upload-assets-s3-policy" {
       {
           "Effect": "Allow",
           "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base-prod.assets_bucket_id}/*"
+      },
+      {
+          "Effect": "Allow",
+          "Action": "s3:DeleteObject",
           "Resource": "arn:aws:s3:::${data.terraform_remote_state.base-prod.assets_bucket_id}/*"
       },
       {
@@ -287,10 +297,16 @@ sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-pkg-install
 sudo echo 'hab pkg install $1' >> /usr/bin/hab-pkg-install
 sudo chmod +x /usr/bin/hab-pkg-install
 
+sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-clean-perms
+sudo echo 'chown -R hab:hab .' >> /usr/bin/hab-clean-perms
+sudo chmod +x /usr/bin/hab-clean-perms
+
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-docker-studio" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-upload" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-promote" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-install" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-user-toml-install" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-clean-perms" >> /etc/sudoers
 
 chown root:hab /hab/sup/default
 chown root:hab /hab/sup/default/CTL_SECRET
