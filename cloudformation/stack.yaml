@@ -183,7 +183,7 @@ Parameters:
 Mappings:
   Regions:
     us-east-2:
-      ImageId: ami-0c8cb83ee06aa6377
+      ImageId: ami-06e9be5225940617c
   ServicesMeta:
     RetExternal:
       Port: 443
@@ -2756,6 +2756,18 @@ Resources:
 
   AppASG:
     Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 10
+        PauseTime: PT20M
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AZRebalance
+          - AlarmNotification
+          - ScheduledActions
+        MinInstancesInService: !Ref AppInstanceCount
+        WaitOnResourceSignals: true
     Properties:
       AutoScalingGroupName: !Sub "${AWS::StackName}-app"
       AvailabilityZones: !If [AppIsClusterPlacement, [!GetAtt SubnetAPublic.AvailabilityZone], [!GetAtt SubnetAPublic.AvailabilityZone, !GetAtt SubnetBPublic.AvailabilityZone]]
@@ -2810,6 +2822,18 @@ Resources:
 
   StreamASG:
     Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 10
+        PauseTime: PT20M
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AZRebalance
+          - AlarmNotification
+          - ScheduledActions
+        MinInstancesInService: !Ref StreamInstanceCount
+        WaitOnResourceSignals: true
     Properties:
       AutoScalingGroupName: !Sub "${AWS::StackName}-stream"
       AvailabilityZones: [!GetAtt SubnetAPublic.AvailabilityZone, !GetAtt SubnetBPublic.AvailabilityZone]
