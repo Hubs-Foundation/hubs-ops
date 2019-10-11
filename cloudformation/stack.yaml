@@ -2495,7 +2495,7 @@ Resources:
           TargetOriginId: !Sub "${AWS::StackName}-app-assets"
           ForwardedValues:
             QueryString: true
-            Headers: ["Origin", "Content-Type"]
+            Headers: ["Origin", "Content-Type", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
             Cookies:
               Forward: none
           ViewerProtocolPolicy: https-only
@@ -2635,7 +2635,7 @@ Resources:
           TargetOriginId: !Sub "${AWS::StackName}-storage"
           ForwardedValues:
             QueryString: true
-            Headers: ["Origin", "Content-Type", "Authorization"]
+            Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
             Cookies:
               Forward: none
           ViewerProtocolPolicy: https-only
@@ -2691,7 +2691,7 @@ Resources:
           TargetOriginId: !Sub "${AWS::StackName}-cors-proxy"
           ForwardedValues:
             QueryString: true
-            Headers: ["Origin", "Content-Type", "Range", "Host"]
+            Headers: ["Origin", "Content-Type", "Range", "Host", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
             Cookies:
               Forward: none
           ViewerProtocolPolicy: https-only
