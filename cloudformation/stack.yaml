@@ -3364,7 +3364,7 @@ Outputs:
     Value: !GetAtt AppALB.DNSName
 
   DomainName:
-    Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server]
+    Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
     Value: !Ref DomainName
 
   CorsOrigins:
