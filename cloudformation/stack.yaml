@@ -1084,16 +1084,11 @@ Resources:
                   if event['RequestType'] == 'Delete':
                       s3 = boto3.resource('s3')
 
-                      try: 
-                          s3.meta.client.head_bucket(Bucket=bucket)
-                      except ClientError:
-                          # Bucket already removed/never existed
-                          sendResponseCfn(event, context, "SUCCESS")
-                          return
-
                       bucket = s3.Bucket(bucket)
-                      for obj in bucket.objects.filter():
-                          s3.Object(bucket.name, obj.key).delete()
+
+                      if bucket.creation_date is not None:
+                          for obj in bucket.objects.filter():
+                              s3.Object(bucket.name, obj.key).delete()
           
                   sendResponseCfn(event, context, "SUCCESS")
               except Exception as e:
@@ -1112,12 +1107,29 @@ Resources:
           
               requests.put(event['ResponseURL'], data=json.dumps(response_body))
 
+# SESPassword
+  SESPaswordRole:
+   Type: AWS::IAM::Role
+   Properties:
+     RoleName: !Sub "${AWS::StackName}-SESPassword"
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Path: /
+     Policies: []
+
   SESPasswordFunction:
     Type: AWS::Lambda::Function
     Properties:
       Handler: index.handler
       Runtime: python3.6
-      Role: !GetAtt EmptyBucketRole.Arn
+      Role: !GetAtt SESPasswordRole.Arn
       Timeout: 240
       Code:
         ZipFile: |
