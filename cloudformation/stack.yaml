@@ -183,7 +183,7 @@ Parameters:
 Mappings:
   Regions:
     us-east-2:
-      ImageId: ami-0abddea7ac19aea56
+      ImageId: ami-028386b4d01b981fa
   ServicesMeta:
     RetExternal:
       Port: 443
@@ -490,7 +490,7 @@ Resources:
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
       Objects:
-        - lambdas/keymaster/keymaster-0.1.6.zip
+        - lambdas/keymaster/keymaster-0.1.7.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -951,7 +951,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.6.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
       Handler: index.generate_ring_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -967,7 +967,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.6.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
       Handler: index.generate_service_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -983,7 +983,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-totp"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.6.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
       Handler: index.generate_totp
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -999,7 +999,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-jwt-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.6.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
       Handler: index.generate_jwt_keys
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -1015,7 +1015,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-vapid-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.6.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
       Handler: index.generate_vapid_keys
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -1108,7 +1108,7 @@ Resources:
               requests.put(event['ResponseURL'], data=json.dumps(response_body))
 
 # SESPassword
-  SESPaswordRole:
+  SESPasswordRole:
    Type: AWS::IAM::Role
    Properties:
      RoleName: !Sub "${AWS::StackName}-SESPassword"
