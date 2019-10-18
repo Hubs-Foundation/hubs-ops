@@ -1062,6 +1062,7 @@ Resources:
                  - !Sub '${LambdaBucket.Arn}'
                  - !Sub '${LinkRedirectorBucket.Arn}'
                  - !Sub '${BoxKeysBucket.Arn}'
+                 - !Sub '${SpeelycaptorScratchBucket.Arn}'
 
   EmptyBucketFunction:
     Type: AWS::Lambda::Function
@@ -1084,11 +1085,16 @@ Resources:
                   if event['RequestType'] == 'Delete':
                       s3 = boto3.resource('s3')
 
-                      bucket = s3.Bucket(bucket)
+                      try: 
+                          s3.meta.client.head_bucket(Bucket=bucket)
+                      except ClientError:
+                          # Bucket already removed/never existed
+                          sendResponseCfn(event, context, "SUCCESS")
+                          return
 
-                      if bucket.creation_date is not None:
-                          for obj in bucket.objects.filter():
-                              s3.Object(bucket.name, obj.key).delete()
+                      bucket = s3.Bucket(bucket)
+                      for obj in bucket.objects.filter():
+                          s3.Object(bucket.name, obj.key).delete()
           
                   sendResponseCfn(event, context, "SUCCESS")
               except Exception as e:
