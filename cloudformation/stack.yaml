@@ -183,7 +183,7 @@ Parameters:
 Mappings:
   Regions:
     us-east-2:
-      ImageId: ami-0df763bf317810937
+      ImageId: ami-09f31c841985e709c
   ServicesMeta:
     RetExternal:
       Port: 443
