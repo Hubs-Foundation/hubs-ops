@@ -393,7 +393,7 @@ resource "aws_cloudfront_distribution" "ret-assets" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin", "Content-Type"]
+      headers = ["Origin", "Content-Type", "Range", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
       cookies { forward = "none" }
     }
 
@@ -468,7 +468,7 @@ resource "aws_cloudfront_distribution" "ret-uploads" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin", "Content-Type", "Authorization", "Range"]
+      headers = ["Origin", "Content-Type", "Authorization", "Range", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
       cookies { forward = "none" }
     }
 
@@ -731,7 +731,7 @@ resource "aws_cloudfront_distribution" "ret-asset-bundles" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin"]
+      headers = ["Origin", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
       cookies { forward = "none" }
     }
 
@@ -793,7 +793,7 @@ resource "aws_cloudfront_distribution" "timecheck" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin"]
+      headers = ["Origin", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
       cookies { forward = "none" }
     }
 

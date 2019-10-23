@@ -490,7 +490,7 @@ Resources:
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
       Objects:
-        - lambdas/keymaster/keymaster-0.1.5.zip
+        - lambdas/keymaster/keymaster-0.1.7.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -951,7 +951,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.5.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
       Handler: index.generate_ring_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -967,7 +967,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.5.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
       Handler: index.generate_service_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -983,7 +983,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-totp"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.5.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
       Handler: index.generate_totp
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -999,7 +999,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-jwt-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.5.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
       Handler: index.generate_jwt_keys
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -1015,7 +1015,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-vapid-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.5.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
       Handler: index.generate_vapid_keys
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -1062,6 +1062,7 @@ Resources:
                  - !Sub '${LambdaBucket.Arn}'
                  - !Sub '${LinkRedirectorBucket.Arn}'
                  - !Sub '${BoxKeysBucket.Arn}'
+                 - !Sub '${SpeelycaptorScratchBucket.Arn}'
 
   EmptyBucketFunction:
     Type: AWS::Lambda::Function
@@ -1112,12 +1113,29 @@ Resources:
           
               requests.put(event['ResponseURL'], data=json.dumps(response_body))
 
+# SESPassword
+  SESPasswordRole:
+   Type: AWS::IAM::Role
+   Properties:
+     RoleName: !Sub "${AWS::StackName}-SESPassword"
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Path: /
+     Policies: []
+
   SESPasswordFunction:
     Type: AWS::Lambda::Function
     Properties:
       Handler: index.handler
       Runtime: python3.6
-      Role: !GetAtt EmptyBucketRole.Arn
+      Role: !GetAtt SESPasswordRole.Arn
       Timeout: 240
       Code:
         ZipFile: |
@@ -2495,7 +2513,7 @@ Resources:
           TargetOriginId: !Sub "${AWS::StackName}-app-assets"
           ForwardedValues:
             QueryString: true
-            Headers: ["Origin", "Content-Type"]
+            Headers: ["Origin", "Content-Type", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
             Cookies:
               Forward: none
           ViewerProtocolPolicy: https-only
@@ -2635,7 +2653,7 @@ Resources:
           TargetOriginId: !Sub "${AWS::StackName}-storage"
           ForwardedValues:
             QueryString: true
-            Headers: ["Origin", "Content-Type", "Authorization"]
+            Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
             Cookies:
               Forward: none
           ViewerProtocolPolicy: https-only
@@ -2691,7 +2709,7 @@ Resources:
           TargetOriginId: !Sub "${AWS::StackName}-cors-proxy"
           ForwardedValues:
             QueryString: true
-            Headers: ["Origin", "Content-Type", "Range", "Host"]
+            Headers: ["Origin", "Content-Type", "Range", "Host", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
             Cookies:
               Forward: none
           ViewerProtocolPolicy: https-only
@@ -3364,7 +3382,7 @@ Outputs:
     Value: !GetAtt AppALB.DNSName
 
   DomainName:
-    Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server]
+    Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
     Value: !Ref DomainName
 
   CorsOrigins:
@@ -3373,7 +3391,7 @@ Outputs:
 
   NonCorsProxyDomains:
     Description: Non-CORS proxied domains [hubs/general/non_cors_proxy_domains,spoke/general/non_cors_proxy_domains]
-    Value: !Sub "${DomainName},${InternalZoneInfo.Name}"
+    Value: !Sub "${DomainName},${InternalZoneInfo.Name},${AWS::StackName}-${AWS::AccountId}-storage.com"
 
   JanusAdminSecret:
     Description: Janus Admin Secret [janus-gateway/general/admin_secret!read-aws-secret,reticulum/janus/admin_secret!read-aws-secret]
@@ -3521,7 +3539,7 @@ Outputs:
 
   ReticulumCSP:
     Description: Default Reticulum Content Security Policy [reticulum/security/content_security_policy]
-    Value: !Sub "default-src 'none'; manifest-src 'self'; script-src 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; child-src 'self' blob:; worker-src https://${AWS::StackName}-assets.${InternalZoneInfo.Name} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com 'unsafe-inline'; connect-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:8443 https://cdn.aframe.io https://www.youtube.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';"
+    Value: !Sub "default-src 'none'; manifest-src 'self'; script-src 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; prefetc-src 'self' https://${AWS::StackName}-assets.${InternalZoneInfo.Name}; child-src 'self' blob:; worker-src https://${AWS::StackName}-assets.${InternalZoneInfo.Name} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com 'unsafe-inline'; connect-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-${AWS::AccountId}-storage.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:8443 https://cdn.aframe.io https://www.youtube.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-storage.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';"
 
   SmtpSendAccessKey:
     Description: SMTP send access key for email zone [reticulum/email/username]
@@ -3578,14 +3596,6 @@ Outputs:
   YTDLURL:
     Description: YT-DL URL [reticulum/resolver/ytdl_host]
     Value: !Sub ["http://localhost:${Port}", { Port: !FindInMap [ServicesMeta, YTDL, Port] }]
-
-  YTDLBindIP:
-    Description: YT-DL Bind IP [youtube-dl-api-server/general/bind_ip]
-    Value: 127.0.0.1
-
-  YTDLPort:
-    Description: YT-DL Port [youtube-dl-api-server/general/port]
-    Value: 8080
 
   CertBotPlugin:
     Description: Certbot plugin [certbot/general/plugin]

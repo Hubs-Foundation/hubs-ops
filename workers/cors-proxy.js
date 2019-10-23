@@ -1,4 +1,4 @@
-const ALLOWED_ORIGINS = ["https://hubs.local:8080", "https://hubs.local:9090", "https://hubs.local:4000", "https://dev.reticulum.io", "https://smoke-dev.reticulum.io", "https://hubs.mozilla.com", "https://smoke-hubs.mozilla.com"];
+const ALLOWED_ORIGINS = ["https://hubs.local:8080", "https://hubs.local:9090", "https://hubs.local:4000", "https://dev.reticulum.io", "https://smoke-dev.reticulum.io", "https://hubs.mozilla.com", "https://smoke-hubs.mozilla.com", "https://photomnemonic-utils.reticulum.io"];
 const PROXY_HOST = "https://hubs-proxy.com"
 
 addEventListener("fetch", e => {
@@ -18,8 +18,15 @@ addEventListener("fetch", e => {
     const res = await fetch(targetUrl, { headers: requestHeaders, method: request.method, redirect: "manual", referrer: request.referrer, referrerPolicy: request.referrerPolicy });
     const responseHeaders = new Headers(res.headers);
 
-    if(responseHeaders.get("Location")) {
-      responseHeaders.set("Location",  proxyUrl.protocol + "//" + proxyUrl.host + "/" + responseHeaders.get("Location"));
+    const redirectLocation = responseHeaders.get("Location") || responseHeaders.get("location");
+
+    if(redirectLocation) {
+      if (!redirectLocation.startsWith("/")) {
+        responseHeaders.set("Location",  proxyUrl.protocol + "//" + proxyUrl.host + "/" + redirectLocation);
+      } else {
+        const tUrl = new URL(targetUrl);
+        responseHeaders.set("Location",  proxyUrl.protocol + "//" + proxyUrl.host + "/" + tUrl.origin + redirectLocation);
+      }
     }
 
     if (origin && ALLOWED_ORIGINS.indexOf(origin) >= 0) {
@@ -35,3 +42,4 @@ addEventListener("fetch", e => {
     return new Response(res.body, { status: res.status, statusText: res.statusText, headers: responseHeaders });
   })());
 });
+
