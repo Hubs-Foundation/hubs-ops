@@ -571,7 +571,7 @@ Resources:
               StackId: event.StackId,
               RequestId: event.RequestId,
               LogicalResourceId: event.LogicalResourceId,
-              PhysicalResourceId: 'route53Dependency-' + event.ResourceProperties.DomainName,
+              PhysicalResourceId: 'route53Dependency-' + event.ResourceProperties.Domain,
               Status: status,
               Reason: getReason(err) + " See details in CloudWatch Log: " + context.logStreamName,
               Data: data
