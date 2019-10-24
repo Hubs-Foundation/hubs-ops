@@ -339,7 +339,7 @@ resource "aws_s3_bucket" "stack-create-redirector-bucket" {
   }
 
   website {
-      redirect_all_requests_to = "${var.stack_create_redirector_target_hostname}"
+      redirect_all_requests_to = "${var.stack_create_redirector_target}"
   }
 }
 

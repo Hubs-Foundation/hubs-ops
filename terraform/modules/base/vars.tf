@@ -63,7 +63,3 @@ variable "stack_create_redirector_enabled" {
 variable "stack_create_redirector_target" {
   description = "Target URL to redirect to for stack create redirector"
 }
-
-variable "stack_create_redirector_target_hostname" {
-  description = "Target hostname to redirect to for root redirector"
-}
