@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Hubs Cloud: Private Social VR in your web browser. Use this stack template to create your own private instance of Hubs and Spoke by Mozilla. Full documentation: https://github.com/mozilla/hubs-cloud/wiki/Stack-Setup
+  Hubs Cloud: Private Social VR in your web browser. Use this stack template to create your own private instance of Hubs and Spoke by Mozilla. Full documentation: https://github.com/mozilla/hubs-cloud
 
 Metadata:
   AWS::CloudFormation::Interface:
