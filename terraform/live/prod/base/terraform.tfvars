@@ -22,3 +22,7 @@ root_redirector_enabled = true
 root_redirector_domains = ["tryhubs.com", "ducksandrobots.com", "robotsandducks.com"]
 root_redirector_target = "https://hubs.mozilla.com"
 root_redirector_target_hostname = "hubs.mozilla.com"
+stack_create_redirector_enabled = true
+stack_create_redirector_domains = ["gethubscloud.com"]
+stack_create_redirector_target = "https://console.aws.amazon.com/cloudformation/home?#/stacks/quickcreate?templateUrl=https%3A%2F%2Fhubs-cloud.s3-us-west-1.amazonaws.com%2Fstack.yaml"
+stack_create_redirector_target_hostname = "console.aws.amazon.com"
