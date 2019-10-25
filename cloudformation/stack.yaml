@@ -909,7 +909,6 @@ Resources:
              - Effect: Allow
                Action:
                  - ses:SendRawEmail
-                 - ses:GetSendQuota
                Resource: "*"
                Condition:
                  StringEquals:
@@ -2365,6 +2364,10 @@ Resources:
               - ssm:GetParameter
               - ssm:DeleteParameters
             Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ita/${AWS::StackName}/*"
+          - Effect: Allow
+            Action:
+              - ses:GetSendQuota
+            Resource: "*"
 
   AppALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
