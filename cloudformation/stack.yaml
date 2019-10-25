@@ -2950,23 +2950,6 @@ Resources:
       ToPort: 2049
       SourceSecurityGroupId: !Ref StorageConnectSecurityGroup
 
-  DailyBackupKey:
-    Type: AWS::KMS::Key
-    DeletionPolicy: Retain
-    Properties:
-      Description: Encryption key for daily backups
-      EnableKeyRotation: True
-      Enabled: True
-      KeyPolicy:
-        Version: "2012-10-17"
-        Statement:
-        - Effect: Allow
-          Principal:
-            AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
-          Action:
-          - kms:*
-          Resource: "*"
-
   DailyBackupVault:
     Type: AWS::Backup::BackupVault
     DeletionPolicy: Retain
