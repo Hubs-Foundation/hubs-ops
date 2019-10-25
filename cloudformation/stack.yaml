@@ -6,16 +6,16 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
+          default: Account Configuration
+        Parameters:
+          - AdminEmailAddress
+      - Label:
           default: Domain Configuration
         Parameters:
           - DomainName
           - IsDomainOnRoute53
           - InternalZone
           - ShortlinkZone
-      - Label:
-          default: Account Configuration
-        Parameters:
-          - AdminEmailAddress
       - Label:
           default: Email Configuration
         Parameters:
@@ -1842,7 +1842,7 @@ Resources:
               HTTPPort: 80
               HTTPSPort: 443
               OriginProtocolPolicy: https-only
-              OriginSSLProtocols: [ "TLSv1", "TLSv1.1", "TLSv1.2" ]
+              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
             OriginPath: "/prod"
         Enabled: true
         HttpVersion: http2
@@ -1998,7 +1998,7 @@ Resources:
               HTTPPort: 80
               HTTPSPort: 443
               OriginProtocolPolicy: http-only
-              OriginSSLProtocols: [  "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
+              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
         Enabled: true
         PriceClass: PriceClass_All
         Aliases:
@@ -2629,7 +2629,7 @@ Resources:
               HTTPPort: 80
               HTTPSPort: 443
               OriginProtocolPolicy: https-only
-              OriginSSLProtocols: [ "TLSv1", "TLSv1.1", "TLSv1.2" ]
+              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
         Restrictions:
           GeoRestriction:
             RestrictionType: none
@@ -2685,7 +2685,7 @@ Resources:
               HTTPPort: 80
               HTTPSPort: 443
               OriginProtocolPolicy: https-only
-              OriginSSLProtocols: [  "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
+              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
         Restrictions:
           GeoRestriction:
             RestrictionType: none
