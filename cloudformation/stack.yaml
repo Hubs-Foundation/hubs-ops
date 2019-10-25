@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Hubs Cloud: Private Social VR in your web browser. Use this stack template to create your own private instance of Hubs and Spoke by Mozilla. Full documentation: https://github.com/mozilla/hubs-cloud
+  Hubs Cloud: Private Social VR in your web browser. Hosted instance of Hubs and Spoke by Mozilla. Full documentation: https://github.com/mozilla/hubs-cloud
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -46,11 +46,11 @@ Metadata:
       IsDomainOnRoute53:
         default: Is your domain set up on Route 53?
       ShortlinkZone:
-        default: Short link Route 53 Zone
+        default: Short link domain name
       InternalZone:
-        default: Internal Route 53 Zone
+        default: Internal domain name
       EmailZone:
-        default: Outgoing Email Route 53 Zone
+        default: Outgoing Email Domain
       EmailSubdomain:
         default: Outgoing Email Subdomain Prefix
       ContactEmailAddress:
@@ -83,21 +83,21 @@ Parameters:
     ConstraintDescription: Must be a valid domain name (eg myhubs.com or hubs.mycompany.com)
   IsDomainOnRoute53:
     Type: String
-    Description: It is hightly recommended you use Route 53 to manage your domain. Set to Yes if your domain is set up on Route 53, and you can move onto the next item. Set to No if your domain is on a third party service such as GoDaddy or Namecheap. If you choose 'No', you'll need to set the 'Unmanaged Domain SSL Certificate ARN' configuration setting in the 'SSL Certificates' section below. Also, if you choose 'No', once your stack is created you'll need to update your DNS provider using the information in the 'Outputs' tab. See the 'Outputs' tab once the stack is created for more information on what to do next.
+    Description: We recommended you use Route 53 to manage your domain. Set to Yes if your domain is set up on Route 53, and you can move onto the next item. Set to No if your domain is on a third party service such as GoDaddy or Namecheap. If you choose 'No', you'll need to set the 'Unmanaged Domain SSL Certificate ARN' configuration setting in the 'SSL Certificates' section below. Also, if you choose 'No', once your stack is created you'll need to update your DNS provider using the information in the 'Outputs' tab. See the 'Outputs' tab once the stack is created for more information on what to do next.
     AllowedValues: ["Yes - My domain is set up on Route 53.", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section."]
   ShortlinkZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: Your AWS Route 53 Zone for short room permalinks, entry codes, and device linking. (eg myhubs.link) It should *not* be the same domain as the any of the Hubs Cloud domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type since it will be typed by users on mobile devices and in VR.
+    Description: You'll need a Route 53 domain name for short room permalinks, entry codes, and device linking. (eg myhubs.link) It should *not* be the same domain as the any of the Hubs Cloud domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type since it will be typed by users on mobile devices and in VR.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify a short link Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53, ideally one short and easy to type.
   InternalZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: Your AWS Route 53 Zone for internal routing by Hubs Cloud. If your primary domain is on Route 53 and you're not using it for anything else, you can choose it here. Otherwise, you'll need to register a new internal domain name on Route 53 for this (eg myhubs-internal.com). URLs on the internal domain will not be seen by visitors.
+    Description: Hubs Cloud needs a domain name to use internally for server management. If your primary domain is on Route 53 and you're not using it for anything else, you can choose it here. Otherwise, you'll need to register a new domain name on Route 53 for this (for example, myhubs-internal.com). This domain name will not be seen by users.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
   EmailZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: To verify email addresses, Hubs Cloud needs to be able to send email. If you do not have an existing SMTP provider, create and choose a Route 53 Zone for the domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing email provider you'd like to send email from (eg Mailchimp) or already have a verified domain in AWS Simple Email Service select the same zone you chose above for 'Internal Route 53 Zone' and you'll be able to enter the login credentials from your email provider later.
+    Description: To verify email addresses, Hubs Cloud needs to be able to send email. If you do not have an existing email SMTP provider, choose a Route 53 domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing email provider you'd like to send email from (eg Mailchimp) or already have a verified domain in AWS Simple Email Service select the same zone you chose above for 'Internal Route 53 Zone' and you'll be able to enter the login credentials from your email provider later.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an Route 53 Zone to send email from. Please choose one. If you already have email set up, just choose your Internal Route 53 Zone.
   EmailSubdomain:
@@ -111,7 +111,7 @@ Parameters:
     ConstraintDescription: "You must enter a contact email address."
   UnmanagedDomainCertArn:
     Type: String
-    Description: "You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to create an SSL certificate in AWS Certificate Manager before completing this form. Instructions can be found at https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html -- make sure you create your SSL certificate in the AWS region you'd like to use for your Hubs Cloud stack. Once you've created the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console."
+    Description: "You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to create an SSL certificate in AWS Certificate Manager before completing this form. Instructions can be found at https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html. *Note* - make sure you create your SSL certificate in the AWS region you'd like to use for your Hubs Cloud stack. (The region can be found in the top right corner of the AWS console.) Once you've created the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console."
     ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
   AppInstanceCount:
     Type: Number
@@ -161,7 +161,7 @@ Parameters:
     Default: 56
   AppPlacementGroupStrategy:
     Type: String
-    Description: "Placement group strategy for app servers. If you only have one app server, this setting has no effect. If you have more than one app server, choose 'cluster' to increase connectivity between servers at the cost of reliability. When using 'cluster', you will have lower latency between users but your service will go down if there is an AZ-wide outage. Choose 'spread' if you would like to ensure higher availability at the cost of latency or maximum throughput between app servers. Choose 'none' if you do not have a preference, will be running more than 7 app servers, or if AWS has been failing to provision servers for you in previous attempts to create the stack. App servers communicate with one another extensively, so 'cluster' is the preferred setting if you can tolerate some risk of downtime if there are AZ-wide outages."
+    Description: "Placement group strategy for app servers. If you only have one app server, this setting has no effect. If you have more than one app server, choose 'cluster' to increase connectivity between servers at the cost of reliability. When using 'cluster', you will have lower latency between users but your service will go down if there is an AZ-wide outage. Choose 'spread' if you would like to ensure higher availability at the cost of latency or maximum throughput between app servers. Choose 'none' if you do not have a preference, will be running more than 7 app servers, or if AWS has been failing to provision servers for you in previous attempts to create the stack. App servers communicate with one another extensively, so 'cluster' is the preferred setting if you can tolerate some risk of downtime if there are AZ-wide outages, which are rare."
     Default: cluster
     AllowedValues:
       - cluster
