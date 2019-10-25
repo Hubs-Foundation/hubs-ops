@@ -13,11 +13,14 @@ Metadata:
           - InternalZone
           - ShortlinkZone
       - Label:
+          default: Account Configuration
+        Parameters:
+          - AdminEmailAddress
+      - Label:
           default: Email Configuration
         Parameters:
           - EmailZone
           - EmailSubdomain
-          - ContactEmailAddress
       - Label:
           default: Server Configuration
         Parameters:
@@ -53,7 +56,7 @@ Metadata:
         default: Outgoing Email Domain
       EmailSubdomain:
         default: Outgoing Email Subdomain Prefix
-      ContactEmailAddress:
+      AdminEmailAddress:
         default: Administrator Email Address
       UnmanagedDomainCertArn:
         default: Unmanaged Domain SSL Certificate ARN
@@ -104,9 +107,9 @@ Parameters:
     Type: String
     Description: The Subdomain prefix to use for outgoing emails. For example, if your Outgoing Email Route 53 Zone is set to myhubs.com, setting this field to "mail" will send email from the domain mail.myhubs.com. If you have a third party email provider (eg Mailchimp) you can ignore this field.
     Default: mail
-  ContactEmailAddress:
+  AdminEmailAddress:
     Type: String
-    Description: Contact Email address for administrator of this stack. This will be shared with LetsEncrypt for urgent SSL renewal or security updates. By deploying this stack you agree to the LetsEncrypt TOS. (https://letsencrypt.org/repository/)
+    Description: Email address for your administrator account. Before you can log in, you will need to verify this email address - you will get a verification email from AWS after the stack is ready. This will also be shared with LetsEncrypt for urgent SSL renewal or security updates. By deploying this stack you agree to the LetsEncrypt TOS. (https://letsencrypt.org/repository/)
     AllowedPattern: ".+"
     ConstraintDescription: "You must enter a contact email address."
   UnmanagedDomainCertArn:
@@ -482,7 +485,7 @@ Resources:
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
       Objects:
-        - lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.3.zip
+        - lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.4.zip
   CopyKeymasterLambda:
     Type: Custom::CopyKeymasterLambda
     UpdateReplacePolicy: Retain
@@ -493,7 +496,7 @@ Resources:
       SourceBucket: assets.polycosm-prod-b99b35f30242f894
       Prefix: ""
       Objects:
-        - lambdas/keymaster/keymaster-0.1.7.zip
+        - lambdas/keymaster/keymaster-0.1.8.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -870,7 +873,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-aws-cfn-ses-domain"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.3.zip
+        S3Key: lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.4.zip
       Handler: index.lambda_handler
       Role: !GetAtt SESDomainRole.Arn
       Runtime: python3.6
@@ -891,6 +894,7 @@ Resources:
       TTL: 1800
       CustomDMARC: '"v=DMARC1;p=reject;pct=100;aspf=r;"' # We can advise reject since we always send via SES
       Region: "us-east-1"
+      EmailAddress: !Ref AdminEmailAddress
 
   SendEmailUser:
    Type: AWS::IAM::User
@@ -954,7 +958,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.8.zip
       Handler: index.generate_ring_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -970,7 +974,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.8.zip
       Handler: index.generate_service_key
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -986,7 +990,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-totp"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.8.zip
       Handler: index.generate_totp
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -1002,7 +1006,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-jwt-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.8.zip
       Handler: index.generate_jwt_keys
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -1018,7 +1022,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-vapid-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.7.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.8.zip
       Handler: index.generate_vapid_keys
       Role: !GetAtt WriteBoxKeysRole.Arn
       Runtime: nodejs10.x
@@ -3592,9 +3596,9 @@ Outputs:
     Description: Shortlink Domain Name
     Value: !GetAtt ShortlinkZoneInfo.Name
 
-  ContactEmailAddress:
+  AdminEmailAddress:
     Description: Administrator Email Address [certbot/general/admin_email]
-    Value: !Ref ContactEmailAddress
+    Value: !Ref AdminEmailAddress
 
   YTDLURL:
     Description: YT-DL URL [reticulum/resolver/ytdl_host]
