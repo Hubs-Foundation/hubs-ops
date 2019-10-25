@@ -827,6 +827,78 @@ resource "aws_route53_record" "timecheck-dns" {
 resource "aws_efs_file_system" "uploads-fs" {
   creation_token = "${var.shared["env"]}-uploads"
   performance_mode = "generalPurpose"
+  tags = {
+    backup = "daily"
+  }
+}
+
+resource "aws_kms_key" "daily-backup-key" {
+  description = "Encryption key for storage backups"
+  enable_key_rotation = true
+  is_enabled = true
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+        "Effect": "Allow",
+        "Action": "kms:*",
+        "Principal": { "AWS": "arn:aws:iam::${var.shared["account_id"]}:root" },
+        "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_backup_vault" "daily-backup-vault" {
+  name = "${var.shared["env"]}-daily-backup"
+  kms_key_arn = "${aws_kms_key.daily-backup-key.arn}"
+}
+
+resource "aws_backup_plan" "daily-backup-plan" {
+  name = "${var.shared["env"]}-daily-backup-plan"
+
+  rule {
+    rule_name = "daily"
+    target_vault_name = "${aws_backup_vault.daily-backup-vault.name}"
+    schedule = "cron(42 14 ? * * *)"
+  }
+}
+
+resource "aws_iam_role" "daily-backup-role" {
+  name = "${var.shared["env"]}-daily-backup"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+        "Effect": "Allow",
+        "Principal": { "Service": [ "backup.amazonaws.com" ] },
+        "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "daily-backup-aws-backup-policy" {
+  role = "${aws_iam_role.daily-backup-role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+}
+
+resource "aws_backup_selection" "daily-backup-selection" {
+  iam_role_arn = "${aws_iam_role.daily-backup-role.arn}"
+  name = "${var.shared["env"]}-daily-backup-selection"
+  plan_id = "${aws_backup_plan.daily-backup-plan.id}"
+
+  selection_tag {
+    type = "STRINGEQUALS"
+    key = "backup"
+    value = "daily"
+  }
+
+  depends_on = ["aws_iam_role_policy_attachment.daily-backup-aws-backup-policy"]
 }
 
 resource "aws_efs_mount_target" "uploads-fs" {
