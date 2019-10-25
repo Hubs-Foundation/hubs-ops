@@ -909,6 +909,7 @@ Resources:
              - Effect: Allow
                Action:
                  - ses:SendRawEmail
+                 - ses:GetSendQuota
                Resource: "*"
                Condition:
                  StringEquals:
@@ -3568,6 +3569,10 @@ Outputs:
   StmpServer:
     Description: SMTP server [reticulum/email/server]
     Value: email-smtp.us-east-1.amazonaws.com
+
+  SESRegion:
+    Description: SES region
+    Value: us-east-1
 
   StmpPort:
     Description: SMTP port [reticulum/email/port]
