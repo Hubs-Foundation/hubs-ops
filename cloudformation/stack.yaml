@@ -854,6 +854,7 @@ Resources:
                  - ses:SetIdentityMailFromDomain
                  - ses:VerifyDomainDkim
                  - ses:VerifyDomainIdentity
+                 - ses:VerifyEmailIdentity
                Resource:
                  - "*"
              - Effect: Allow
