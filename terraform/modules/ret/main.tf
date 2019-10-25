@@ -862,7 +862,7 @@ resource "aws_backup_plan" "daily-backup-plan" {
   rule {
     rule_name = "daily"
     target_vault_name = "${aws_backup_vault.daily-backup-vault.name}"
-    schedule = "cron(42 14 ? * * *)"
+    schedule = "cron(0 10 ? * * *)"
   }
 }
 
