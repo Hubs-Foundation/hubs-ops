@@ -1848,7 +1848,7 @@ Resources:
         HttpVersion: http2
         PriceClass: PriceClass_All
         Aliases:
-          - !Sub 'nearspark.${InternalZoneInfo.Name}'
+          - !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
         DefaultCacheBehavior:
           AllowedMethods:
             - GET
