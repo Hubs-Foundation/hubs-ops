@@ -36,6 +36,7 @@ Metadata:
       - Label:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
+          - SubnetAZs
           - NewCMKForDiskEncryption
           - ClassB
           - AppPlacementGroupStrategy
@@ -185,6 +186,20 @@ Parameters:
     AllowedValues:
       - No - Use the AWS Managed Key
       - Yes - Create a new CMK
+  SubnetAZs:
+    Type: String
+    Description: "If your stack is failing to create, and the 'Events' tab shows the error 'Value (xxx) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: X, Y', you will need to select an alternative subnet configuration here. This is an issue with AWS: https://github.com/widdix/aws-cf-templates/issues/36"
+    Default: "Use zone a and b"
+    AllowedValues:
+      - Use zone a and b
+      - Use zone b and c
+      - Use zone a and c
+      - Use zone b and d
+      - Use zone c and d
+
+Mappings:
+  Regions:
+    us-east-2:
 
 Mappings:
   Regions:
@@ -238,6 +253,10 @@ Conditions:
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
   CreateDiskEncryptionKey: !Equals [!Ref NewCMKForDiskEncryption, "Yes - Create a new CMK"]
+  SubnetChoiceA: !Equals [!Ref SubnetAZs, "Use zone a and b"]
+  SubnetChoiceB: !Equals [!Ref SubnetAZs, "Use zone b and c"]
+  SubnetChoiceC: !Equals [!Ref SubnetAZs, "Use zone a and c"]
+  SubnetChoiceD: !Equals [!Ref SubnetAZs, "Use zone b and d"]
 
 Resources:
 
@@ -266,7 +285,7 @@ Resources:
   SubnetAPublic:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: !Select [0, !GetAZs '']
+      AvailabilityZone: !Select [!If [SubnetChoiceA, 0, !If [SubnetChoiceB, 1, !If [SubnetChoiceC, 0, !If [SubnetChoiceD, 1, 2]]]], !GetAZs '']
       CidrBlock: !Sub '10.${ClassB}.0.0/20'
       MapPublicIpOnLaunch: true
       VpcId: !Ref VPC
@@ -278,7 +297,7 @@ Resources:
   SubnetAPrivate:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: !Select [0, !GetAZs '']
+      AvailabilityZone: !Select [!If [SubnetChoiceA, 0, !If [SubnetChoiceB, 1, !If [SubnetChoiceC, 0, !If [SubnetChoiceD, 1, 2]]]], !GetAZs '']
       CidrBlock: !Sub '10.${ClassB}.16.0/20'
       VpcId: !Ref VPC
       Tags:
@@ -289,7 +308,7 @@ Resources:
   SubnetBPublic:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: !Select [1, !GetAZs '']
+      AvailabilityZone: !Select [!If [SubnetChoiceA, 1, !If [SubnetChoiceB, 2, !If [SubnetChoiceC, 2, !If [SubnetChoiceD, 3, 3]]]], !GetAZs '']
       CidrBlock: !Sub '10.${ClassB}.32.0/20'
       MapPublicIpOnLaunch: true
       VpcId: !Ref VPC
@@ -301,7 +320,7 @@ Resources:
   SubnetBPrivate:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: !Select [1, !GetAZs '']
+      AvailabilityZone: !Select [!If [SubnetChoiceA, 1, !If [SubnetChoiceB, 2, !If [SubnetChoiceC, 2, !If [SubnetChoiceD, 3, 3]]]], !GetAZs '']
       CidrBlock: !Sub '10.${ClassB}.48.0/20'
       VpcId: !Ref VPC
       Tags:
