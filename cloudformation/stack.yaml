@@ -29,6 +29,7 @@ Metadata:
           - StreamInstanceCount
           - AppInstanceType
           - StreamInstanceType
+          - MaintenenceWindow
       - Label:
           default: SSL Certificates
         Parameters:
@@ -36,6 +37,7 @@ Metadata:
       - Label:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
+          - ChannelType
           - SubnetAZs
           - NewCMKForDiskEncryption
           - ClassB
@@ -79,6 +81,10 @@ Metadata:
         default: "Database backup retention period (in days)"
       DbMaxCapacity:
         default: "Max database capacity (in ACUs)"
+      MaintenenceWindow:
+        default: "Scheduled maintenence window"
+      ChannelType:
+        default : "Package release channel"
 Parameters:
   DomainName:
     Type: String
@@ -110,7 +116,7 @@ Parameters:
     Default: mail
   AdminEmailAddress:
     Type: String
-    Description: Email address for your administrator account. Before you can log in, you will need to verify this email address - you will get a verification email from AWS after the stack is ready. This will also be shared with LetsEncrypt for urgent SSL renewal or security updates. By deploying this stack you agree to the LetsEncrypt TOS. (https://letsencrypt.org/repository/)
+    Description: Email address for your administrator account. Individuals with access to this email address will have full administrative control of your Hubs Cloud instance. Before you can log in, you will need to verify this email address - you will get a verification email from AWS after the stack is ready. This will also be shared with LetsEncrypt for urgent SSL renewal or security updates. By deploying this stack you agree to the LetsEncrypt TOS. (https://letsencrypt.org/repository/)
     AllowedPattern: ".+"
     ConstraintDescription: "You must enter a contact email address."
   UnmanagedDomainCertArn:
@@ -196,6 +202,14 @@ Parameters:
       - Use zone a and c
       - Use zone b and d
       - Use zone c and d
+  MaintenenceWindow:
+    Type: String
+    Description: Server maintenence window. Your server will be kept up-to-date with new features and fixes. Server upgrades will happen approximately once a month, and will result in a brief period of downtime, usually 30 seconds or so. We offer two maintenence windows to perform these updates.
+    AllowedValues: ["10:00-11:00 GMT (02:00-03:00 PT)", "22:00-23:00 GMT (14:00-15:00 PT)"]
+  ChannelType:
+    Type: String
+    Description: Software release to run on your servers. The 'unstable' channel will receive updates before 'stable', but may break your stack.
+    AllowedValues: ["Stable", "Unstable"]
 
 Mappings:
   Regions:
@@ -257,6 +271,8 @@ Conditions:
   SubnetChoiceB: !Equals [!Ref SubnetAZs, "Use zone b and c"]
   SubnetChoiceC: !Equals [!Ref SubnetAZs, "Use zone a and c"]
   SubnetChoiceD: !Equals [!Ref SubnetAZs, "Use zone b and d"]
+  IsStableChannel: !Equals [!Ref ChannelType, "Stable"]
+  IsScheduleAChannel: !Equals [!Ref MaintenenceWindow, "10:00-11:00 GMT (02:00-03:00 PT)"]
 
 Resources:
 
@@ -2778,7 +2794,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
-            VolumeSize: 128
+            VolumeSize: 8
       IamInstanceProfile: !Ref AppInstanceProfile
       InstanceType: !Ref AppInstanceType
       SecurityGroups:
@@ -2830,10 +2846,13 @@ Resources:
       LaunchConfigurationName: !Ref AppLaunchConfiguration
       Tags:
       - Key: polycosm-roles
-        Value: !If [HasStreamingServers, "app", "app stream"]
+        Value: !If [HasStreamingServers, "app", "app,stream"]
         PropagateAtLaunch: true
       - Key: polycosm-type
         Value: !If [HasStreamingServers, "app", "stream"]
+        PropagateAtLaunch: true
+      - Key: polycosm-channel
+        Value: !If [IsStableChannel, !If [ IsScheduleAChannel, "polycosm-stable-a", "polycosm-stable-b" ], !If [ IsScheduleAChannel, "polycosm-unstable-a", "polycosm-unstable-b" ]]
         PropagateAtLaunch: true
       - Key: bio-ring
         Value: !Sub "${AWS::StackName}"
@@ -2855,7 +2874,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
-            VolumeSize: 128
+            VolumeSize: 8
       IamInstanceProfile: !Ref StreamInstanceProfile
       InstanceType: !Ref StreamInstanceType
       SecurityGroups:
@@ -2898,6 +2917,9 @@ Resources:
       - Key: polycosm-type
         Value: stream
         PropagateAtLaunch: true
+      - Key: polycosm-channel
+        Value: !If [IsStableChannel, !If [ IsScheduleAChannel, "polycosm-stable-a", "polycosm-stable-b" ], !If [ IsScheduleAChannel, "polycosm-unstable-a", "polycosm-unstable-b" ]]
+        PropagateAtLaunch: true
       - Key: bio-ring
         Value: !Sub "${AWS::StackName}"
         PropagateAtLaunch: true
@@ -2916,6 +2938,8 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       PerformanceMode: generalPurpose
+      LifecyclePolicies:
+        - TransitionToIA: AFTER_30_DAYS
       FileSystemTags:
         - 
           Key: backup
