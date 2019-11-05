@@ -1331,6 +1331,139 @@ Resources:
                   timer.cancel()
                   cfnresponse.send(event, context, status, {}, None)
 
+# RegisterNodeDNS
+  RegisterNodeRole:
+   Type: AWS::IAM::Role
+   Properties:
+     RoleName: !Sub "${AWS::StackName}-RegisterNode"
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Path: /
+     Policies:
+       - PolicyName: register-scaling-event
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - autoscaling:DescribeAutoScalingGroups
+                 - ec2:DescribeInstances
+               Resource:
+                 - "*"
+             - Effect: Allow
+               Action: 
+                 - route53:ChangeResourceRecordSets
+                 - route53:CreateHealthCheck
+                 - route53:ListHealthChecks
+                 - route53:DeleteHealthCheck
+               Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+
+  RegisterNodeExternalFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs10.x
+      Role: !GetAtt RegisterNodeRole.Arn
+      Timeout: 240
+      Code:
+        ZipFile: !Sub |
+          const AWS = require('aws-sdk');
+
+          exports.handler = async function (event, context) {
+            const asg_msg = JSON.parse(event.Records[0].Sns.Message);
+            const asg_name = asg_msg.AutoScalingGroupName;
+            const instanceId = asg_msg.EC2InstanceId;
+            const asg_event = asg_msg.Event;
+            const promisify = f =>
+              arg =>
+                new Promise((res, rej) => f(arg, (err, data) => { if (err) { console.log(err); rej(err); } else { res(data); } }));
+
+            console.log(asg_event);
+            if (asg_event === "autoscaling:EC2_INSTANCE_LAUNCH" || asg_event === "autoscaling:EC2_INSTANCE_TERMINATE") {
+              console.log("Handling Launch/Terminate Event for " + asg_name);
+              const autoscaling = new AWS.AutoScaling({region: '${AWS::Region}'});
+              const ec2 = new AWS.EC2({region: '${AWS::Region}'});
+              const route53 = new AWS.Route53();
+
+              const asgResponse = await promisify(autoscaling.describeAutoScalingGroups.bind(autoscaling))({
+                AutoScalingGroupNames: [asg_name],
+                MaxRecords: 1
+              });
+
+              const instanceIds = asgResponse.AutoScalingGroups[0].Instances.map(i => i.InstanceId);
+              const instanceInfo = await promisify(ec2.describeInstances.bind(ec2))({
+                DryRun: false,
+                InstanceIds: instanceIds
+              });
+
+              const resourceRecords = instanceInfo.Reservations.map(r => ({ Value: r.Instances[0].NetworkInterfaces[0].Association.PublicIp }));
+              await promisify(route53.changeResourceRecordSets.bind(route53)({
+                ChangeBatch: {
+                  Changes: [
+                    {
+                      Action: asg_event === "autoscaling:EC2_INSTANCE_LAUNCH" ? 'UPSERT' : 'DELETE',
+                      ResourceRecordSet: {
+                        MultiValueAnswer: true,
+                        Name: ".",
+                        Type: 'A',
+                        TTL: 30,
+                        ResourceRecords: resource_records
+                      }
+                    }
+                  ]
+                },
+                HostedZoneId: ${!Ref ExternalZone}
+              });
+
+              if (asg_event === "autoscaling:EC2_INSTANCE_LAUNCH") {
+                const ipAddress = instanceInfo.Reservations.find(r => r.Instances[0].InstanceId === instanceId).Instances[0].NetworkInterfaces[0].Association.PublicIp;
+                console.log("creating check " + ipAddress);
+
+                await promisify(route53.createHealthCheck.bind(route53)({
+                  CallerReference: "check-" + ipAddress,
+                  HealthCheckConfig: {
+                    EnableSNI: true,
+                    FailureThreshold: 2,
+                    FullyQualifiedDomainName: ${DomainName},
+                    HealthThreshold: 2,
+                    IPAddress: ipAddress,
+                    Port: 443,
+                    RequestInterval: 10,
+                    ResourcePath: "/health",
+                    Type: "HTTPS"
+                  });
+              } else {
+                const healthChecks = await promisify(route53.listHealthChecks.bind(route53))({});
+
+                for (let i = 0, l = healthChecks.HealthChecks.length; i < l; i++) {
+                  const check = healthChecks.HealthChecks[i];
+                  if (!instanceInfo.Reservations.find(r => r.Instances[0].NetworkInterfaces[0].Association.PublicIp === check.IPAddress)) {
+                    console.log("deleting check " + check.Id);
+                    await promisify(route53.deleteHealthCheck.bind(route53)({ HealthCheckId: check.Id });
+                  }
+                }
+              }
+            } else {
+              console.log("Unsupported ASG event: " + asg_name, asg_event);
+              context.done("Unsupported ASG event: " + asg_name, asg_event);
+            }
+          };
+
+  RegisterNodeExternalSubscription:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      Enable: true
+      BatchSize: 1
+      EventSourceArn: !Ref AppASGTopic
+      FunctionName: !Ref RegisterNodeExternalFunction
+
   LambdaBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -2068,22 +2201,6 @@ Resources:
           MinimumProtocolVersion: "TLSv1"
 
 # App servers
-  AppALBSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupName: !Sub "${AWS::StackName}-app-alb"
-      GroupDescription: App ALB
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIp: 0.0.0.0/0
-
   BioRingSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -2172,10 +2289,6 @@ Resources:
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
           ToPort: !FindInMap [ServicesMeta, Ssh, Port]
           CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
-          ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
-          SourceSecurityGroupId: !Ref AppALBSecurityGroup
       SecurityGroupEgress:
         # Outbound HTTP
         - IpProtocol: tcp
@@ -2260,15 +2373,6 @@ Resources:
       IpProtocol: tcp
       FromPort: 0
       ToPort: 65535
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
-
-  AppALBReticulumEgress:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !Ref AppALBSecurityGroup
-      IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
-      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
       DestinationSecurityGroupId: !Ref AppSecurityGroup
 
   AppRole:
@@ -2405,107 +2509,6 @@ Resources:
             Action:
               - ses:GetSendQuota
             Resource: "*"
-
-  AppALB:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: !Sub "${AWS::StackName}-app"
-      SecurityGroups:
-        - !Ref AppALBSecurityGroup
-      Subnets:
-        - !Ref SubnetAPublic
-        - !Ref SubnetBPublic
-    # Add some slower items here, so domain doesn't come up too early
-    DependsOn:
-      - AppAssetsCloudfrontDistribution
-      - StorageCloudfrontDistribution
-      - CorsProxyCloudfrontDistribution
-      - NearsparkCloudfrontDistribution
-      - LinkRedirectorCloudfrontDistribution
-
-  AppALBDNS:
-    Type: AWS::Route53::RecordSet
-    Condition: HasMangedDomain
-    Properties:
-      Name: !Ref DomainName
-      HostedZoneId: !GetAtt ExternalZoneInfo.Id
-      Type: A
-      AliasTarget:
-        DNSName: !GetAtt AppALB.DNSName
-        HostedZoneId: !GetAtt AppALB.CanonicalHostedZoneID
-
-  AppALBDNSInternal:
-    Type: AWS::Route53::RecordSet
-    Condition: HasMangedDomain
-    Properties:
-      Name: !Sub "${AWS::StackName}.${InternalZoneInfo.Name}"
-      HostedZoneId: !Ref InternalZone
-      Type: A
-      AliasTarget:
-        DNSName: !GetAtt AppALB.DNSName
-        HostedZoneId: !GetAtt AppALB.CanonicalHostedZoneID
-
-  AppALBRetTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Name: !Sub "${AWS::StackName}-ret"
-      VpcId: !Ref VPC
-      Port: !FindInMap [ServicesMeta, RetInternal, Port]
-      Protocol: HTTPS
-      TargetGroupAttributes:
-      - Key: deregistration_delay.timeout_seconds
-        Value: 0
-      HealthCheckPath: "/health"
-      HealthCheckProtocol: HTTPS
-      HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 2
-      HealthCheckIntervalSeconds: 10
-      HealthCheckTimeoutSeconds: 5
-
-  AppALBRetSSLListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      LoadBalancerArn: !Ref AppALB
-      Port: 443
-      Protocol: HTTPS
-      SslPolicy: ELBSecurityPolicy-2015-05
-      Certificates:
-        - CertificateArn: !If [HasMangedDomain, !Ref ExternalZoneSSLCert, !Ref UnmanagedDomainCertArn]
-      DefaultActions:
-        - TargetGroupArn: !Ref AppALBRetTargetGroup
-          Type: forward
-
-  AppALBRetSSLListenerInternalCert:
-    Type: AWS::ElasticLoadBalancingV2::ListenerCertificate
-    Properties:
-      ListenerArn: !Ref AppALBRetSSLListener
-      Certificates:
-        - CertificateArn: !Ref InternalZoneSSLCert
-
-  AppALBRetClearListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      LoadBalancerArn: !Ref AppALB
-      Port: 80
-      Protocol: HTTP
-      DefaultActions:
-        - Type: redirect
-          RedirectConfig:
-            Port: "443"
-            Protocol: HTTPS
-            StatusCode: HTTP_301
-
-  AppALBRetListenerRule:
-    Type: AWS::ElasticLoadBalancingV2::ListenerRule
-    Properties:
-      ListenerArn: !Ref AppALBRetSSLListener
-      Priority: 1
-      Actions:
-        - Type: forward
-          TargetGroupArn: !Ref AppALBRetTargetGroup
-      Conditions:
-        - Field: path-pattern
-          Values: ["/"]
 
   AppInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -2821,6 +2824,12 @@ Resources:
     Properties:
       Strategy: !If [AppIsNoPlacement, cluster, !If [ AppIsClusterPlacement, !FindInMap [ InstanceTypeMeta, !Ref AppInstanceType, PlacementForCluster ], !Ref AppPlacementGroupStrategy ] ]
 
+  AppASGTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: app-asg-scaling-events
+      DisplayName: App Server Scaling Events
+
   AppASG:
     Type: AWS::AutoScaling::AutoScalingGroup
     UpdatePolicy:
@@ -2839,10 +2848,13 @@ Resources:
       AutoScalingGroupName: !Sub "${AWS::StackName}-app"
       AvailabilityZones: !If [AppIsClusterPlacement, [!GetAtt SubnetAPublic.AvailabilityZone], [!GetAtt SubnetAPublic.AvailabilityZone, !GetAtt SubnetBPublic.AvailabilityZone]]
       VPCZoneIdentifier: !If [AppIsClusterPlacement, [!Ref SubnetAPublic], [!Ref SubnetAPublic, !Ref SubnetBPublic]]
-      TargetGroupARNs:
-        - !Ref AppALBRetTargetGroup
       MinSize: 1
       MaxSize: 64
+      NotificationConfigurations:
+        - NotificationTypes:
+          - autoscaling:EC2_INSTANCE_LAUNCH
+          - autoscaling:EC2_INSTANCE_TERMINATE
+          TopicARN: !Ref AppASGTopic
       DesiredCapacity: !Ref AppInstanceCount
       PlacementGroup: !If [AppIsNoPlacement, !Ref "AWS::NoValue", !Ref AppPlacementGroup]
       LaunchConfigurationName: !Ref AppLaunchConfiguration
@@ -3423,9 +3435,9 @@ Resources:
             Resource: "*"
 
 Outputs:
-  AppALBDomain:
+  RootDomain:
     Description: Domain name for app servers. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Cloud on your site.
-    Value: !GetAtt AppALB.DNSName
+    Value: !Sub "app.${InternalZoneInfo.Name}"
 
   DomainName:
     Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
