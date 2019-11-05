@@ -1459,7 +1459,6 @@ Resources:
   RegisterNodeExternalSubscription:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      Enable: true
       BatchSize: 1
       EventSourceArn: !Ref AppASGTopic
       FunctionName: !Ref RegisterNodeExternalFunction
