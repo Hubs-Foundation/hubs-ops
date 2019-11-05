@@ -1363,11 +1363,18 @@ Resources:
                  - route53:CreateHealthCheck
                  - route53:ListHealthChecks
                  - route53:DeleteHealthCheck
-               Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+               Resource: !If [ HasMangedDomain, !Sub "arn:aws:route53:::hostedzone/${ExternalZoneInfo.Id}", !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"]
+             - Effect: Allow
+               Action: 
+                 - route53:CreateHealthCheck
+                 - route53:ListHealthChecks
+                 - route53:DeleteHealthCheck
+               Resource: "*"
 
   RegisterNodeFunction:
     Type: AWS::Lambda::Function
     Properties:
+      Description: Registers Node IPs into Round Robin DNS
       Handler: index.handler
       Runtime: nodejs10.x
       Role: !GetAtt RegisterNodeRole.Arn
@@ -1384,6 +1391,8 @@ Resources:
             const promisify = f =>
               arg =>
                 new Promise((res, rej) => f(arg, (err, data) => { if (err) { console.log(err); rej(err); } else { res(data); } }));
+            const recordName = "${DomainName}";
+            const hostedZoneId = "${ExternalZoneInfo.Id}";
 
             console.log(asg_event);
             if (asg_event === "autoscaling:EC2_INSTANCE_LAUNCH" || asg_event === "autoscaling:EC2_INSTANCE_TERMINATE") {
@@ -1403,57 +1412,97 @@ Resources:
                 InstanceIds: instanceIds
               });
 
-              const resourceRecords = instanceInfo.Reservations.map(r => ({ Value: r.Instances[0].NetworkInterfaces[0].Association.PublicIp }));
-              await promisify(route53.changeResourceRecordSets.bind(route53))({
-                ChangeBatch: {
-                  Changes: [
-                    {
-                      Action: asg_event === "autoscaling:EC2_INSTANCE_LAUNCH" ? 'UPSERT' : 'DELETE',
-                      ResourceRecordSet: {
-                        MultiValueAnswer: true,
-                        Name: "${DomainName}",
-                        Type: 'A',
-                        TTL: 30,
-                        ResourceRecords: resourceRecords
-                      }
+              const ipAddresses = instanceInfo.Reservations[0].map(i => i.NetworkInterfaces[0].Association.PublicIp).filter(ip => !!ip);
+
+              const recordSets = await promisify(route53.listRecordSets.bind(route53))({
+                StartRecordName: recordName,
+                HostedZoneId: hostedZoneId,
+                MaxItems: "100"
+              }).ResourceRecordSets;
+
+              const healthChecks = await promisify(route53.listHealthChecks.bind(route53))({}).HealthChecks;
+
+              // Go through record sets, removing records that don't have an IP
+              // that are missing.
+              for (let i = 0, l = recordSets.length; i < l; i++) {
+                const record = recordSets[i];
+                if (record.Name !== recordName || record.Type !== "A") continue;
+
+                const resource = record.ResourceRecords.length > 0 && record.ResourceRecords[0].Value;
+                if (!resource) continue;
+
+                if (!ipAddresses.find(ip => ip === resource)) {
+                  console.log("Removing dead IP record " + resource);
+                  await promisify(route53.changeResourceRecordSets.bind(route53))({
+                    ChangeBatch: {
+                      Changes: [
+                        {
+                          Action: 'DELETE',
+                          ResourceRecordSet: {
+                            MultiValueAnswer: true, Name: recordName, Type: 'A',
+                            TTL: 30, SetIdentifier: 'app', ResourceRecords: [{ Value: resource }]
+                          }
+                        }
+                      ]
+                    },
+                    HostedZoneId: hostedZoneId
+                  });
+                }
+              }
+
+              // Go through IPs, adding missing records and health checks
+              for (let i = 0, l = ipAddresses.length; i < l; i++) {
+                const ip = ipAddresses[i];
+                if (!recordSets.find(r => r.ResourceRecords && r.ResourceRecords.length && r.ResourceRecords[0].Value === ip)) {
+                  console.log("Adding ip " + ip);
+                  await promisify(route53.changeResourceRecordSets.bind(route53))({
+                    ChangeBatch: {
+                      Changes: [
+                        {
+                          Action: 'UPSERT',
+                          ResourceRecordSet: {
+                            MultiValueAnswer: true, Name: recordName, Type: 'A',
+                            TTL: 30, SetIdentifier: 'app', ResourceRecords: [{ Value: ip }]
+                          }
+                        }
+                      ]
+                    },
+                    HostedZoneId: hostedZoneId
+                  });
+                }
+
+                if (!healthChecks.find(h => h.HealthCheckConfig.IPAddress === ip)) {
+                  console.log("Adding check " + ip);
+
+                  await promisify(route53.createHealthCheck.bind(route53))({
+                    CallerReference: "check-" + ip,
+                    HealthCheckConfig: {
+                      EnableSNI: true,
+                      FailureThreshold: 2,
+                      FullyQualifiedDomainName: "${DomainName}",
+                      HealthThreshold: 2,
+                      IPAddress: ip,
+                      Port: 443,
+                      RequestInterval: 10,
+                      ResourcePath: "/health",
+                      Type: "HTTPS"
                     }
-                  ]
-                },
-                HostedZoneId: "${ExternalZone}"
-              });
+                  });
+                }
+              }
 
-              if (asg_event === "autoscaling:EC2_INSTANCE_LAUNCH") {
-                const ipAddress = instanceInfo.Reservations.find(r => r.Instances[0].InstanceId === instanceId).Instances[0].NetworkInterfaces[0].Association.PublicIp;
-                console.log("creating check " + ipAddress);
+              // Remove unneeded health checks
+              for (let i = 0, l = healthChecks.length; i < l; i++) {
+                const check = healthChecks[i];
 
-                await promisify(route53.createHealthCheck.bind(route53))({
-                  CallerReference: "check-" + ipAddress,
-                  HealthCheckConfig: {
-                    EnableSNI: true,
-                    FailureThreshold: 2,
-                    FullyQualifiedDomainName: "${DomainName}",
-                    HealthThreshold: 2,
-                    IPAddress: ipAddress,
-                    Port: 443,
-                    RequestInterval: 10,
-                    ResourcePath: "/health",
-                    Type: "HTTPS"
-                  }
-                });
-              } else {
-                const healthChecks = await promisify(route53.listHealthChecks.bind(route53))({});
-
-                for (let i = 0, l = healthChecks.HealthChecks.length; i < l; i++) {
-                  const check = healthChecks.HealthChecks[i];
-                  if (!instanceInfo.Reservations.find(r => r.Instances[0].NetworkInterfaces[0].Association.PublicIp === check.IPAddress)) {
-                    console.log("deleting check " + check.Id);
-                    await promisify(route53.deleteHealthCheck.bind(route53))({ HealthCheckId: check.Id });
-                  }
+                if (!ipAddresses.find(ip => check.HealthCheckConfig.IPAddress === ip)) {
+                  console.log("deleting check " + check.Id);
+                  await promisify(route53.deleteHealthCheck.bind(route53))({ HealthCheckId: check.Id });
                 }
               }
             } else {
-              console.log("Unsupported ASG event: " + asg_name, asg_event);
-              context.done("Unsupported ASG event: " + asg_name, asg_event);
+              console.log("Unsupported ASG event: " + asg_name + " " + asg_event);
+              context.done("Unsupported ASG event: " + asg_name + " " + asg_event);
             }
           };
 
@@ -1916,6 +1965,7 @@ Resources:
   NearsparkThumbnailLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
+      Description: Generates resized thumbnails
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/nearspark/nearspark-0.1.0.zip
