@@ -1365,7 +1365,7 @@ Resources:
                  - route53:DeleteHealthCheck
                Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
 
-  RegisterNodeExternalFunction:
+  RegisterNodeFunction:
     Type: AWS::Lambda::Function
     Properties:
       Handler: index.handler
@@ -1404,7 +1404,7 @@ Resources:
               });
 
               const resourceRecords = instanceInfo.Reservations.map(r => ({ Value: r.Instances[0].NetworkInterfaces[0].Association.PublicIp }));
-              await promisify(route53.changeResourceRecordSets.bind(route53)({
+              await promisify(route53.changeResourceRecordSets.bind(route53))({
                 ChangeBatch: {
                   Changes: [
                     {
@@ -1414,19 +1414,19 @@ Resources:
                         Name: "${DomainName}",
                         Type: 'A',
                         TTL: 30,
-                        ResourceRecords: resource_records
+                        ResourceRecords: resourceRecords
                       }
                     }
                   ]
                 },
-                HostedZoneId: ${!Ref ExternalZone}
+                HostedZoneId: "${ExternalZone}"
               });
 
               if (asg_event === "autoscaling:EC2_INSTANCE_LAUNCH") {
                 const ipAddress = instanceInfo.Reservations.find(r => r.Instances[0].InstanceId === instanceId).Instances[0].NetworkInterfaces[0].Association.PublicIp;
                 console.log("creating check " + ipAddress);
 
-                await promisify(route53.createHealthCheck.bind(route53)({
+                await promisify(route53.createHealthCheck.bind(route53))({
                   CallerReference: "check-" + ipAddress,
                   HealthCheckConfig: {
                     EnableSNI: true,
@@ -1438,7 +1438,8 @@ Resources:
                     RequestInterval: 10,
                     ResourcePath: "/health",
                     Type: "HTTPS"
-                  });
+                  }
+                });
               } else {
                 const healthChecks = await promisify(route53.listHealthChecks.bind(route53))({});
 
@@ -1446,7 +1447,7 @@ Resources:
                   const check = healthChecks.HealthChecks[i];
                   if (!instanceInfo.Reservations.find(r => r.Instances[0].NetworkInterfaces[0].Association.PublicIp === check.IPAddress)) {
                     console.log("deleting check " + check.Id);
-                    await promisify(route53.deleteHealthCheck.bind(route53)({ HealthCheckId: check.Id });
+                    await promisify(route53.deleteHealthCheck.bind(route53))({ HealthCheckId: check.Id });
                   }
                 }
               }
@@ -1460,7 +1461,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: 'lambda:InvokeFunction'
-      FunctionName: !Ref RegisterNodeExternalFunction
+      FunctionName: !Ref RegisterNodeFunction
       Principal: sns.amazonaws.com
 
   RegisterNodeTopicPolicy:
@@ -2847,7 +2848,7 @@ Resources:
       DisplayName: App Server Scaling Events
       Subscription:
         - Protocol: lambda
-          Endpoint: !GetAtt RegisterNodeExternalFunction.Arn
+          Endpoint: !GetAtt RegisterNodeFunction.Arn
 
   AppASG:
     Type: AWS::AutoScaling::AutoScalingGroup
