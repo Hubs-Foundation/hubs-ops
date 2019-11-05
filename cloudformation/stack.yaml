@@ -1411,7 +1411,7 @@ Resources:
                       Action: asg_event === "autoscaling:EC2_INSTANCE_LAUNCH" ? 'UPSERT' : 'DELETE',
                       ResourceRecordSet: {
                         MultiValueAnswer: true,
-                        Name: ".",
+                        Name: "${DomainName}",
                         Type: 'A',
                         TTL: 30,
                         ResourceRecords: resource_records
@@ -1431,7 +1431,7 @@ Resources:
                   HealthCheckConfig: {
                     EnableSNI: true,
                     FailureThreshold: 2,
-                    FullyQualifiedDomainName: ${DomainName},
+                    FullyQualifiedDomainName: "${DomainName}",
                     HealthThreshold: 2,
                     IPAddress: ipAddress,
                     Port: 443,
