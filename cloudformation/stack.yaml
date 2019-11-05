@@ -1456,12 +1456,29 @@ Resources:
             }
           };
 
-  RegisterNodeExternalSubscription:
-    Type: AWS::Lambda::EventSourceMapping
+  InvokeRegisterNodePermission:
+    Type: AWS::Lambda::Permission
     Properties:
-      BatchSize: 1
-      EventSourceArn: !Ref AppASGTopic
+      Action: 'lambda:InvokeFunction'
       FunctionName: !Ref RegisterNodeExternalFunction
+      Principal: sns.amazonaws.com
+
+  RegisterNodeTopicPolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      Topics:
+        - !Ref AppASGTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 'sns:Publish'
+            Resource: !Ref AppASGTopic
+            Principal:
+              AWS: "*"
+            Condition:
+              ArnLike:
+                AWS:SourceArn: !Ref AppASG
 
   LambdaBucket:
     Type: AWS::S3::Bucket
@@ -2828,6 +2845,9 @@ Resources:
     Properties:
       TopicName: app-asg-scaling-events
       DisplayName: App Server Scaling Events
+      Subscription:
+        - Protocol: lambda
+          Endpoint: !GetAtt RegisterNodeExternalFunction.Arn
 
   AppASG:
     Type: AWS::AutoScaling::AutoScalingGroup
