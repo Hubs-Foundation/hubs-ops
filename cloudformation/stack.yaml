@@ -1379,8 +1379,8 @@ Resources:
       Timeout: 240
       Code:
         ZipFile: !Sub |
-          const AWS=require('aws-sdk');exports.handler=async function(event,context){const asgMessage=JSON.parse(event.Records[0].Sns.Message);const asgName=asgMessage.AutoScalingGroupName;const asgEvent=asgMessage.Event;const promisify=f=>arg=>new Promise((res,rej)=>f(arg,(err,data)=>{if(err){console.log(err);rej(err)}else{res(data)}}));const region="${AWS::Region}";const recordName="app.${InternalZoneInfo.Name}.";const hostedZoneId="${InternalZoneInfo.Id}";if(asgEvent==="autoscaling:EC2_INSTANCE_LAUNCH"||asgEvent==="autoscaling:EC2_INSTANCE_TERMINATE"){const autoscaling=new AWS.AutoScaling({region});const ec2=new AWS.EC2({region});const route53=new AWS.Route53();const asgResponse=await promisify(autoscaling.describeAutoScalingGroups.bind(autoscaling))({AutoScalingGroupNames:[asgName],MaxRecords:1});const recordSets=(await promisify(route53.listResourceRecordSets.bind(route53))({StartRecordName:recordName,StartRecordType:"A",HostedZoneId:hostedZoneId,MaxItems:"100"})).ResourceRecordSets;const instanceIds=asgResponse.AutoScalingGroups[0].Instances.map(i=>i.InstanceId);const instanceInfo=await promisify(ec2.describeInstances.bind(ec2))({DryRun:false,InstanceIds:instanceIds});const ipAddresses=[];for(let i=0;i<instanceInfo.Reservations.length;i++){const reservation=instanceInfo.Reservations[i];for(let j=0;j<reservation.Instances.length;j++){const ip=reservation.Instances[j].NetworkInterfaces[0].Association.PublicIp;if(ip&&ipAddresses.indexOf(ip)<0){ipAddresses.push(ip)}}}for(let i=0,l=recordSets.length;i<l;i++){const record=recordSets[i];if(record.Name!==recordName||record.Type!=="A")continue;const resource=record.ResourceRecords.length>0&&record.ResourceRecords[0].Value;if(!resource)continue;if(!ipAddresses.find(ip=>ip===resource)){try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'DELETE',ResourceRecordSet:{MultiValueAnswer:true,Name:recordName,Type:'A',TTL:30,SetIdentifier:resource,ResourceRecords:[{Value:resource}]}}]},HostedZoneId:hostedZoneId})}catch(e){}}}let healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({MaxItems:"100"})).HealthChecks;for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip)){console.log("Adding check "+ip);try{await promisify(route53.createHealthCheck.bind(route53))({CallerReference:Math.floor(Math.random()*1000000000).toString(),HealthCheckConfig:{EnableSNI:true,FailureThreshold:2,FullyQualifiedDomainName:recordName,IPAddress:ip,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}}healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({})).HealthChecks;for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!recordSets.find(r=>r.Name===recordName&&r.ResourceRecords&&r.ResourceRecords.length&&r.ResourceRecords[0].Value===ip)){const checkId=healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip).Id;try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'UPSERT',ResourceRecordSet:{MultiValueAnswer:true,Name:recordName,Type:'A',HealthCheckId:checkId,TTL:60,SetIdentifier:ip,ResourceRecords:[{Value:ip}]}}]},HostedZoneId:hostedZoneId})}catch(e){}}}for(let i=0,l=healthChecks.length;i<l;i++){const check=healthChecks[i];if(!ipAddresses.find(ip=>check.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.deleteHealthCheck.bind(route53))({HealthCheckId:check.Id})}catch(e){}}}}else{console.log("Unsupported ASG event: "+asgName+" "+asgEvent);context.done("Unsupported ASG event: "+asgName+" "+asgEvent)}};
-
+          const AWS=require('aws-sdk');exports.handler=async function(event,context){const asgMessage=JSON.parse(event.Records[0].Sns.Message);const asgName=asgMessage.AutoScalingGroupName;const asgEvent=asgMessage.Event;const promisify=f=>arg=>new Promise((res,rej)=>f(arg,(err,data)=>{if(err){console.log(err);rej(err)}else{res(data)}}));const region="${AWS::Region}";const recordName="${AWS::StackName}-app.${InternalZoneInfo.Name}.";const hostedZoneId="${InternalZoneInfo.Id}";const ttl=60;if(asgEvent==="autoscaling:EC2_INSTANCE_LAUNCH"||asgEvent==="autoscaling:EC2_INSTANCE_TERMINATE"){const autoscaling=new AWS.AutoScaling({region});const ec2=new AWS.EC2({region});const route53=new AWS.Route53();const asgResponse=await promisify(autoscaling.describeAutoScalingGroups.bind(autoscaling))({AutoScalingGroupNames:[asgName],MaxRecords:1});const recordSets=(await promisify(route53.listResourceRecordSets.bind(route53))({StartRecordName:recordName,StartRecordType:"A",HostedZoneId:hostedZoneId,MaxItems:"100"})).ResourceRecordSets;const instanceIds=asgResponse.AutoScalingGroups[0].Instances.map(i=>i.InstanceId);const instanceInfo=await promisify(ec2.describeInstances.bind(ec2))({DryRun:false,InstanceIds:instanceIds});const ipAddresses=[];for(let i=0;i<instanceInfo.Reservations.length;i++){const reservation=instanceInfo.Reservations[i];for(let j=0;j<reservation.Instances.length;j++){const ip=reservation.Instances[j].NetworkInterfaces[0].Association.PublicIp;if(ip&&ipAddresses.indexOf(ip)<0){ipAddresses.push(ip)}}}for(let i=0,l=recordSets.length;i<l;i++){const record=recordSets[i];if(record.Name!==recordName||record.Type!=="A")continue;const resource=record.ResourceRecords.length>0&&record.ResourceRecords[0].Value;if(!resource)continue;if(!ipAddresses.find(ip=>ip===resource)){try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'DELETE',ResourceRecordSet:{MultiValueAnswer:true,Name:record.Name,Type:record.Type,TTL:record.TTL,SetIdentifier:record.SetIdentifier,ResourceRecords:record.ResourceRecords,HealthCheckId:record.HealthCheckId}}]},HostedZoneId:hostedZoneId})}catch(e){}}}let healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({MaxItems:"100"})).HealthChecks;for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.createHealthCheck.bind(route53))({CallerReference:Math.floor(Math.random()*1000000000).toString(),HealthCheckConfig:{EnableSNI:true,FailureThreshold:2,FullyQualifiedDomainName:recordName,IPAddress:ip,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}}healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({})).HealthChecks;for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!recordSets.find(r=>r.Name===recordName&&r.ResourceRecords&&r.ResourceRecords.length&&r.ResourceRecords[0].Value===ip)){const checkId=healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip).Id;try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'UPSERT',ResourceRecordSet:{MultiValueAnswer:true,Name:recordName,Type:'A',HealthCheckId:checkId,TTL:ttl,SetIdentifier:ip,ResourceRecords:[{Value:ip}]}}]},HostedZoneId:hostedZoneId})}catch(e){}}}for(let i=0,l=healthChecks.length;i<l;i++){const check=healthChecks[i];if(!ipAddresses.find(ip=>check.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.deleteHealthCheck.bind(route53))({HealthCheckId:check.Id})}catch(e){}}}}else{console.log("Unsupported ASG event: "+asgName+" "+asgEvent);context.done("Unsupported ASG event: "+asgName+" "+asgEvent)}};
+  
   InvokeRegisterNodePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -1932,7 +1932,7 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: !Sub 'apigateway.${AWS::URLSuffix}'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${NearsparkApiGatewayRestApi}/*/*'
-  NearsparkCloudfrontDNS:
+  NearsparkDNS:
     Type: AWS::Route53::RecordSet
     Properties:
       Name: !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
@@ -2466,6 +2466,62 @@ Resources:
       Roles:
         - !Ref StreamRole
 
+  AppCloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: !Sub "${AWS::StackName}-app"
+            DomainName: !Sub "${AWS::StackName}-app.${InternalZoneInfo.Name}"
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+            Locations: []
+        Aliases:
+          - !Ref DomainName
+        HttpVersion: http2
+        PriceClass: PriceClass_All
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 500
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 502
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 503
+            ErrorCachingMinTTL: 0
+        DefaultCacheBehavior:
+          Compress: true
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: !Sub "${AWS::StackName}-app"
+          ForwardedValues:
+            QueryString: true
+            Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: https-only
+          MinTTL: 0
+          DefaultTTL: 3600
+          MaxTTL: 3600
+        ViewerCertificate:
+          AcmCertificateArn: !If [HasMangedDomain, !Ref ExternalZoneSSLCertEast, !Ref UnmanagedDomainCertArn]
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1
+
   AppAssetsCloudfrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -2476,6 +2532,13 @@ Resources:
             DomainName: !GetAtt AssetsBucket.RegionalDomainName
             S3OriginConfig:
               OriginAccessIdentity: ""
+          - Id: !Sub "${AWS::StackName}-app"
+            DomainName: !Sub '${AWS::StackName}-app.${InternalZoneInfo.Name}'
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
         Restrictions:
           GeoRestriction:
             RestrictionType: none
@@ -2495,6 +2558,26 @@ Resources:
             ErrorCachingMinTTL: 0
           - ErrorCode: 503
             ErrorCachingMinTTL: 0
+        CacheBehaviors:
+          - PathPattern: "/files/*"
+            Compress: true
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+            TargetOriginId: !Sub "${AWS::StackName}-app"
+            ForwardedValues:
+              QueryString: true
+              Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+              Cookies:
+                Forward: none
+            ViewerProtocolPolicy: https-only
+            MinTTL: 0
+            DefaultTTL: 3600
+            MaxTTL: 3600
         DefaultCacheBehavior:
           Compress: true
           AllowedMethods:
@@ -2603,62 +2686,6 @@ Resources:
       ToPort: 65535
       DestinationSecurityGroupId: !Ref StreamSecurityGroup
 
-  StorageCloudfrontDistribution:
-    Type: AWS::CloudFront::Distribution
-    Properties:
-      DistributionConfig:
-        Enabled: true
-        Origins:
-          - Id: !Sub "${AWS::StackName}-storage"
-            DomainName: !Sub '${AWS::StackName}.${InternalZoneInfo.Name}'
-            CustomOriginConfig:
-              HTTPPort: 80
-              HTTPSPort: 443
-              OriginProtocolPolicy: https-only
-              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
-        Restrictions:
-          GeoRestriction:
-            RestrictionType: none
-            Locations: []
-        Aliases:
-          - !Sub '${AWS::StackName}-storage.${InternalZoneInfo.Name}'
-        HttpVersion: http2
-        PriceClass: PriceClass_All
-        CustomErrorResponses:
-          - ErrorCode: 403
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 404
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 500
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 502
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 503
-            ErrorCachingMinTTL: 0
-        DefaultCacheBehavior:
-          Compress: true
-          AllowedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
-          CachedMethods:
-            - GET
-            - HEAD
-          TargetOriginId: !Sub "${AWS::StackName}-storage"
-          ForwardedValues:
-            QueryString: true
-            Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
-            Cookies:
-              Forward: none
-          ViewerProtocolPolicy: https-only
-          MinTTL: 0
-          DefaultTTL: 3600
-          MaxTTL: 3600
-        ViewerCertificate:
-          AcmCertificateArn: !Ref InternalZoneSSLCertEast
-          SslSupportMethod: sni-only
-          MinimumProtocolVersion: TLSv1
-
   CorsProxyCloudfrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -2711,17 +2738,6 @@ Resources:
           AcmCertificateArn: !Ref InternalZoneSSLCertEast
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1
-
-  StorageDNS:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      Name: !Sub '${AWS::StackName}-storage.${InternalZoneInfo.Name}'
-      HostedZoneId: !Ref InternalZone
-      Type: A
-      AliasTarget:
-        DNSName:
-          Fn::GetAtt: [ StorageCloudfrontDistribution, DomainName ]
-        HostedZoneId: Z2FDTNDATAQYW2
 
   CorsProxyDNS:
     Type: AWS::Route53::RecordSet
@@ -3394,7 +3410,7 @@ Outputs:
 
   NonCorsProxyDomains:
     Description: Non-CORS proxied domains [hubs/general/non_cors_proxy_domains,spoke/general/non_cors_proxy_domains]
-    Value: !Sub "${DomainName},${InternalZoneInfo.Name},${AWS::StackName}-${AWS::AccountId}-storage.com"
+    Value: !Sub "${DomainName},${InternalZoneInfo.Name},${AppAssetsDNS}"
 
   JanusAdminSecret:
     Description: Janus Admin Secret [janus-gateway/general/admin_secret!read-aws-secret,reticulum/janus/admin_secret!read-aws-secret]
@@ -3502,19 +3518,19 @@ Outputs:
 
   HubsBaseAssetsPath:
     Description: Base assets path for hubs CDN assets [hubs/general/base_assets_path]
-    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/hubs/'
+    Value: !Sub 'https://${AppAssetsDNS}/hubs/'
 
   HubsPageOrigin:
     Description: Hubs page origin [reticulum/pages/hubs_page_origin]
-    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/hubs/pages/latest'
+    Value: !Sub 'https://${AppAssetsDNS}/hubs/pages/latest'
 
   SpokeBaseAssetsPath:
     Description: Base assets path for spoke CDN assets [spoke/general/base_assets_path]
-    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/spoke/'
+    Value: !Sub 'https://${AppAssetsDNS}/spoke/'
 
   SpokePageOrigin:
     Description: Spoke page origin [reticulum/pages/spoke_page_origin]
-    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/spoke/pages/latest'
+    Value: !Sub 'https://${AppAssetsDNS}/spoke/pages/latest'
 
   ClientDeployType:
     Description: Client deploy type [hubs/deploy/type,spoke/deploy/type]
@@ -3522,7 +3538,7 @@ Outputs:
 
   NearsparkHost:
     Description: Host of the nearspark service endpoint [hubs/general/thumbnail_server,spoke/general/thumbnail_server]
-    Value: !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
+    Value: !Sub '${NearsparkDNS}'
 
   SpeelycaptorEndpoint:
     Description: Speelycaptor Service URL [reticulum/speelycaptor/speelycaptor_endpoint]
@@ -3536,13 +3552,13 @@ Outputs:
     Description: Storage EFS volume id
     Value: !Ref StorageEFS
 
-  StorageDNS:
+  AppAssetsDNS:
     Description: Storage URL Host [reticulum/uploads/host]
-    Value: !Sub "https://${StorageDNS}"
+    Value: !Sub "https://${AppAssetsDNS}"
 
   ReticulumCSP:
     Description: Default Reticulum Content Security Policy [reticulum/security/content_security_policy]
-    Value: !Sub "default-src 'none'; manifest-src 'self'; script-src 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; prefetch-src 'self' https://${AWS::StackName}-assets.${InternalZoneInfo.Name}; child-src 'self' blob:; worker-src https://${AWS::StackName}-assets.${InternalZoneInfo.Name} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com 'unsafe-inline'; connect-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-${AWS::AccountId}-storage.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:8443 https://cdn.aframe.io https://www.youtube.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-storage.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';"
+    Value: !Sub "default-src 'none'; manifest-src 'self'; script-src 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AppAssetsDNS} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; prefetch-src 'self' https://${AppAssetsDNS}; child-src 'self' blob:; worker-src https://${AppAssetsDNS} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AppAssetsDNS} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${CorsProxyDNS}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AppAssetsDNS} https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-${AWS::AccountId}-assets.com 'unsafe-inline'; connect-src 'self' https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AppAssetsDNS} https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-assets.com https://${NearsparkDNS} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:8443 https://cdn.aframe.io https://www.youtube.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AppAssetsDNS} https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-${AWS::AccountId}-assets.com https://${NearsparkDNS} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AppAssetsDNS} https://${AWS::StackName}-${AWS::AccountId}-assets.com https://${NearsparkDNS} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';"
 
   SmtpSendAccessKey:
     Description: SMTP send access key for email zone [reticulum/email/username]

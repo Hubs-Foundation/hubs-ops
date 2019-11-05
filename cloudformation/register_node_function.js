@@ -10,8 +10,9 @@ exports.handler = async function (event, context) {
     arg =>
       new Promise((res, rej) => f(arg, (err, data) => { if (err) { console.log(err); rej(err); } else { res(data); } }));
   const region = "${AWS::Region}";
-  const recordName = "app.${InternalZoneInfo.Name}.";
+  const recordName = "${AWS::StackName}-app.${InternalZoneInfo.Name}.";
   const hostedZoneId = "${InternalZoneInfo.Id}";
+  const ttl = 60;
 
   //console.log(asgEvent);
 
@@ -69,8 +70,9 @@ exports.handler = async function (event, context) {
                 {
                   Action: 'DELETE',
                   ResourceRecordSet: {
-                    MultiValueAnswer: true, Name: recordName, Type: 'A',
-                    TTL: 30, SetIdentifier: resource, ResourceRecords: [{ Value: resource }]
+                    MultiValueAnswer: true, Name: record.Name, Type: record.Type,
+                    TTL: record.TTL, SetIdentifier: record.SetIdentifier, ResourceRecords: record.ResourceRecords,
+                    HealthCheckId: record.HealthCheckId
                   }
                 }
               ]
@@ -87,7 +89,7 @@ exports.handler = async function (event, context) {
     for (let i = 0, l = ipAddresses.length; i < l; i++) {
       const ip = ipAddresses[i];
       if (!healthChecks.find(h => h.HealthCheckConfig.IPAddress === ip)) {
-        console.log("Adding check " + ip);
+        //console.log("Adding check " + ip);
 
         try {
           await promisify(route53.createHealthCheck.bind(route53))({
@@ -124,7 +126,7 @@ exports.handler = async function (event, context) {
                   Action: 'UPSERT',
                   ResourceRecordSet: {
                     MultiValueAnswer: true, Name: recordName, Type: 'A', HealthCheckId: checkId,
-                    TTL: 60, SetIdentifier: ip, ResourceRecords: [{ Value: ip }]
+                    TTL: ttl, SetIdentifier: ip, ResourceRecords: [{ Value: ip }]
                   }
                 }
               ]
