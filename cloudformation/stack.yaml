@@ -205,10 +205,12 @@ Parameters:
   MaintenenceWindow:
     Type: String
     Description: Server maintenence window. Your server will be kept up-to-date with new features and fixes. Server upgrades will happen approximately once a month, and will result in a brief period of downtime, usually 30 seconds or so. We offer two maintenence windows to perform these updates.
+    Default: "10:00-11:00 GMT (02:00-03:00 PT)"
     AllowedValues: ["10:00-11:00 GMT (02:00-03:00 PT)", "22:00-23:00 GMT (14:00-15:00 PT)"]
   ChannelType:
     Type: String
     Description: Software release to run on your servers. The 'unstable' channel will receive updates before 'stable', but may break your stack.
+    Default: "Stable"
     AllowedValues: ["Stable", "Unstable"]
 
 Mappings:
