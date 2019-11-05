@@ -5,7 +5,6 @@ const AWS = require('aws-sdk');
 exports.handler = async function (event, context) {
   const asgMessage = JSON.parse(event.Records[0].Sns.Message);
   const asgName = asgMessage.AutoScalingGroupName;
-  const instanceId = asgMessage.EC2InstanceId;
   const asgEvent = asgMessage.Event;
   const promisify = f =>
     arg =>
@@ -71,7 +70,7 @@ exports.handler = async function (event, context) {
                   Action: 'DELETE',
                   ResourceRecordSet: {
                     MultiValueAnswer: true, Name: recordName, Type: 'A',
-                    TTL: 30, SetIdentifier: ip, ResourceRecords: [{ Value: resource }]
+                    TTL: 30, SetIdentifier: resource, ResourceRecords: [{ Value: resource }]
                   }
                 }
               ]
