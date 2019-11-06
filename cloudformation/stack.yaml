@@ -217,7 +217,7 @@ Parameters:
     AllowedValues: ["Stable", "Unstable"]
   LoadBalancingMethod:
     Type: String
-    Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several nodes or would like improved load balancing, you can also use an Application Load Balancer (which will incur additional costs.)
+    Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer (which will incur additional costs.)
     Default: "DNS Round Robin"
     AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
 
@@ -2896,7 +2896,7 @@ Resources:
   AppASGTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: app-asg-scaling-events
+      TopicName: !Sub "${AWS::StackName}-app-asg-scaling-events"
       DisplayName: App Server Scaling Events
       Subscription:
         - Protocol: lambda
