@@ -3447,7 +3447,7 @@ Outputs:
     Value: postgres
 
   AppDbSecret:
-    Description: App DB Secret [reticulum/db/password!read-aws-secret,ita/db/password!read-aws-secret]
+    Description: App DB Secret [ita/db/password!read-aws-secret]
     Value: !Ref AppDbSecret
 
   AppPostgrestDbSecret:
