@@ -1913,6 +1913,7 @@ Resources:
       StageName: prod
     DependsOn:
       - NearsparkApiGatewayRestApi
+
   NearsparkThumbnailLambdaPermissionApiGateway:
     Type: AWS::Lambda::Permission
     Properties:
@@ -1920,6 +1921,7 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: !Sub 'apigateway.${AWS::URLSuffix}'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${NearsparkApiGatewayRestApi}/*/*'
+
   NearsparkDNS:
     Type: AWS::Route53::RecordSet
     Properties:
@@ -2454,6 +2456,18 @@ Resources:
       Roles:
         - !Ref StreamRole
 
+  DomainDNS:
+    Type: AWS::Route53::RecordSet
+    Condition: HasMangedDomain
+    Properties:
+      Name: !Ref DomainName
+      HostedZoneId: !GetAtt ExternalZoneInfo.Id
+      Type: A
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt: [ AppCloudfrontDistribution, DomainName ]
+        HostedZoneId: Z2FDTNDATAQYW2
+
   AppCloudfrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -2473,6 +2487,7 @@ Resources:
             Locations: []
         Aliases:
           - !Ref DomainName
+          - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
         HttpVersion: http2
         PriceClass: PriceClass_All
         CustomErrorResponses:
@@ -2498,7 +2513,7 @@ Resources:
           TargetOriginId: !Sub "${AWS::StackName}-app"
           ForwardedValues:
             QueryString: true
-            Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+            Headers: ["Origin", "Content-Type", "Range", "Host", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
             Cookies:
               Forward: none
           ViewerProtocolPolicy: https-only
@@ -2674,59 +2689,6 @@ Resources:
       ToPort: 65535
       DestinationSecurityGroupId: !Ref StreamSecurityGroup
 
-  CorsProxyCloudfrontDistribution:
-    Type: AWS::CloudFront::Distribution
-    Properties:
-      DistributionConfig:
-        Enabled: true
-        Origins:
-          - Id: !Sub "${AWS::StackName}-cors-proxy"
-            DomainName: !Sub '${AWS::StackName}.${InternalZoneInfo.Name}'
-            CustomOriginConfig:
-              HTTPPort: 80
-              HTTPSPort: 443
-              OriginProtocolPolicy: https-only
-              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
-        Restrictions:
-          GeoRestriction:
-            RestrictionType: none
-            Locations: []
-        Aliases:
-          - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
-        HttpVersion: http2
-        PriceClass: PriceClass_All
-        CustomErrorResponses:
-          - ErrorCode: 403
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 404
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 500
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 502
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 503
-            ErrorCachingMinTTL: 0
-        DefaultCacheBehavior:
-          Compress: true
-          AllowedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
-          CachedMethods:
-            - GET
-            - HEAD
-          TargetOriginId: !Sub "${AWS::StackName}-cors-proxy"
-          ForwardedValues:
-            QueryString: true
-            Headers: ["Origin", "Content-Type", "Range", "Host", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
-            Cookies:
-              Forward: none
-          ViewerProtocolPolicy: https-only
-        ViewerCertificate:
-          AcmCertificateArn: !Ref InternalZoneSSLCertEast
-          SslSupportMethod: sni-only
-          MinimumProtocolVersion: TLSv1
-
   CorsProxyDNS:
     Type: AWS::Route53::RecordSet
     Properties:
@@ -2735,7 +2697,7 @@ Resources:
       Type: A
       AliasTarget:
         DNSName:
-          Fn::GetAtt: [ CorsProxyCloudfrontDistribution, DomainName ]
+          Fn::GetAtt: [ AppCloudfrontDistribution, DomainName ]
         HostedZoneId: Z2FDTNDATAQYW2
 
   AppLaunchConfiguration:
@@ -2760,10 +2722,10 @@ Resources:
             - HasStreamingServers
             - |
                 #!/usr/bin/env bash
-                /usr/bin/polycosm_boot.sh app polycosm-20191002
+                /usr/bin/polycosm_boot.sh
             - |
                 #!/usr/bin/env bash
-                /usr/bin/polycosm_boot.sh app,stream polycosm-20191002
+                /usr/bin/polycosm_boot.sh
 
   AppPlacementGroup:
     Type: AWS::EC2::PlacementGroup
@@ -2852,7 +2814,7 @@ Resources:
       UserData:
         Fn::Base64: |
           #!/usr/bin/env bash
-          /usr/bin/polycosm_boot.sh stream
+          /usr/bin/polycosm_boot.sh
 
   StreamASG:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -3385,8 +3347,8 @@ Resources:
 
 Outputs:
   RootDomain:
-    Description: Domain name for app servers. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Cloud on your site.
-    Value: !Sub "app.${InternalZoneInfo.Name}"
+    Description: Serving domain name for your stack. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Cloud on your site.
+    Value: !GetAtt AppCloudfrontDistribution.DomainName
 
   DomainName:
     Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
@@ -3439,6 +3401,10 @@ Outputs:
   CorsProxyDNS:
     Description: CORS Proxy Domain Name [reticulum/phx/cors_proxy_url_host,hubs/general/cors_proxy_server,spoke/general/cors_proxy_server]
     Value: !Ref CorsProxyDNS
+
+  AppDNS:
+    Description: Load balanced app DNS [reticulum/phx/secondary_url_host]
+    Value: !Sub "${AWS::StackName}-app.${InternalZoneInfo.Name}"
 
   RetAdminAccessKeySecret:
     Description: Reticulum Admin Access Key [reticulum/phx/admin_access_key!read-aws-secret]
