@@ -12,7 +12,7 @@ exports.handler = async function (event, context) {
   const region = "${AWS::Region}";
   const recordName = "${AWS::StackName}-app.${InternalZoneInfo.Name}.";
   const hostedZoneId = "${InternalZoneInfo.Id}";
-  const ttl = 60;
+  const ttl = 15;
 
   //console.log(asgEvent);
 
