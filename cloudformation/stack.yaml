@@ -2884,7 +2884,7 @@ Resources:
       ImageId: !FindInMap [Regions, !Ref "AWS::Region", ImageId]
       KeyName: !Ref KeyPair
       UserData:
-        Fn::Base64:
+        Fn::Base64: |
           #!/usr/bin/env bash
           /usr/bin/polycosm_boot.sh
 
@@ -2907,7 +2907,7 @@ Resources:
     UpdatePolicy:
       AutoScalingRollingUpdate:
         MaxBatchSize: 10
-        PauseTime: PT25M
+        PauseTime: PT20M
         SuspendProcesses:
           - HealthCheck
           - ReplaceUnhealthy
