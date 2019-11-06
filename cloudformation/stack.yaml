@@ -2305,7 +2305,7 @@ Resources:
       IpProtocol: tcp
       FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
       ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
-      DestinationSecurityGroupId: !Ref AppALBSecurityGroup
+      SourceSecurityGroupId: !Ref AppALBSecurityGroup
 
   AppALBReticulumEgress:
     Type: AWS::EC2::SecurityGroupEgress
