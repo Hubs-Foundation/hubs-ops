@@ -2510,6 +2510,10 @@ Resources:
           AllowedMethods:
             - GET
             - HEAD
+            - POST
+            - PATCH
+            - PUT
+            - DELETE
             - OPTIONS
           CachedMethods:
             - GET
@@ -2722,14 +2726,8 @@ Resources:
       KeyName: !Ref KeyPair
       UserData:
         Fn::Base64:
-          Fn::If:
-            - HasStreamingServers
-            - |
-                #!/usr/bin/env bash
-                /usr/bin/polycosm_boot.sh
-            - |
-                #!/usr/bin/env bash
-                /usr/bin/polycosm_boot.sh
+          #!/usr/bin/env bash
+          /usr/bin/polycosm_boot.sh
 
   AppPlacementGroup:
     Type: AWS::EC2::PlacementGroup
