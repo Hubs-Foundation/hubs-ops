@@ -37,6 +37,7 @@ Metadata:
       - Label:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
+          - LoadBalancingMethod
           - ChannelType
           - SubnetAZs
           - NewCMKForDiskEncryption
@@ -85,6 +86,8 @@ Metadata:
         default: "Scheduled maintenence window"
       ChannelType:
         default : "Package release channel"
+      LoadBalancingMethod:
+        default : "Load Balancing Method"
 Parameters:
   DomainName:
     Type: String
@@ -212,6 +215,11 @@ Parameters:
     Description: Software release to run on your servers. The 'unstable' channel will receive updates before 'stable', but may break your stack.
     Default: "Stable"
     AllowedValues: ["Stable", "Unstable"]
+  LoadBalancingMethod:
+    Type: String
+    Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer (which will incur additional costs.)
+    Default: "DNS Round Robin"
+    AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
 
 Mappings:
   Regions:
@@ -275,6 +283,9 @@ Conditions:
   SubnetChoiceD: !Equals [!Ref SubnetAZs, "Use zone b and d"]
   IsStableChannel: !Equals [!Ref ChannelType, "Stable"]
   IsWindowA: !Equals [!Ref MaintenenceWindow, "10:00-11:00 GMT (02:00-03:00 PT)"]
+  HasALB: !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]
+  HasManagedDomainOnALB: !And [ !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]] , !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]
+]
 
 Resources:
 
@@ -807,7 +818,7 @@ Resources:
 
   ExternalZoneSSLCert:
     Type: Custom::DNSCertificate
-    Condition: HasMangedDomain
+    Condition: HasManagedDomainOnALB
     Properties: 
       DomainName: !GetAtt ExternalZoneInfo.Name
       DomainValidationOptions:
@@ -821,10 +832,14 @@ Resources:
     Type: Custom::DNSCertificate
     Condition: HasMangedDomain
     Properties: 
-      DomainName: !Sub '*.${ExternalZoneInfo.Name}'
+      DomainName: !GetAtt ExternalZoneInfo.Name
+      SubjectAlternativeNames:
+        - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
       DomainValidationOptions:
         - DomainName: !GetAtt ExternalZoneInfo.Name
           HostedZoneId: !GetAtt ExternalZoneInfo.Id
+        - DomainName: !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
+          HostedZoneId: !GetAtt InternalZoneInfo.Id
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
@@ -1331,6 +1346,80 @@ Resources:
                   timer.cancel()
                   cfnresponse.send(event, context, status, {}, None)
 
+# RegisterNodeDNS
+  RegisterNodeRole:
+   Type: AWS::IAM::Role
+   Properties:
+     RoleName: !Sub "${AWS::StackName}-RegisterNode"
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Path: /
+     Policies:
+       - PolicyName: register-scaling-event
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - autoscaling:DescribeAutoScalingGroups
+                 - ec2:DescribeInstances
+               Resource:
+                 - "*"
+             - Effect: Allow
+               Action: 
+                 - route53:ChangeResourceRecordSets
+                 - route53:ListResourceRecordSets
+               Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+             - Effect: Allow
+               Action: 
+                 - route53:CreateHealthCheck
+                 - route53:ListHealthChecks
+                 - route53:DeleteHealthCheck
+               Resource: "*"
+
+  RegisterNodeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Registers Node IPs into Round Robin DNS
+      Handler: index.handler
+      Runtime: nodejs10.x
+      Role: !GetAtt RegisterNodeRole.Arn
+      Timeout: 240
+      Code:
+        ZipFile: !Sub |
+          const AWS=require('aws-sdk');exports.handler=async function(event,context){const asgMessage=JSON.parse(event.Records[0].Sns.Message);const asgName=asgMessage.AutoScalingGroupName;const asgEvent=asgMessage.Event;const promisify=f=>arg=>new Promise((res,rej)=>f(arg,(err,data)=>{if(err){console.log(err);rej(err)}else{res(data)}}));const region="${AWS::Region}";const recordName="${AWS::StackName}-app.${InternalZoneInfo.Name}.";const hostedZoneId="${InternalZoneInfo.Id}";const ttl=15;if(asgEvent==="autoscaling:EC2_INSTANCE_LAUNCH"||asgEvent==="autoscaling:EC2_INSTANCE_TERMINATE"){const autoscaling=new AWS.AutoScaling({region});const ec2=new AWS.EC2({region});const route53=new AWS.Route53();const asgResponse=await promisify(autoscaling.describeAutoScalingGroups.bind(autoscaling))({AutoScalingGroupNames:[asgName],MaxRecords:1});const recordSets=(await promisify(route53.listResourceRecordSets.bind(route53))({StartRecordName:recordName,StartRecordType:"A",HostedZoneId:hostedZoneId,MaxItems:"100"})).ResourceRecordSets;const instanceIds=asgResponse.AutoScalingGroups[0].Instances.map(i=>i.InstanceId);const instanceInfo=await promisify(ec2.describeInstances.bind(ec2))({DryRun:false,InstanceIds:instanceIds});const ipAddresses=[];for(let i=0;i<instanceInfo.Reservations.length;i++){const reservation=instanceInfo.Reservations[i];for(let j=0;j<reservation.Instances.length;j++){const ip=reservation.Instances[j].NetworkInterfaces[0].Association.PublicIp;if(ip&&ipAddresses.indexOf(ip)<0){ipAddresses.push(ip)}}}for(let i=0,l=recordSets.length;i<l;i++){const record=recordSets[i];if(record.Name!==recordName||record.Type!=="A")continue;const resource=record.ResourceRecords.length>0&&record.ResourceRecords[0].Value;if(!resource)continue;if(!ipAddresses.find(ip=>ip===resource)){try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'DELETE',ResourceRecordSet:{MultiValueAnswer:true,Name:record.Name,Type:record.Type,TTL:record.TTL,SetIdentifier:record.SetIdentifier,ResourceRecords:record.ResourceRecords,HealthCheckId:record.HealthCheckId}}]},HostedZoneId:hostedZoneId})}catch(e){}}}let healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({MaxItems:"100"})).HealthChecks;if(ipAddresses.length>1){for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.createHealthCheck.bind(route53))({CallerReference:Math.floor(Math.random()*1000000000).toString(),HealthCheckConfig:{EnableSNI:true,FailureThreshold:2,FullyQualifiedDomainName:recordName,IPAddress:ip,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}}}healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({})).HealthChecks;for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!recordSets.find(r=>r.Name===recordName&&r.ResourceRecords&&r.ResourceRecords.length&&r.ResourceRecords[0].Value===ip)){const check=healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip);try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'UPSERT',ResourceRecordSet:{MultiValueAnswer:true,Name:recordName,Type:'A',HealthCheckId:check?check.Id:null,TTL:ttl,SetIdentifier:ip,ResourceRecords:[{Value:ip}]}}]},HostedZoneId:hostedZoneId})}catch(e){}}}for(let i=0,l=healthChecks.length;i<l;i++){const check=healthChecks[i];if(ipAddresses.length===1||!ipAddresses.find(ip=>check.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.deleteHealthCheck.bind(route53))({HealthCheckId:check.Id})}catch(e){}}}}else{console.log("Unsupported ASG event: "+asgName+" "+asgEvent);context.done("Unsupported ASG event: "+asgName+" "+asgEvent)}};
+  
+  InvokeRegisterNodePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref RegisterNodeFunction
+      Principal: sns.amazonaws.com
+
+  RegisterNodeTopicPolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      Topics:
+        - !Ref AppASGTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 'sns:Publish'
+            Resource: !Ref AppASGTopic
+            Principal:
+              AWS: "*"
+            Condition:
+              ArnLike:
+                AWS:SourceArn: !Ref AppASG
+
   LambdaBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -1766,6 +1855,7 @@ Resources:
   NearsparkThumbnailLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
+      Description: Generates resized thumbnails
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: lambdas/nearspark/nearspark-0.1.0.zip
@@ -1850,6 +1940,7 @@ Resources:
       StageName: prod
     DependsOn:
       - NearsparkApiGatewayRestApi
+
   NearsparkThumbnailLambdaPermissionApiGateway:
     Type: AWS::Lambda::Permission
     Properties:
@@ -1857,7 +1948,8 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: !Sub 'apigateway.${AWS::URLSuffix}'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${NearsparkApiGatewayRestApi}/*/*'
-  NearsparkCloudfrontDNS:
+
+  NearsparkDNS:
     Type: AWS::Route53::RecordSet
     Properties:
       Name: !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
@@ -2070,6 +2162,7 @@ Resources:
 # App servers
   AppALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    Condition: HasALB
     Properties:
       GroupName: !Sub "${AWS::StackName}-app-alb"
       GroupDescription: App ALB
@@ -2172,10 +2265,6 @@ Resources:
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
           ToPort: !FindInMap [ServicesMeta, Ssh, Port]
           CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
-          ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
-          SourceSecurityGroupId: !Ref AppALBSecurityGroup
       SecurityGroupEgress:
         # Outbound HTTP
         - IpProtocol: tcp
@@ -2207,6 +2296,26 @@ Resources:
           FromPort: 53
           ToPort: 53
           CidrIp: 0.0.0.0/0
+
+  AppALBReticulumIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: HasALB
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      SourceSecurityGroupId: !Ref AppALBSecurityGroup
+
+  AppALBReticulumEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: HasALB
+    Properties:
+      GroupId: !Ref AppALBSecurityGroup
+      IpProtocol: tcp
+      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
 
   AppJanusAdminAppIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -2260,15 +2369,6 @@ Resources:
       IpProtocol: tcp
       FromPort: 0
       ToPort: 65535
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
-
-  AppALBReticulumEgress:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !Ref AppALBSecurityGroup
-      IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
-      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
       DestinationSecurityGroupId: !Ref AppSecurityGroup
 
   AppRole:
@@ -2408,6 +2508,7 @@ Resources:
 
   AppALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Condition: HasALB
     Properties:
       Name: !Sub "${AWS::StackName}-app"
       SecurityGroups:
@@ -2417,28 +2518,16 @@ Resources:
         - !Ref SubnetBPublic
     # Add some slower items here, so domain doesn't come up too early
     DependsOn:
+      - AppCloudfrontDistribution
       - AppAssetsCloudfrontDistribution
-      - StorageCloudfrontDistribution
-      - CorsProxyCloudfrontDistribution
       - NearsparkCloudfrontDistribution
       - LinkRedirectorCloudfrontDistribution
 
-  AppALBDNS:
-    Type: AWS::Route53::RecordSet
-    Condition: HasMangedDomain
-    Properties:
-      Name: !Ref DomainName
-      HostedZoneId: !GetAtt ExternalZoneInfo.Id
-      Type: A
-      AliasTarget:
-        DNSName: !GetAtt AppALB.DNSName
-        HostedZoneId: !GetAtt AppALB.CanonicalHostedZoneID
-
   AppALBDNSInternal:
     Type: AWS::Route53::RecordSet
-    Condition: HasMangedDomain
+    Condition: HasALB
     Properties:
-      Name: !Sub "${AWS::StackName}.${InternalZoneInfo.Name}"
+      Name: !Sub "${AWS::StackName}-app-alb.${InternalZoneInfo.Name}"
       HostedZoneId: !Ref InternalZone
       Type: A
       AliasTarget:
@@ -2447,6 +2536,7 @@ Resources:
 
   AppALBRetTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: HasALB
     Properties:
       Name: !Sub "${AWS::StackName}-ret"
       VpcId: !Ref VPC
@@ -2464,6 +2554,7 @@ Resources:
 
   AppALBRetSSLListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasALB
     Properties:
       LoadBalancerArn: !Ref AppALB
       Port: 443
@@ -2477,6 +2568,7 @@ Resources:
 
   AppALBRetSSLListenerInternalCert:
     Type: AWS::ElasticLoadBalancingV2::ListenerCertificate
+    Condition: HasALB
     Properties:
       ListenerArn: !Ref AppALBRetSSLListener
       Certificates:
@@ -2484,6 +2576,7 @@ Resources:
 
   AppALBRetClearListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasALB
     Properties:
       LoadBalancerArn: !Ref AppALB
       Port: 80
@@ -2497,6 +2590,7 @@ Resources:
 
   AppALBRetListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasALB
     Properties:
       ListenerArn: !Ref AppALBRetSSLListener
       Priority: 1
@@ -2521,6 +2615,81 @@ Resources:
       Roles:
         - !Ref StreamRole
 
+  DomainDNS:
+    Type: AWS::Route53::RecordSet
+    Condition: HasMangedDomain
+    Properties:
+      Name: !Ref DomainName
+      HostedZoneId: !GetAtt ExternalZoneInfo.Id
+      Type: A
+      AliasTarget:
+        DNSName: !If [ HasALB, !GetAtt AppALB.DNSName, !GetAtt AppCloudfrontDistribution.DomainName ]
+        HostedZoneId: !If [ HasALB, !GetAtt AppALB.CanonicalHostedZoneID, Z2FDTNDATAQYW2 ]
+
+  AppCloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: !Sub "${AWS::StackName}-app"
+            DomainName: !If [ HasALB, !Sub "${AWS::StackName}-app-alb.${InternalZoneInfo.Name}", !Sub "${AWS::StackName}-app.${InternalZoneInfo.Name}"]
+
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+            Locations: []
+        Aliases:
+          - !Ref DomainName
+          - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
+        HttpVersion: http2
+        PriceClass: PriceClass_All
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 500
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 502
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 503
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 504
+            ErrorCachingMinTTL: 0
+        DefaultCacheBehavior:
+          Compress: true
+          AllowedMethods:
+            - GET
+            - HEAD
+            - POST
+            - PATCH
+            - PUT
+            - DELETE
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: !Sub "${AWS::StackName}-app"
+          ForwardedValues:
+            QueryString: true
+            Headers: ["Origin", "Content-Type", "Range", "Host", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: https-only
+          MinTTL: 0
+          DefaultTTL: 3600
+          MaxTTL: 3600
+        ViewerCertificate:
+          AcmCertificateArn: !If [HasMangedDomain, !Ref ExternalZoneSSLCertEast, !Ref UnmanagedDomainCertArn]
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1
+
   AppAssetsCloudfrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -2531,6 +2700,13 @@ Resources:
             DomainName: !GetAtt AssetsBucket.RegionalDomainName
             S3OriginConfig:
               OriginAccessIdentity: ""
+          - Id: !Sub "${AWS::StackName}-app"
+            DomainName: !Sub '${AWS::StackName}-app.${InternalZoneInfo.Name}'
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
         Restrictions:
           GeoRestriction:
             RestrictionType: none
@@ -2550,6 +2726,28 @@ Resources:
             ErrorCachingMinTTL: 0
           - ErrorCode: 503
             ErrorCachingMinTTL: 0
+          - ErrorCode: 504
+            ErrorCachingMinTTL: 0
+        CacheBehaviors:
+          - PathPattern: "/files/*"
+            Compress: true
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+            TargetOriginId: !Sub "${AWS::StackName}-app"
+            ForwardedValues:
+              QueryString: true
+              Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+              Cookies:
+                Forward: none
+            ViewerProtocolPolicy: https-only
+            MinTTL: 0
+            DefaultTTL: 3600
+            MaxTTL: 3600
         DefaultCacheBehavior:
           Compress: true
           AllowedMethods:
@@ -2629,11 +2827,6 @@ Resources:
           FromPort: 0
           ToPort: 65535
           CidrIp: 0.0.0.0/0
-        # Outbound NTP
-        - IpProtocol: tcp
-          FromPort: 123
-          ToPort: 123
-          CidrIp: 0.0.0.0/0
         # Outbound DNS
         - IpProtocol: tcp
           FromPort: 53
@@ -2658,126 +2851,6 @@ Resources:
       ToPort: 65535
       DestinationSecurityGroupId: !Ref StreamSecurityGroup
 
-  StorageCloudfrontDistribution:
-    Type: AWS::CloudFront::Distribution
-    Properties:
-      DistributionConfig:
-        Enabled: true
-        Origins:
-          - Id: !Sub "${AWS::StackName}-storage"
-            DomainName: !Sub '${AWS::StackName}.${InternalZoneInfo.Name}'
-            CustomOriginConfig:
-              HTTPPort: 80
-              HTTPSPort: 443
-              OriginProtocolPolicy: https-only
-              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
-        Restrictions:
-          GeoRestriction:
-            RestrictionType: none
-            Locations: []
-        Aliases:
-          - !Sub '${AWS::StackName}-storage.${InternalZoneInfo.Name}'
-        HttpVersion: http2
-        PriceClass: PriceClass_All
-        CustomErrorResponses:
-          - ErrorCode: 403
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 404
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 500
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 502
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 503
-            ErrorCachingMinTTL: 0
-        DefaultCacheBehavior:
-          Compress: true
-          AllowedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
-          CachedMethods:
-            - GET
-            - HEAD
-          TargetOriginId: !Sub "${AWS::StackName}-storage"
-          ForwardedValues:
-            QueryString: true
-            Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
-            Cookies:
-              Forward: none
-          ViewerProtocolPolicy: https-only
-          MinTTL: 0
-          DefaultTTL: 3600
-          MaxTTL: 3600
-        ViewerCertificate:
-          AcmCertificateArn: !Ref InternalZoneSSLCertEast
-          SslSupportMethod: sni-only
-          MinimumProtocolVersion: TLSv1
-
-  CorsProxyCloudfrontDistribution:
-    Type: AWS::CloudFront::Distribution
-    Properties:
-      DistributionConfig:
-        Enabled: true
-        Origins:
-          - Id: !Sub "${AWS::StackName}-cors-proxy"
-            DomainName: !Sub '${AWS::StackName}.${InternalZoneInfo.Name}'
-            CustomOriginConfig:
-              HTTPPort: 80
-              HTTPSPort: 443
-              OriginProtocolPolicy: https-only
-              OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
-        Restrictions:
-          GeoRestriction:
-            RestrictionType: none
-            Locations: []
-        Aliases:
-          - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
-        HttpVersion: http2
-        PriceClass: PriceClass_All
-        CustomErrorResponses:
-          - ErrorCode: 403
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 404
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 500
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 502
-            ErrorCachingMinTTL: 0
-          - ErrorCode: 503
-            ErrorCachingMinTTL: 0
-        DefaultCacheBehavior:
-          Compress: true
-          AllowedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
-          CachedMethods:
-            - GET
-            - HEAD
-          TargetOriginId: !Sub "${AWS::StackName}-cors-proxy"
-          ForwardedValues:
-            QueryString: true
-            Headers: ["Origin", "Content-Type", "Range", "Host", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
-            Cookies:
-              Forward: none
-          ViewerProtocolPolicy: https-only
-        ViewerCertificate:
-          AcmCertificateArn: !Ref InternalZoneSSLCertEast
-          SslSupportMethod: sni-only
-          MinimumProtocolVersion: TLSv1
-
-  StorageDNS:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      Name: !Sub '${AWS::StackName}-storage.${InternalZoneInfo.Name}'
-      HostedZoneId: !Ref InternalZone
-      Type: A
-      AliasTarget:
-        DNSName:
-          Fn::GetAtt: [ StorageCloudfrontDistribution, DomainName ]
-        HostedZoneId: Z2FDTNDATAQYW2
-
   CorsProxyDNS:
     Type: AWS::Route53::RecordSet
     Properties:
@@ -2786,7 +2859,7 @@ Resources:
       Type: A
       AliasTarget:
         DNSName:
-          Fn::GetAtt: [ CorsProxyCloudfrontDistribution, DomainName ]
+          Fn::GetAtt: [ AppCloudfrontDistribution, DomainName ]
         HostedZoneId: Z2FDTNDATAQYW2
 
   AppLaunchConfiguration:
@@ -2806,20 +2879,23 @@ Resources:
       ImageId: !FindInMap [Regions, !Ref "AWS::Region", ImageId]
       KeyName: !Ref KeyPair
       UserData:
-        Fn::Base64:
-          Fn::If:
-            - HasStreamingServers
-            - |
-                #!/usr/bin/env bash
-                /usr/bin/polycosm_boot.sh app polycosm-20191002
-            - |
-                #!/usr/bin/env bash
-                /usr/bin/polycosm_boot.sh app,stream polycosm-20191002
+        Fn::Base64: |
+          #!/usr/bin/env bash
+          /usr/bin/polycosm_boot.sh
 
   AppPlacementGroup:
     Type: AWS::EC2::PlacementGroup
     Properties:
       Strategy: !If [AppIsNoPlacement, cluster, !If [ AppIsClusterPlacement, !FindInMap [ InstanceTypeMeta, !Ref AppInstanceType, PlacementForCluster ], !Ref AppPlacementGroupStrategy ] ]
+
+  AppASGTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AWS::StackName}-app-asg-scaling-events"
+      DisplayName: App Server Scaling Events
+      Subscription:
+        - Protocol: lambda
+          Endpoint: !GetAtt RegisterNodeFunction.Arn
 
   AppASG:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -2839,10 +2915,14 @@ Resources:
       AutoScalingGroupName: !Sub "${AWS::StackName}-app"
       AvailabilityZones: !If [AppIsClusterPlacement, [!GetAtt SubnetAPublic.AvailabilityZone], [!GetAtt SubnetAPublic.AvailabilityZone, !GetAtt SubnetBPublic.AvailabilityZone]]
       VPCZoneIdentifier: !If [AppIsClusterPlacement, [!Ref SubnetAPublic], [!Ref SubnetAPublic, !Ref SubnetBPublic]]
-      TargetGroupARNs:
-        - !Ref AppALBRetTargetGroup
+      TargetGroupARNs: !If [ HasALB, [ !Ref AppALBRetTargetGroup ], !Ref "AWS::NoValue" ]
       MinSize: 1
       MaxSize: 64
+      NotificationConfigurations:
+        - NotificationTypes:
+          - autoscaling:EC2_INSTANCE_LAUNCH
+          - autoscaling:EC2_INSTANCE_TERMINATE
+          TopicARN: !Ref AppASGTopic
       DesiredCapacity: !Ref AppInstanceCount
       PlacementGroup: !If [AppIsNoPlacement, !Ref "AWS::NoValue", !Ref AppPlacementGroup]
       LaunchConfigurationName: !Ref AppLaunchConfiguration
@@ -2851,7 +2931,7 @@ Resources:
         Value: !If [HasStreamingServers, "app", "app,stream"]
         PropagateAtLaunch: true
       - Key: polycosm-type
-        Value: !If [HasStreamingServers, "app", "stream"]
+        Value: "app"
         PropagateAtLaunch: true
       - Key: polycosm-channel
         Value: !If [IsStableChannel, "stable", "unstable"]
@@ -2891,7 +2971,7 @@ Resources:
       UserData:
         Fn::Base64: |
           #!/usr/bin/env bash
-          /usr/bin/polycosm_boot.sh stream
+          /usr/bin/polycosm_boot.sh
 
   StreamASG:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -3202,20 +3282,20 @@ Resources:
 
 # Secrets
 
-  JanusAdminSecret:
+  JanusAndReticulumAdminSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Description: 'Janus admin password'
+      Description: 'Janus admin password and reticulum admin secret'
       GenerateSecretString:
         SecretStringTemplate: '{}'
         GenerateStringKey: 'password'
         PasswordLength: 32
         ExcludePunctuation: true
 
-  JanusAdminSecretResourcePolicy:
+  JanusAndReticulumAdminSecretResourcePolicy:
     Type: AWS::SecretsManager::ResourcePolicy
     Properties: 
-      SecretId: !Ref JanusAdminSecret
+      SecretId: !Ref JanusAndReticulumAdminSecret
       ResourcePolicy:
         Version: 2012-10-17
         Statement:
@@ -3258,38 +3338,11 @@ Resources:
             Action: "secretsmanager:DeleteSecret"
             Resource: "*"
 
-  RetAdminAccessKeySecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: 'Reticulum admin access key'
-      GenerateSecretString:
-        SecretStringTemplate: '{}'
-        GenerateStringKey: 'password'
-        PasswordLength: 128
-        ExcludePunctuation: true
-
-  RetAdminAccessKeySecretResourcePolicy:
-    Type: AWS::SecretsManager::ResourcePolicy
-    Properties: 
-      SecretId: !Ref RetAdminAccessKeySecret
-      ResourcePolicy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: "Deny"
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "secretsmanager:DeleteSecret"
-            Resource: "*"
 
   GuardianSecretKeySecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Description: 'Reticulum admin access key'
+      Description: 'Reticulum guardian secret key'
       GenerateSecretString:
         SecretStringTemplate: '{}'
         GenerateStringKey: 'password'
@@ -3317,7 +3370,7 @@ Resources:
   ReticulumOAuthTokenSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Description: 'Reticulum admin access key'
+      Description: 'Reticulum OAuth Token'
       GenerateSecretString:
         SecretStringTemplate: '{}'
         GenerateStringKey: 'password'
@@ -3373,7 +3426,7 @@ Resources:
   ReticulumBotAccessKeySecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Description: 'Reticulum admin access key'
+      Description: 'Reticulum bot access key'
       GenerateSecretString:
         SecretStringTemplate: '{}'
         GenerateStringKey: 'password'
@@ -3423,9 +3476,9 @@ Resources:
             Resource: "*"
 
 Outputs:
-  AppALBDomain:
-    Description: Domain name for app servers. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Cloud on your site.
-    Value: !GetAtt AppALB.DNSName
+  AddressForRootDomain:
+    Description: Serving domain name for your stack. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Cloud on your site.
+    Value: !If [ HasALB, AppALBDNSInternal, !GetAtt AppCloudfrontDistribution.DomainName ]
 
   DomainName:
     Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
@@ -3437,11 +3490,11 @@ Outputs:
 
   NonCorsProxyDomains:
     Description: Non-CORS proxied domains [hubs/general/non_cors_proxy_domains,spoke/general/non_cors_proxy_domains]
-    Value: !Sub "${DomainName},${InternalZoneInfo.Name},${AWS::StackName}-${AWS::AccountId}-storage.com"
+    Value: !Sub "${DomainName},${InternalZoneInfo.Name},${AppAssetsDNS}"
 
-  JanusAdminSecret:
-    Description: Janus Admin Secret [janus-gateway/general/admin_secret!read-aws-secret,reticulum/janus/admin_secret!read-aws-secret]
-    Value: !Ref JanusAdminSecret
+  JanusAndReticulumAdminSecret:
+    Description: Janus and Reticulum Admin Secret [reticulum/phx/admin_access_key!read-aws-secret,janus-gateway/general/admin_secret!read-aws-secret,reticulum/janus/admin_secret!read-aws-secret]
+    Value: !Ref JanusAndReticulumAdminSecret
 
   JanusMediaRtpPortRange:
     Description: Janus WebRTC Port Range [janus-gateway/media/rtp_port_range]
@@ -3479,9 +3532,9 @@ Outputs:
     Description: CORS Proxy Domain Name [reticulum/phx/cors_proxy_url_host,hubs/general/cors_proxy_server,spoke/general/cors_proxy_server]
     Value: !Ref CorsProxyDNS
 
-  RetAdminAccessKeySecret:
-    Description: Reticulum Admin Access Key [reticulum/phx/admin_access_key!read-aws-secret]
-    Value: !Ref RetAdminAccessKeySecret
+  AppDNS:
+    Description: Load balanced app DNS [reticulum/phx/secondary_url_host]
+    Value: !Sub "${AWS::StackName}-app.${InternalZoneInfo.Name}"
 
   RetHostnameDNSSuffix:
     Description: Reticulum Hostname DNS Suffix [reticulum/run/hostname_dns_suffix]
@@ -3545,19 +3598,19 @@ Outputs:
 
   HubsBaseAssetsPath:
     Description: Base assets path for hubs CDN assets [hubs/general/base_assets_path]
-    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/hubs/'
+    Value: !Sub 'https://${AppAssetsDNS}/hubs/'
 
   HubsPageOrigin:
     Description: Hubs page origin [reticulum/pages/hubs_page_origin]
-    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/hubs/pages/latest'
+    Value: !Sub 'https://${AppAssetsDNS}/hubs/pages/latest'
 
   SpokeBaseAssetsPath:
     Description: Base assets path for spoke CDN assets [spoke/general/base_assets_path]
-    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/spoke/'
+    Value: !Sub 'https://${AppAssetsDNS}/spoke/'
 
   SpokePageOrigin:
     Description: Spoke page origin [reticulum/pages/spoke_page_origin]
-    Value: !Sub 'https://${AWS::StackName}-assets.${InternalZoneInfo.Name}/spoke/pages/latest'
+    Value: !Sub 'https://${AppAssetsDNS}/spoke/pages/latest'
 
   ClientDeployType:
     Description: Client deploy type [hubs/deploy/type,spoke/deploy/type]
@@ -3565,7 +3618,7 @@ Outputs:
 
   NearsparkHost:
     Description: Host of the nearspark service endpoint [hubs/general/thumbnail_server,spoke/general/thumbnail_server]
-    Value: !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
+    Value: !Sub '${NearsparkDNS}'
 
   SpeelycaptorEndpoint:
     Description: Speelycaptor Service URL [reticulum/speelycaptor/speelycaptor_endpoint]
@@ -3579,13 +3632,13 @@ Outputs:
     Description: Storage EFS volume id
     Value: !Ref StorageEFS
 
-  StorageDNS:
+  AppAssetsDNS:
     Description: Storage URL Host [reticulum/uploads/host]
-    Value: !Sub "https://${StorageDNS}"
+    Value: !Sub "https://${AppAssetsDNS}"
 
   ReticulumCSP:
     Description: Default Reticulum Content Security Policy [reticulum/security/content_security_policy]
-    Value: !Sub "default-src 'none'; manifest-src 'self'; script-src 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; prefetch-src 'self' https://${AWS::StackName}-assets.${InternalZoneInfo.Name}; child-src 'self' blob:; worker-src https://${AWS::StackName}-assets.${InternalZoneInfo.Name} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com 'unsafe-inline'; connect-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-${AWS::AccountId}-storage.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:8443 https://cdn.aframe.io https://www.youtube.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-assets.${InternalZoneInfo.Name} https://${AWS::StackName}-storage.${InternalZoneInfo.Name} https://${AWS::StackName}-${AWS::AccountId}-storage.com https://${AWS::StackName}-nearspark.${InternalZoneInfo.Name} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';"
+    Value: !Sub "default-src 'none'; manifest-src 'self'; script-src 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AppAssetsDNS} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; prefetch-src 'self' https://${AppAssetsDNS}; child-src 'self' blob:; worker-src https://${AppAssetsDNS} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AppAssetsDNS} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${CorsProxyDNS}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AppAssetsDNS} https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-${AWS::AccountId}-assets.com 'unsafe-inline'; connect-src 'self' https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AppAssetsDNS} https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-assets.com https://${NearsparkDNS} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:8443 https://cdn.aframe.io https://www.youtube.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AppAssetsDNS} https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AWS::StackName}-${AWS::AccountId}-assets.com https://${NearsparkDNS} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-cors-proxy.com https://${AppAssetsDNS} https://${AWS::StackName}-${AWS::AccountId}-assets.com https://${NearsparkDNS} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';"
 
   SmtpSendAccessKey:
     Description: SMTP send access key for email zone [reticulum/email/username]
