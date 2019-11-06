@@ -37,6 +37,7 @@ Metadata:
       - Label:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
+          - LoadBalancingMethod
           - ChannelType
           - SubnetAZs
           - NewCMKForDiskEncryption
@@ -85,6 +86,8 @@ Metadata:
         default: "Scheduled maintenence window"
       ChannelType:
         default : "Package release channel"
+      LoadBalancingMethod:
+        default : "Load Balancing Method"
 Parameters:
   DomainName:
     Type: String
@@ -212,6 +215,11 @@ Parameters:
     Description: Software release to run on your servers. The 'unstable' channel will receive updates before 'stable', but may break your stack.
     Default: "Stable"
     AllowedValues: ["Stable", "Unstable"]
+  LoadBalancingMethod:
+    Type: String
+    Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer (which will incur additional costs.)
+    Default: "DNS Round Robin"
+    AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
 
 Mappings:
   Regions:
@@ -275,6 +283,9 @@ Conditions:
   SubnetChoiceD: !Equals [!Ref SubnetAZs, "Use zone b and d"]
   IsStableChannel: !Equals [!Ref ChannelType, "Stable"]
   IsWindowA: !Equals [!Ref MaintenenceWindow, "10:00-11:00 GMT (02:00-03:00 PT)"]
+  HasALB: !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]
+  HasManagedDomainOnALB: !And [ !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]] , !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]
+]
 
 Resources:
 
@@ -805,14 +816,30 @@ Resources:
       Id: !Ref EmailZone
       ServiceToken: !GetAtt Route53DependencyLambda.Arn
 
-  ExternalZoneSSLCertEast:
+  ExternalZoneSSLCert:
     Type: Custom::DNSCertificate
-    Condition: HasMangedDomain
+    Condition: HasManagedDomainOnALB
     Properties: 
       DomainName: !GetAtt ExternalZoneInfo.Name
       DomainValidationOptions:
         - DomainName: !GetAtt ExternalZoneInfo.Name
           HostedZoneId: !GetAtt ExternalZoneInfo.Id
+      ValidationMethod: DNS
+      Region: !Sub "${AWS::Region}"
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+
+  ExternalZoneSSLCertEast:
+    Type: Custom::DNSCertificate
+    Condition: HasMangedDomain
+    Properties: 
+      DomainName: !GetAtt ExternalZoneInfo.Name
+      SubjectAlternativeNames:
+        - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
+      DomainValidationOptions:
+        - DomainName: !GetAtt ExternalZoneInfo.Name
+          HostedZoneId: !GetAtt ExternalZoneInfo.Id
+        - DomainName: !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
+          HostedZoneId: !GetAtt InternalZoneInfo.Id
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
@@ -1367,7 +1394,7 @@ Resources:
       Timeout: 240
       Code:
         ZipFile: !Sub |
-          const AWS=require('aws-sdk');exports.handler=async function(event,context){const asgMessage=JSON.parse(event.Records[0].Sns.Message);const asgName=asgMessage.AutoScalingGroupName;const asgEvent=asgMessage.Event;const promisify=f=>arg=>new Promise((res,rej)=>f(arg,(err,data)=>{if(err){console.log(err);rej(err)}else{res(data)}}));const region="${AWS::Region}";const recordName="${AWS::StackName}-app.${InternalZoneInfo.Name}.";const hostedZoneId="${InternalZoneInfo.Id}";const ttl=60;if(asgEvent==="autoscaling:EC2_INSTANCE_LAUNCH"||asgEvent==="autoscaling:EC2_INSTANCE_TERMINATE"){const autoscaling=new AWS.AutoScaling({region});const ec2=new AWS.EC2({region});const route53=new AWS.Route53();const asgResponse=await promisify(autoscaling.describeAutoScalingGroups.bind(autoscaling))({AutoScalingGroupNames:[asgName],MaxRecords:1});const recordSets=(await promisify(route53.listResourceRecordSets.bind(route53))({StartRecordName:recordName,StartRecordType:"A",HostedZoneId:hostedZoneId,MaxItems:"100"})).ResourceRecordSets;const instanceIds=asgResponse.AutoScalingGroups[0].Instances.map(i=>i.InstanceId);const instanceInfo=await promisify(ec2.describeInstances.bind(ec2))({DryRun:false,InstanceIds:instanceIds});const ipAddresses=[];for(let i=0;i<instanceInfo.Reservations.length;i++){const reservation=instanceInfo.Reservations[i];for(let j=0;j<reservation.Instances.length;j++){const ip=reservation.Instances[j].NetworkInterfaces[0].Association.PublicIp;if(ip&&ipAddresses.indexOf(ip)<0){ipAddresses.push(ip)}}}for(let i=0,l=recordSets.length;i<l;i++){const record=recordSets[i];if(record.Name!==recordName||record.Type!=="A")continue;const resource=record.ResourceRecords.length>0&&record.ResourceRecords[0].Value;if(!resource)continue;if(!ipAddresses.find(ip=>ip===resource)){try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'DELETE',ResourceRecordSet:{MultiValueAnswer:true,Name:record.Name,Type:record.Type,TTL:record.TTL,SetIdentifier:record.SetIdentifier,ResourceRecords:record.ResourceRecords,HealthCheckId:record.HealthCheckId}}]},HostedZoneId:hostedZoneId})}catch(e){}}}let healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({MaxItems:"100"})).HealthChecks;for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.createHealthCheck.bind(route53))({CallerReference:Math.floor(Math.random()*1000000000).toString(),HealthCheckConfig:{EnableSNI:true,FailureThreshold:2,FullyQualifiedDomainName:recordName,IPAddress:ip,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}}healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({})).HealthChecks;for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!recordSets.find(r=>r.Name===recordName&&r.ResourceRecords&&r.ResourceRecords.length&&r.ResourceRecords[0].Value===ip)){const checkId=healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip).Id;try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'UPSERT',ResourceRecordSet:{MultiValueAnswer:true,Name:recordName,Type:'A',HealthCheckId:checkId,TTL:ttl,SetIdentifier:ip,ResourceRecords:[{Value:ip}]}}]},HostedZoneId:hostedZoneId})}catch(e){}}}for(let i=0,l=healthChecks.length;i<l;i++){const check=healthChecks[i];if(!ipAddresses.find(ip=>check.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.deleteHealthCheck.bind(route53))({HealthCheckId:check.Id})}catch(e){}}}}else{console.log("Unsupported ASG event: "+asgName+" "+asgEvent);context.done("Unsupported ASG event: "+asgName+" "+asgEvent)}};
+          const AWS=require('aws-sdk');exports.handler=async function(event,context){const asgMessage=JSON.parse(event.Records[0].Sns.Message);const asgName=asgMessage.AutoScalingGroupName;const asgEvent=asgMessage.Event;const promisify=f=>arg=>new Promise((res,rej)=>f(arg,(err,data)=>{if(err){console.log(err);rej(err)}else{res(data)}}));const region="${AWS::Region}";const recordName="${AWS::StackName}-app.${InternalZoneInfo.Name}.";const hostedZoneId="${InternalZoneInfo.Id}";const ttl=15;if(asgEvent==="autoscaling:EC2_INSTANCE_LAUNCH"||asgEvent==="autoscaling:EC2_INSTANCE_TERMINATE"){const autoscaling=new AWS.AutoScaling({region});const ec2=new AWS.EC2({region});const route53=new AWS.Route53();const asgResponse=await promisify(autoscaling.describeAutoScalingGroups.bind(autoscaling))({AutoScalingGroupNames:[asgName],MaxRecords:1});const recordSets=(await promisify(route53.listResourceRecordSets.bind(route53))({StartRecordName:recordName,StartRecordType:"A",HostedZoneId:hostedZoneId,MaxItems:"100"})).ResourceRecordSets;const instanceIds=asgResponse.AutoScalingGroups[0].Instances.map(i=>i.InstanceId);const instanceInfo=await promisify(ec2.describeInstances.bind(ec2))({DryRun:false,InstanceIds:instanceIds});const ipAddresses=[];for(let i=0;i<instanceInfo.Reservations.length;i++){const reservation=instanceInfo.Reservations[i];for(let j=0;j<reservation.Instances.length;j++){const ip=reservation.Instances[j].NetworkInterfaces[0].Association.PublicIp;if(ip&&ipAddresses.indexOf(ip)<0){ipAddresses.push(ip)}}}for(let i=0,l=recordSets.length;i<l;i++){const record=recordSets[i];if(record.Name!==recordName||record.Type!=="A")continue;const resource=record.ResourceRecords.length>0&&record.ResourceRecords[0].Value;if(!resource)continue;if(!ipAddresses.find(ip=>ip===resource)){try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'DELETE',ResourceRecordSet:{MultiValueAnswer:true,Name:record.Name,Type:record.Type,TTL:record.TTL,SetIdentifier:record.SetIdentifier,ResourceRecords:record.ResourceRecords,HealthCheckId:record.HealthCheckId}}]},HostedZoneId:hostedZoneId})}catch(e){}}}let healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({MaxItems:"100"})).HealthChecks;if(ipAddresses.length>1){for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.createHealthCheck.bind(route53))({CallerReference:Math.floor(Math.random()*1000000000).toString(),HealthCheckConfig:{EnableSNI:true,FailureThreshold:2,FullyQualifiedDomainName:recordName,IPAddress:ip,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}}}healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({})).HealthChecks;for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!recordSets.find(r=>r.Name===recordName&&r.ResourceRecords&&r.ResourceRecords.length&&r.ResourceRecords[0].Value===ip)){const check=healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip);try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'UPSERT',ResourceRecordSet:{MultiValueAnswer:true,Name:recordName,Type:'A',HealthCheckId:check?check.Id:null,TTL:ttl,SetIdentifier:ip,ResourceRecords:[{Value:ip}]}}]},HostedZoneId:hostedZoneId})}catch(e){}}}for(let i=0,l=healthChecks.length;i<l;i++){const check=healthChecks[i];if(ipAddresses.length===1||!ipAddresses.find(ip=>check.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.deleteHealthCheck.bind(route53))({HealthCheckId:check.Id})}catch(e){}}}}else{console.log("Unsupported ASG event: "+asgName+" "+asgEvent);context.done("Unsupported ASG event: "+asgName+" "+asgEvent)}};
   
   InvokeRegisterNodePermission:
     Type: AWS::Lambda::Permission
@@ -2133,6 +2160,23 @@ Resources:
           MinimumProtocolVersion: "TLSv1"
 
 # App servers
+  AppALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: HasALB
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-app-alb"
+      GroupDescription: App ALB
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
   BioRingSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -2252,6 +2296,26 @@ Resources:
           FromPort: 53
           ToPort: 53
           CidrIp: 0.0.0.0/0
+
+  AppALBReticulumIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: HasALB
+    Properties:
+      GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      SourceSecurityGroupId: !Ref AppALBSecurityGroup
+
+  AppALBReticulumEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: HasALB
+    Properties:
+      GroupId: !Ref AppALBSecurityGroup
+      IpProtocol: tcp
+      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
 
   AppJanusAdminAppIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -2442,6 +2506,101 @@ Resources:
               - ses:GetSendQuota
             Resource: "*"
 
+  AppALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Condition: HasALB
+    Properties:
+      Name: !Sub "${AWS::StackName}-app"
+      SecurityGroups:
+        - !Ref AppALBSecurityGroup
+      Subnets:
+        - !Ref SubnetAPublic
+        - !Ref SubnetBPublic
+    # Add some slower items here, so domain doesn't come up too early
+    DependsOn:
+      - AppCloudfrontDistribution
+      - AppAssetsCloudfrontDistribution
+      - NearsparkCloudfrontDistribution
+      - LinkRedirectorCloudfrontDistribution
+
+  AppALBDNSInternal:
+    Type: AWS::Route53::RecordSet
+    Condition: HasALB
+    Properties:
+      Name: !Sub "${AWS::StackName}-app-alb.${InternalZoneInfo.Name}"
+      HostedZoneId: !Ref InternalZone
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt AppALB.DNSName
+        HostedZoneId: !GetAtt AppALB.CanonicalHostedZoneID
+
+  AppALBRetTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: HasALB
+    Properties:
+      Name: !Sub "${AWS::StackName}-ret"
+      VpcId: !Ref VPC
+      Port: !FindInMap [ServicesMeta, RetInternal, Port]
+      Protocol: HTTPS
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: 0
+      HealthCheckPath: "/health"
+      HealthCheckProtocol: HTTPS
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+
+  AppALBRetSSLListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasALB
+    Properties:
+      LoadBalancerArn: !Ref AppALB
+      Port: 443
+      Protocol: HTTPS
+      SslPolicy: ELBSecurityPolicy-2015-05
+      Certificates:
+        - CertificateArn: !If [HasMangedDomain, !Ref ExternalZoneSSLCert, !Ref UnmanagedDomainCertArn]
+      DefaultActions:
+        - TargetGroupArn: !Ref AppALBRetTargetGroup
+          Type: forward
+
+  AppALBRetSSLListenerInternalCert:
+    Type: AWS::ElasticLoadBalancingV2::ListenerCertificate
+    Condition: HasALB
+    Properties:
+      ListenerArn: !Ref AppALBRetSSLListener
+      Certificates:
+        - CertificateArn: !Ref InternalZoneSSLCert
+
+  AppALBRetClearListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasALB
+    Properties:
+      LoadBalancerArn: !Ref AppALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Port: "443"
+            Protocol: HTTPS
+            StatusCode: HTTP_301
+
+  AppALBRetListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasALB
+    Properties:
+      ListenerArn: !Ref AppALBRetSSLListener
+      Priority: 1
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref AppALBRetTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values: ["/"]
+
   AppInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -2464,9 +2623,8 @@ Resources:
       HostedZoneId: !GetAtt ExternalZoneInfo.Id
       Type: A
       AliasTarget:
-        DNSName:
-          Fn::GetAtt: [ AppCloudfrontDistribution, DomainName ]
-        HostedZoneId: Z2FDTNDATAQYW2
+        DNSName: !If [ HasALB, !GetAtt AppALB.DNSName, !GetAtt AppCloudfrontDistribution.DomainName ]
+        HostedZoneId: !If [ HasALB, !GetAtt AppALB.CanonicalHostedZoneID, Z2FDTNDATAQYW2 ]
 
   AppCloudfrontDistribution:
     Type: AWS::CloudFront::Distribution
@@ -2475,7 +2633,8 @@ Resources:
         Enabled: true
         Origins:
           - Id: !Sub "${AWS::StackName}-app"
-            DomainName: !Sub "${AWS::StackName}-app.${InternalZoneInfo.Name}"
+            DomainName: !If [ HasALB, !Sub "${AWS::StackName}-app-alb.${InternalZoneInfo.Name}", !Sub "${AWS::StackName}-app.${InternalZoneInfo.Name}"]
+
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -2501,11 +2660,17 @@ Resources:
             ErrorCachingMinTTL: 0
           - ErrorCode: 503
             ErrorCachingMinTTL: 0
+          - ErrorCode: 504
+            ErrorCachingMinTTL: 0
         DefaultCacheBehavior:
           Compress: true
           AllowedMethods:
             - GET
             - HEAD
+            - POST
+            - PATCH
+            - PUT
+            - DELETE
             - OPTIONS
           CachedMethods:
             - GET
@@ -2560,6 +2725,8 @@ Resources:
           - ErrorCode: 502
             ErrorCachingMinTTL: 0
           - ErrorCode: 503
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 504
             ErrorCachingMinTTL: 0
         CacheBehaviors:
           - PathPattern: "/files/*"
@@ -2660,11 +2827,6 @@ Resources:
           FromPort: 0
           ToPort: 65535
           CidrIp: 0.0.0.0/0
-        # Outbound NTP
-        - IpProtocol: tcp
-          FromPort: 123
-          ToPort: 123
-          CidrIp: 0.0.0.0/0
         # Outbound DNS
         - IpProtocol: tcp
           FromPort: 53
@@ -2717,15 +2879,9 @@ Resources:
       ImageId: !FindInMap [Regions, !Ref "AWS::Region", ImageId]
       KeyName: !Ref KeyPair
       UserData:
-        Fn::Base64:
-          Fn::If:
-            - HasStreamingServers
-            - |
-                #!/usr/bin/env bash
-                /usr/bin/polycosm_boot.sh
-            - |
-                #!/usr/bin/env bash
-                /usr/bin/polycosm_boot.sh
+        Fn::Base64: |
+          #!/usr/bin/env bash
+          /usr/bin/polycosm_boot.sh
 
   AppPlacementGroup:
     Type: AWS::EC2::PlacementGroup
@@ -2735,7 +2891,7 @@ Resources:
   AppASGTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: app-asg-scaling-events
+      TopicName: !Sub "${AWS::StackName}-app-asg-scaling-events"
       DisplayName: App Server Scaling Events
       Subscription:
         - Protocol: lambda
@@ -2759,6 +2915,7 @@ Resources:
       AutoScalingGroupName: !Sub "${AWS::StackName}-app"
       AvailabilityZones: !If [AppIsClusterPlacement, [!GetAtt SubnetAPublic.AvailabilityZone], [!GetAtt SubnetAPublic.AvailabilityZone, !GetAtt SubnetBPublic.AvailabilityZone]]
       VPCZoneIdentifier: !If [AppIsClusterPlacement, [!Ref SubnetAPublic], [!Ref SubnetAPublic, !Ref SubnetBPublic]]
+      TargetGroupARNs: !If [ HasALB, [ !Ref AppALBRetTargetGroup ], !Ref "AWS::NoValue" ]
       MinSize: 1
       MaxSize: 64
       NotificationConfigurations:
@@ -3125,20 +3282,20 @@ Resources:
 
 # Secrets
 
-  JanusAdminSecret:
+  JanusAndReticulumAdminSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Description: 'Janus admin password'
+      Description: 'Janus admin password and reticulum admin secret'
       GenerateSecretString:
         SecretStringTemplate: '{}'
         GenerateStringKey: 'password'
         PasswordLength: 32
         ExcludePunctuation: true
 
-  JanusAdminSecretResourcePolicy:
+  JanusAndReticulumAdminSecretResourcePolicy:
     Type: AWS::SecretsManager::ResourcePolicy
     Properties: 
-      SecretId: !Ref JanusAdminSecret
+      SecretId: !Ref JanusAndReticulumAdminSecret
       ResourcePolicy:
         Version: 2012-10-17
         Statement:
@@ -3181,38 +3338,11 @@ Resources:
             Action: "secretsmanager:DeleteSecret"
             Resource: "*"
 
-  RetAdminAccessKeySecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: 'Reticulum admin access key'
-      GenerateSecretString:
-        SecretStringTemplate: '{}'
-        GenerateStringKey: 'password'
-        PasswordLength: 128
-        ExcludePunctuation: true
-
-  RetAdminAccessKeySecretResourcePolicy:
-    Type: AWS::SecretsManager::ResourcePolicy
-    Properties: 
-      SecretId: !Ref RetAdminAccessKeySecret
-      ResourcePolicy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: "Deny"
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "secretsmanager:DeleteSecret"
-            Resource: "*"
 
   GuardianSecretKeySecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Description: 'Reticulum admin access key'
+      Description: 'Reticulum guardian secret key'
       GenerateSecretString:
         SecretStringTemplate: '{}'
         GenerateStringKey: 'password'
@@ -3240,7 +3370,7 @@ Resources:
   ReticulumOAuthTokenSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Description: 'Reticulum admin access key'
+      Description: 'Reticulum OAuth Token'
       GenerateSecretString:
         SecretStringTemplate: '{}'
         GenerateStringKey: 'password'
@@ -3296,7 +3426,7 @@ Resources:
   ReticulumBotAccessKeySecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Description: 'Reticulum admin access key'
+      Description: 'Reticulum bot access key'
       GenerateSecretString:
         SecretStringTemplate: '{}'
         GenerateStringKey: 'password'
@@ -3346,9 +3476,9 @@ Resources:
             Resource: "*"
 
 Outputs:
-  RootDomain:
+  AddressForRootDomain:
     Description: Serving domain name for your stack. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Cloud on your site.
-    Value: !GetAtt AppCloudfrontDistribution.DomainName
+    Value: !If [ HasALB, AppALBDNSInternal, !GetAtt AppCloudfrontDistribution.DomainName ]
 
   DomainName:
     Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
@@ -3362,9 +3492,9 @@ Outputs:
     Description: Non-CORS proxied domains [hubs/general/non_cors_proxy_domains,spoke/general/non_cors_proxy_domains]
     Value: !Sub "${DomainName},${InternalZoneInfo.Name},${AppAssetsDNS}"
 
-  JanusAdminSecret:
-    Description: Janus Admin Secret [janus-gateway/general/admin_secret!read-aws-secret,reticulum/janus/admin_secret!read-aws-secret]
-    Value: !Ref JanusAdminSecret
+  JanusAndReticulumAdminSecret:
+    Description: Janus and Reticulum Admin Secret [reticulum/phx/admin_access_key!read-aws-secret,janus-gateway/general/admin_secret!read-aws-secret,reticulum/janus/admin_secret!read-aws-secret]
+    Value: !Ref JanusAndReticulumAdminSecret
 
   JanusMediaRtpPortRange:
     Description: Janus WebRTC Port Range [janus-gateway/media/rtp_port_range]
@@ -3405,10 +3535,6 @@ Outputs:
   AppDNS:
     Description: Load balanced app DNS [reticulum/phx/secondary_url_host]
     Value: !Sub "${AWS::StackName}-app.${InternalZoneInfo.Name}"
-
-  RetAdminAccessKeySecret:
-    Description: Reticulum Admin Access Key [reticulum/phx/admin_access_key!read-aws-secret]
-    Value: !Ref RetAdminAccessKeySecret
 
   RetHostnameDNSSuffix:
     Description: Reticulum Hostname DNS Suffix [reticulum/run/hostname_dns_suffix]
