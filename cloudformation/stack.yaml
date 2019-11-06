@@ -810,9 +810,13 @@ Resources:
     Condition: HasMangedDomain
     Properties: 
       DomainName: !GetAtt ExternalZoneInfo.Name
+      SubjectAlternativeNames:
+        - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
       DomainValidationOptions:
         - DomainName: !GetAtt ExternalZoneInfo.Name
           HostedZoneId: !GetAtt ExternalZoneInfo.Id
+        - DomainName: !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
+          HostedZoneId: !GetAtt InternalZoneInfo.Id
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
