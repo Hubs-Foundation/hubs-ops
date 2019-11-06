@@ -553,3 +553,14 @@ resource "aws_s3_bucket" "polycosm-assets" {
 }
 POLICY
 }
+
+# Docs bucket (public read)
+resource "aws_s3_bucket" "docs-bucket" {
+  bucket = "docs.reticulum-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+
+  website {
+      index_document = "index.html"
+      error_document = "error.html"
+  }
+}
