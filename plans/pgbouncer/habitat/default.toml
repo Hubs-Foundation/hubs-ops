@@ -1,0 +1,240 @@
+[pgbouncer]
+listen_addr="*"
+listen_port=5432
+
+# any, trust, plain, crypt, md5
+auth_type="trust"
+auth_file="/hab/svc/pgbouncer/config/userlist.txt"
+
+# Path to HBA-style auth config
+use_hba_file=""
+
+# Query to use to fetch password from database.  Result
+# must have 2 columns - username and password hash.
+auth_query=""
+
+# comma-separated list of users, who are allowed to change settings
+admin_users=""
+
+# comma-separated list of users who are just allowed to use SHOW command
+stats_users=""
+
+# When server connection is released back to pool:
+#   session      - after client disconnects
+#   transaction  - after transaction finishes
+#   statement    - after statement finishes
+pool_mode="session"
+
+#
+# Query for cleaning connection immediately after releasing from client.
+# No need to put ROLLBACK here, pgbouncer does not reuse connections
+# where transaction is left open.
+#
+# Query for 8.3+:
+#   DISCARD ALL;
+#
+# Older versions:
+#   RESET ALL; SET SESSION AUTHORIZATION DEFAULT
+#
+# Empty if transaction pooling is in use.
+#
+server_reset_query="DISCARD ALL"
+
+# Whether server_reset_query should run in all pooling modes.
+# If it is off, server_reset_query is used only for session-pooling.
+server_reset_query_always=""
+
+#
+# Comma-separated list of parameters to ignore when given
+# in startup packet.  Newer JDBC versions require the
+# extra_float_digits here.
+#
+ignore_startup_parameters= ""
+
+#
+# When taking idle server into use, this query is ran first.
+#   SELECT 1
+#
+server_check_query= ""
+
+# If server was used more recently that this many seconds ago,
+# skip the check query.  Value 0 may or may not run in immediately.
+server_check_delay= ""
+
+# Use <appname - host> as application_name on server.
+application_name_add_host= ""
+
+# total number of clients that can connect
+max_client_conn=100
+
+# default pool size. 20 is good number when transaction pooling
+# is in use, in session pooling it needs to be the number of
+# max clients you want to handle at any moment
+default_pool_size=100
+
+# Minimum number of server connections to keep in pool.
+min_pool_size=""
+
+# how many additional connection to allow in case of trouble
+reserve_pool_size=""
+
+# if a clients needs to wait more than this many seconds, use reserve pool
+reserve_pool_timeout=""
+
+# how many total connections to a single database to allow from all pools
+max_db_connections=""
+max_user_connections=""
+
+# If off, then server connections are reused in LIFO manner
+server_round_robin=""
+
+# Syslog settings
+syslog=""
+syslog_facility=""
+syslog_ident=""
+
+# log if client connects or server connection is made
+log_connections=""
+
+# log if and why connection was closed
+log_disconnections=""
+
+# log error messages pooler sends to clients
+log_pooler_errors=""
+
+# Period for writing aggregated stats into log.
+stats_period=""
+
+# Logging verbosity.  Same as -v switch on command line.
+verbose=""
+
+# Close server connection if its been connected longer.
+server_lifetime=""
+
+# Close server connection if its not been used in this time.
+# Allows to clean unnecessary connections from pool after peak.
+server_idle_timeout=""
+
+# Cancel connection attempt if server does not answer takes longer.
+server_connect_timeout=""
+
+# If server login failed (server_connect_timeout or auth failure)
+# then wait this many second.
+server_login_retry=""
+
+# Dangerous.  Server connection is closed if query does not return
+# in this time.  Should be used to survive network problems,
+# _not_ as statement_timeout. (default: 0)
+query_timeout=""
+
+# Dangerous.  Client connection is closed if the query is not assigned
+# to a server in this time.  Should be used to limit the number of queued
+# queries in case of a database or network failure. (default: 120)
+query_wait_timeout=""
+
+# Dangerous.  Client connection is closed if no activity in this time.
+# Should be used to survive network problems. (default: 0)
+client_idle_timeout=""
+
+# Disconnect clients who have not managed to log in after connecting
+# in this many seconds.
+client_login_timeout=""
+
+# Clean automatically created database entries (via "*") if they
+# stay unused in this many seconds.
+autodb_idle_timeout=""
+
+# How long SUSPEND/-R waits for buffer flush before closing connection.
+suspend_timeout=""
+
+# Close connections which are in "IDLE in transaction" state longer than
+# this many seconds.
+idle_transaction_timeout=""
+
+# buffer for streaming packets
+pkt_buf=""
+
+# man 2 listen
+listen_backlog=""
+
+# Max number pkt_buf to process in one event loop.
+sbuf_loopcnt=""
+
+# Maximum Postgres protocol packet size.
+max_packet_size=""
+
+# networking options, for info: man 7 tcp
+# Linux: notify program about new connection only if there
+# is also data received.  (Seconds to wait.)
+# On Linux the default is 45, on other OS'es 0.
+tcp_defer_accept=""
+
+# In-kernel buffer size (Linux default: 4096)
+tcp_socket_buffer=""
+
+# whether tcp keepalive should be turned on (0/1)
+tcp_keepalive=""
+
+# count of keepaliva packets
+tcp_keepcnt=""
+
+# how long the connection can be idle,
+# before sending keepalive packets
+tcp_keepidle=""
+
+# The time between individual keepalive probes.
+tcp_keepintvl=""
+
+# DNS lookup caching time
+dns_max_ttl=""
+
+# DNS zone SOA lookup period
+dns_zone_check_period=""
+
+# DNS negative result caching time
+dns_nxdomain_ttl=""
+
+# Hackish security feature.  Helps against SQL-injection - when PQexec is disabled,
+# multi-statement cannot be made.
+disable_pqexec=""
+
+[pgbouncer.client_tls]
+
+# disable, allow, require, verify-ca, verify-full
+sslmode="disable"
+
+# Path to file that contains trusted CA certs
+ca_file=""
+
+use_files=""
+
+# fast, normal, secure, legacy, <ciphersuite string>
+ciphers= ""
+
+# all, secure, tlsv1.0, tlsv1.1, tlsv1.2
+protocols=""
+
+# none, auto, legacy
+dheparams=""
+
+# none, auto, <curve name>
+ecdhcurve=""
+
+[pgbouncer.server_tls]
+
+# disable, allow, require, verify-ca, verify-full
+sslmode=""
+
+# Path to that contains trusted CA certs
+ca_file=""
+
+# Private key and cert to present to backend.
+# Needed only if backend server require client cert.
+key_file=""
+cert_file=""
+
+# all, secure, tlsv1.0, tlsv1.1, tlsv1.2
+protocols=""
+
+# fast, normal, secure, legacy, <ciphersuite string>
+ciphers=""
