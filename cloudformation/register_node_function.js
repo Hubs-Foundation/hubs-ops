@@ -85,28 +85,31 @@ exports.handler = async function (event, context) {
 
     let healthChecks = (await promisify(route53.listHealthChecks.bind(route53))({ MaxItems: "100"})).HealthChecks;
 
-    // Go through IPs, adding missing records and health checks
-    for (let i = 0, l = ipAddresses.length; i < l; i++) {
-      const ip = ipAddresses[i];
-      if (!healthChecks.find(h => h.HealthCheckConfig.IPAddress === ip)) {
-        //console.log("Adding check " + ip);
+    // If we only have one IP, don't bother with health checks (to save cost)
+    if (ipAddresses.length > 1) {
+      // Go through IPs, adding missing records and health checks
+      for (let i = 0, l = ipAddresses.length; i < l; i++) {
+        const ip = ipAddresses[i];
+        if (!healthChecks.find(h => h.HealthCheckConfig.IPAddress === ip)) {
+          //console.log("Adding check " + ip);
 
-        try {
-          await promisify(route53.createHealthCheck.bind(route53))({
-            CallerReference: Math.floor(Math.random() * 1000000000).toString(),
-            HealthCheckConfig: {
-              EnableSNI: true,
-              FailureThreshold: 2,
-              FullyQualifiedDomainName: recordName,
-              IPAddress: ip,
-              Port: 443,
-              RequestInterval: 10,
-              ResourcePath: "/health",
-              Type: "HTTPS"
-            }
-          });
-        } catch (e) {}
-      } 
+          try {
+            await promisify(route53.createHealthCheck.bind(route53))({
+              CallerReference: Math.floor(Math.random() * 1000000000).toString(),
+              HealthCheckConfig: {
+                EnableSNI: true,
+                FailureThreshold: 2,
+                FullyQualifiedDomainName: recordName,
+                IPAddress: ip,
+                Port: 443,
+                RequestInterval: 10,
+                ResourcePath: "/health",
+                Type: "HTTPS"
+              }
+            });
+          } catch (e) {}
+        } 
+      }
     }
 
     // Re-fetch health checks to get ids.
@@ -115,7 +118,7 @@ exports.handler = async function (event, context) {
     for (let i = 0, l = ipAddresses.length; i < l; i++) {
       const ip = ipAddresses[i];
       if (!recordSets.find(r => r.Name === recordName && r.ResourceRecords && r.ResourceRecords.length && r.ResourceRecords[0].Value === ip)) {
-        const checkId = healthChecks.find(h => h.HealthCheckConfig.IPAddress === ip).Id;
+        const check = healthChecks.find(h => h.HealthCheckConfig.IPAddress === ip);
         //console.log("Adding ip " + ip + " with check " + checkId);
 
         try {
@@ -125,7 +128,7 @@ exports.handler = async function (event, context) {
                 {
                   Action: 'UPSERT',
                   ResourceRecordSet: {
-                    MultiValueAnswer: true, Name: recordName, Type: 'A', HealthCheckId: checkId,
+                    MultiValueAnswer: true, Name: recordName, Type: 'A', HealthCheckId: check ? check.Id : null,
                     TTL: ttl, SetIdentifier: ip, ResourceRecords: [{ Value: ip }]
                   }
                 }
@@ -141,7 +144,8 @@ exports.handler = async function (event, context) {
     for (let i = 0, l = healthChecks.length; i < l; i++) {
       const check = healthChecks[i];
 
-      if (!ipAddresses.find(ip => check.HealthCheckConfig.IPAddress === ip)) {
+      // Remove all health checks if only one IP or if a health check is registered to an IP not used.
+      if (ipAddresses.length === 1 || !ipAddresses.find(ip => check.HealthCheckConfig.IPAddress === ip)) {
         //console.log("deleting check " + check.Id);
 
         try {
