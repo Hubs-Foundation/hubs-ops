@@ -2827,11 +2827,6 @@ Resources:
           FromPort: 0
           ToPort: 65535
           CidrIp: 0.0.0.0/0
-        # Outbound NTP
-        - IpProtocol: tcp
-          FromPort: 123
-          ToPort: 123
-          CidrIp: 0.0.0.0/0
         # Outbound DNS
         - IpProtocol: tcp
           FromPort: 53
@@ -3481,7 +3476,7 @@ Resources:
             Resource: "*"
 
 Outputs:
-  RootDomain:
+  AddressForRootDomain:
     Description: Serving domain name for your stack. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Cloud on your site.
     Value: !If [ HasALB, AppALBDNSInternal, !GetAtt AppCloudfrontDistribution.DomainName ]
 
