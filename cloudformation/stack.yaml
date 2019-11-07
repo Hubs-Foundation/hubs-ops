@@ -176,7 +176,7 @@ Parameters:
   ClassB:
     Type: String
     Description: VPC ClassB (10.XX.0.0/16) block to use for internal server IPs.
-    Default: 56
+    Default: 0
   AppPlacementGroupStrategy:
     Type: String
     Description: "Placement group strategy for app servers. If you only have one app server, this setting has no effect. If you have more than one app server, choose 'cluster' to increase connectivity between servers at the cost of reliability. When using 'cluster', you will have lower latency between users but your service will go down if there is an AZ-wide outage. Choose 'spread' if you would like to ensure higher availability at the cost of latency or maximum throughput between app servers. Choose 'none' if you do not have a preference, will be running more than 7 app servers, or if AWS has been failing to provision servers for you in previous attempts to create the stack. App servers communicate with one another extensively, so 'cluster' is the preferred setting if you can tolerate some risk of downtime if there are AZ-wide outages, which are rare."
