@@ -3275,7 +3275,7 @@ Resources:
       ScalingConfiguration:
         AutoPause: true
         MaxCapacity: !Ref DbMaxCapacity
-        MinCapacity: 1
+        MinCapacity: 2
         SecondsUntilAutoPause: 300
       VpcSecurityGroupIds:
         - !Ref AppDbSecurityGroup
