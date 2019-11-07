@@ -3266,7 +3266,7 @@ Resources:
   AppDb:
     Type: AWS::RDS::DBCluster
     Properties:
-      AvailabilityZones: !GetAZs
+      AvailabilityZones:
         - !GetAtt SubnetAPrivate.AvailabilityZone
         - !GetAtt SubnetBPrivate.AvailabilityZone
       BackupRetentionPeriod: !Ref DbBackupRetentionPeriod
