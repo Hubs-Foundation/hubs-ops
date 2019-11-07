@@ -227,7 +227,7 @@ Parameters:
     AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
   AutoPauseDb:
     Type: String
-    Description: Hubs Cloud uses the Aurora Serverless database, which can save costs by pausing the database when your Hubs Cloud instance is not in use. However, when the database is paused, it can take up to 20 seconds for your site to become active again. You can turn off database pausing if you prefer your database to remain available so there is no delay in loading your site. Turning off pausing will incur an hourly cost.
+    Description: Hubs Cloud uses the Aurora Serverless database, which can save costs by pausing the database when your Hubs Cloud instance is not in use. However, when the database is paused, it can take up to 20 seconds for your site to come back up when you visit it. You can turn off database pausing if you prefer your database to remain available so there is no delay in loading your site. Turning off pausing will incur an hourly cost.
     Default: "Yes - Pause database when not in use"
     AllowedValues: ["Yes - Pause database when not in use", "No - Keep database running to reduce delays"]
 
