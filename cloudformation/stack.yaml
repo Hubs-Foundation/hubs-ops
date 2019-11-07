@@ -91,6 +91,8 @@ Metadata:
         default : "Load Balancing Method"
       AutoPauseDb:
         default : "Auto-Pause Database"
+      SubnetAZs:
+        default : "Subnet Availability Zones"
 Parameters:
   DomainName:
     Type: String
