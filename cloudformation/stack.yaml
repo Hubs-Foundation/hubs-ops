@@ -3267,6 +3267,8 @@ Resources:
     Type: AWS::RDS::DBCluster
     Properties:
       AvailabilityZones: !GetAZs
+        - !GetAtt SubnetAPrivate.AvailabilityZone
+        - !GetAtt SubnetBPrivate.AvailabilityZone
       BackupRetentionPeriod: !Ref DbBackupRetentionPeriod
       DatabaseName: polycosm_production
       DBClusterIdentifier: !Sub "${AWS::StackName}-app-db"
