@@ -2721,6 +2721,7 @@ Resources:
             Locations: []
         Aliases:
           - !Sub '${AWS::StackName}-assets.${InternalZoneInfo.Name}'
+          - !Sub '${AWS::StackName}-${AWS::AccountId}-assets.${InternalZoneInfo.Name}'
         HttpVersion: http2
         PriceClass: PriceClass_All
         CustomErrorResponses:
