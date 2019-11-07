@@ -40,6 +40,7 @@ Metadata:
           - LoadBalancingMethod
           - ChannelType
           - SubnetAZs
+          - AutoPauseDb
           - NewCMKForDiskEncryption
           - ClassB
           - AppPlacementGroupStrategy
@@ -88,6 +89,8 @@ Metadata:
         default : "Package release channel"
       LoadBalancingMethod:
         default : "Load Balancing Method"
+      AutoPauseDb:
+        default : "Auto-Pause Database"
 Parameters:
   DomainName:
     Type: String
@@ -220,6 +223,11 @@ Parameters:
     Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer (which will incur additional costs.)
     Default: "DNS Round Robin"
     AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
+  AutoPauseDb:
+    Type: String
+    Description: Hubs Cloud uses the Aurora Serverless database, and can save costs by pausing the database when your Hubs Cloud instance is not in use. However, when the database is paused, it can take up to 20 seconds for your site to become active again. You can turn off database pausing if you prefer your database to remain available so there is no delay in loading your site. Turning off pausing will incur an hourly cost.
+    Default: "Yes - Pause database when not in use"
+    AllowedValues: ["Yes - Pause database when not in use", "No - Keep database running to reduce delays"]
 
 Mappings:
   Regions:
@@ -284,8 +292,8 @@ Conditions:
   IsStableChannel: !Equals [!Ref ChannelType, "Stable"]
   IsWindowA: !Equals [!Ref MaintenenceWindow, "10:00-11:00 GMT (02:00-03:00 PT)"]
   HasALB: !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]
-  HasManagedDomainOnALB: !And [ !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]] , !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]
-]
+  HasManagedDomainOnALB: !And [ !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]] , !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]]
+  EnableDbAutoPause: !Equals [!Ref AutoPauseDb, "Yes - Pause database when not in use"]
 
 Resources:
 
@@ -1659,7 +1667,6 @@ Resources:
     Type: AWS::ApiGateway::Method
     Properties:
       HttpMethod: GET
-      RequestParameters: {}
       ResourceId: !Ref SpeelycaptorApiGatewayResourceInit
       RestApiId: !Ref SpeelycaptorApiGatewayRestApi
       ApiKeyRequired: false
@@ -1673,7 +1680,6 @@ Resources:
     Type: AWS::ApiGateway::Method
     Properties:
       HttpMethod: GET
-      RequestParameters: {}
       ResourceId: !Ref SpeelycaptorApiGatewayResourceConvert
       RestApiId: !Ref SpeelycaptorApiGatewayRestApi
       ApiKeyRequired: false
@@ -3258,9 +3264,7 @@ Resources:
   AppDb:
     Type: AWS::RDS::DBCluster
     Properties:
-      AvailabilityZones:
-        - !GetAtt SubnetAPrivate.AvailabilityZone
-        - !GetAtt SubnetBPrivate.AvailabilityZone
+      AvailabilityZones: !GetAZs
       BackupRetentionPeriod: !Ref DbBackupRetentionPeriod
       DatabaseName: polycosm_production
       DBClusterIdentifier: !Sub "${AWS::StackName}-app-db"
@@ -3273,7 +3277,7 @@ Resources:
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]
       ScalingConfiguration:
-        AutoPause: true
+        AutoPause: !If [EnableDbAutoPause, true, false]
         MaxCapacity: !Ref DbMaxCapacity
         MinCapacity: 2
         SecondsUntilAutoPause: 300
