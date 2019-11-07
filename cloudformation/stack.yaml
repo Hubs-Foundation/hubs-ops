@@ -3606,7 +3606,7 @@ Outputs:
 
   HubsPageOrigin:
     Description: Hubs page origin [reticulum/pages/hubs_page_origin]
-    Value: !Sub 'https://${AppAssetsDNS}/hubs/pages/latest'
+    Value: !Sub 'https://${AssetsBucket.RegionalDomainName}/hubs/pages/latest'
 
   SpokeBaseAssetsPath:
     Description: Base assets path for spoke CDN assets [spoke/general/base_assets_path]
@@ -3614,7 +3614,7 @@ Outputs:
 
   SpokePageOrigin:
     Description: Spoke page origin [reticulum/pages/spoke_page_origin]
-    Value: !Sub 'https://${AppAssetsDNS}/spoke/pages/latest'
+    Value: !Sub 'https://${AssetsBucket.RegionalDomainName}/spoke/pages/latest'
 
   ClientDeployType:
     Description: Client deploy type [hubs/deploy/type,spoke/deploy/type]
