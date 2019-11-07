@@ -3585,8 +3585,8 @@ Outputs:
     Value: polycosm_production
 
   AppDbHostname:
-    Description: App DB Hostname [reticulum/db/hostname,ita/db/hostname]
-    Value: "localhost"
+    Description: App DB Hostname [ita/db/hostname]
+    Value: !GetAtt AppDb.Endpoint.Address
 
   PostgrestDbURI:
     Description: Postgrest DB URI [postgrest/db/uri!inject-aws-secret]
@@ -3594,7 +3594,7 @@ Outputs:
 
   PgbouncerDb:
     Description: Pgbouncer DB Info [pgbouncer/pgbouncer/db!inject-aws-secret]
-    Value: !Sub "host=${AppDb.Endpoint.Address} dbname=polycosm_production auth_user=postgres password={${AppDbSecret}}"
+    Value: !Sub "polycosm_production = host=${AppDb.Endpoint.Address} dbname=polycosm_production user=postgres password={${AppDbSecret}} pool_mode=transaction\npolycosm_locking = host=${AppDb.Endpoint.Address} dbname=polycosm_production user=postgres password={${AppDbSecret}} pool_mode=session"
 
   AssetsBucket:
     Description: Assets bucket name [hubs/deploy/target,spoke/deploy/target]
