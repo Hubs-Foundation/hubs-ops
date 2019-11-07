@@ -38,16 +38,16 @@ Metadata:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
           - LoadBalancingMethod
-          - ChannelType
-          - SubnetAZs
           - AutoPauseDb
-          - NewCMKForDiskEncryption
-          - ClassB
-          - AppPlacementGroupStrategy
-          - DbBackupRetentionPeriod
+          - DbMaxCapacity
           - DbPreferredBackupWindow
           - DbPreferredMaintenanceWindow
-          - DbMaxCapacity
+          - DbBackupRetentionPeriod
+          - NewCMKForDiskEncryption
+          - ChannelType
+          - SubnetAZs
+          - ClassB
+          - AppPlacementGroupStrategy
     ParameterLabels:
       DomainName:
         default: Domain Name
