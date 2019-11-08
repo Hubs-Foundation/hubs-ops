@@ -1,4 +1,5 @@
 const ALLOWED_ORIGINS = ["https://hubs.local:8080", "https://hubs.local:9090", "https://hubs.local:4000", "https://dev.reticulum.io", "https://smoke-dev.reticulum.io", "https://hubs.mozilla.com", "https://smoke-hubs.mozilla.com", "https://photomnemonic-utils.reticulum.io"];
+const CORS_PROXY_HOST = "https://cors-proxy.hubs-proxy.com"
 const PROXY_HOST = "https://hubs-proxy.com"
 const STORAGE_HOST = "https://hubs.mozilla.com";
 const ASSETS_HOST = "https://assets-prod.reticulum.io";
@@ -8,11 +9,11 @@ let cache = caches.default;
 addEventListener("fetch", e => {
   const request = e.request;
   const origin = request.headers.get("Origin");
-  const proxyUrl = new URL(PROXY_HOST);
   // eslint-disable-next-line no-useless-escape
 
-  const isCorsProxy = request.url.indexOf("https://cors-proxy.") === 0;
-  const targetPath = request.url.replace(/^https:\/\/cors-proxy\./, "https://").substring(PROXY_HOST.length + 1);
+  const isCorsProxy = request.url.indexOf(CORS_PROXY_HOST) === 0;
+  const proxyUrl = new URL(isCorsProxy ? CORS_PROXY_HOST : PROXY_HOST);
+  const targetPath = request.url.substring((isCorsProxy ? CORS_PROXY_HOST : PROXY_HOST).length + 1);
   let useCache = false;
   let targetUrl;
 
@@ -33,6 +34,7 @@ addEventListener("fetch", e => {
       targetUrl = proxyUrl.protocol + "//" + targetUrl;
     }
   }
+  
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete("Origin"); // Some domains disallow access from improper Origins
 
