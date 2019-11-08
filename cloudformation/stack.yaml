@@ -192,7 +192,7 @@ Parameters:
   DbMaxCapacity:
     Type: Number
     Description: "Maximum ACU Capacity for the database. The database will be a serverless Aurora PostgreSQL-compatible cluster."
-    Default: 64
+    Default: 2
   NewCMKForDiskEncryption:
     Type: String
     Description: "Select 'Yes' if you'd like to create a dedicated CMK in KMS for database and backup encryption. KMS charges for a single managed key will apply."
