@@ -40,14 +40,27 @@ addEventListener("fetch", e => {
 
   e.respondWith((async () => {
     let cacheReq;
+    let res;
+    let fetched = false;
 
     if (useCache) {
       cacheReq = new Request(targetUrl, { headers: requestHeaders, method: request.method, redirect: "manual" });
-      const res = await cache.match(cacheReq, {});
-      if (res) return res;
+      res = await cache.match(cacheReq, {});
     }
 
-    const res = await fetch(targetUrl, { headers: requestHeaders, method: request.method, redirect: "manual", referrer: request.referrer, referrerPolicy: request.referrerPolicy });      
+    if (!res) {
+      res = await fetch(targetUrl, { headers: requestHeaders, method: request.method, redirect: "manual", referrer: request.referrer, referrerPolicy: request.referrerPolicy });      
+      fetched = true;
+    }
+
+    let body = res.body;
+
+    if (useCache && fetched) {
+      const [body1, body2] = res.body.tee();
+      body = body2;
+      await cache.put(cacheReq, new Response(body1, { status: res.status, statusText: res.statusText, headers: res.headers }));
+    }
+
     const responseHeaders = new Headers(res.headers);
     const redirectLocation = responseHeaders.get("Location") || responseHeaders.get("location");
 
@@ -69,13 +82,6 @@ addEventListener("fetch", e => {
 
     responseHeaders.set("Vary", "Origin");
     responseHeaders.set('X-Content-Type-Options', "nosniff");
-    let body = res.body;
-
-    if (useCache) {
-      const [body1, body2] = res.body.tee();
-      body = body2;
-      await cache.put(cacheReq, new Response(body1, { status: res.status, statusText: res.statusText, headers: responseHeaders }));
-    }
 
     return new Response(body, { status: res.status, statusText: res.statusText, headers: responseHeaders });  
   })());
