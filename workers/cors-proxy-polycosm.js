@@ -4,8 +4,6 @@ const PROXY_HOST = "https://hubs-proxy.com"
 const STORAGE_HOST = "https://hubs.mozilla.com";
 const ASSETS_HOST = "https://assets-prod.reticulum.io";
   
-let cache = caches.default;
-
 addEventListener("fetch", e => {
   const request = e.request;
   const origin = request.headers.get("Origin");
@@ -14,14 +12,11 @@ addEventListener("fetch", e => {
   const isCorsProxy = request.url.indexOf(CORS_PROXY_HOST) === 0;
   const proxyUrl = new URL(isCorsProxy ? CORS_PROXY_HOST : PROXY_HOST);
   const targetPath = request.url.substring((isCorsProxy ? CORS_PROXY_HOST : PROXY_HOST).length + 1);
-  let useCache = false;
   let targetUrl;
 
   if (targetPath.indexOf("files/") === 0) {
-    useCache = true;
     targetUrl = `${STORAGE_HOST}/${targetPath}`;
   } else if (targetPath.indexOf("hubs/") === 0 || targetPath.indexOf("spoke/") === 0 || targetPath.indexOf("admin/") === 0) {
-    useCache = true;
     targetUrl = `${ASSETS_HOST}/${targetPath}`;
   } else {
     if (!isCorsProxy) {
@@ -39,28 +34,7 @@ addEventListener("fetch", e => {
   requestHeaders.delete("Origin"); // Some domains disallow access from improper Origins
 
   e.respondWith((async () => {
-    let cacheReq;
-    let res;
-    let fetched = false;
-
-    if (useCache) {
-      cacheReq = new Request(targetUrl, { headers: requestHeaders, method: request.method, redirect: "manual" });
-      res = await cache.match(cacheReq, {});
-    }
-
-    if (!res) {
-      res = await fetch(targetUrl, { headers: requestHeaders, method: request.method, redirect: "manual", referrer: request.referrer, referrerPolicy: request.referrerPolicy });      
-      fetched = true;
-    }
-
-    let body = res.body;
-
-    if (useCache && fetched) {
-      const [body1, body2] = res.body.tee();
-      body = body2;
-      await cache.put(cacheReq, new Response(body1, { status: res.status, statusText: res.statusText, headers: res.headers }));
-    }
-
+    const res = await fetch(targetUrl, { headers: requestHeaders, method: request.method, redirect: "manual", referrer: request.referrer, referrerPolicy: request.referrerPolicy });      
     const responseHeaders = new Headers(res.headers);
     const redirectLocation = responseHeaders.get("Location") || responseHeaders.get("location");
 
@@ -83,6 +57,6 @@ addEventListener("fetch", e => {
     responseHeaders.set("Vary", "Origin");
     responseHeaders.set('X-Content-Type-Options', "nosniff");
 
-    return new Response(body, { status: res.status, statusText: res.statusText, headers: responseHeaders });  
+    return new Response(res.body, { status: res.status, statusText: res.statusText, headers: responseHeaders });  
   })());
 });
