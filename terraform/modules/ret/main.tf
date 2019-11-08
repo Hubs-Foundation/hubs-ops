@@ -998,3 +998,25 @@ resource "aws_iam_policy" "ret-upload-backup-policy" {
 }
 EOF
 }
+
+resource "aws_s3_bucket" "polycosm-assets-bucket" {
+  bucket = "${var.shared["env"]}-polycosm-assets.${var.ret_domain}"
+  acl = "public-read"
+
+  website {
+      index_document = "index.html"
+      error_document = "error.html"
+  }
+}
+
+resource "aws_route53_record" "polycosm-assets-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "${var.shared["env"]}-polycosm-assets.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_s3_bucket.polycosm-assets-bucket.website_domain}"
+    zone_id = "${aws_s3_bucket.polycosm-assets-bucket.hosted_zone_id}"
+    evaluate_target_health = true
+  }
+}

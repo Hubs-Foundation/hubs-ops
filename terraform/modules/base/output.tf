@@ -61,15 +61,3 @@ output "link_redirector_website_endpoint" {
 output "root_redirector_website_endpoint" {
   value ="${aws_s3_bucket.root-redirector-bucket.website_endpoint}"
 }
-
-output "polycosm_assets_bucket_domain_name" {
-  value ="${aws_s3_bucket.polycosm-assets.bucket_domain_name}"
-}
-
-output "polycosm_assets_bucket_id" {
-  value ="${aws_s3_bucket.polycosm-assets.id}"
-}
-
-output "polycosm_assets_bucket_region" {
-  value ="${var.shared["region"]}"
-}
