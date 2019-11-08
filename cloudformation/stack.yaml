@@ -3624,6 +3624,10 @@ Outputs:
     Description: Spoke page origin [reticulum/pages/spoke_page_origin]
     Value: !Sub 'https://${AssetsBucket.RegionalDomainName}/spoke/pages/latest'
 
+  AssetsDomain:
+    Description: Assets domain for worker
+    Value: !GetAtt AssetsBucket.RegionalDomainName
+
   ClientDeployType:
     Description: Client deploy type [hubs/deploy/type,spoke/deploy/type]
     Value: s3
