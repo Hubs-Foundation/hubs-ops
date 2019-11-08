@@ -3284,7 +3284,7 @@ Resources:
         AutoPause: !If [EnableDbAutoPause, true, false]
         MaxCapacity: !Ref DbMaxCapacity
         MinCapacity: 2
-        SecondsUntilAutoPause: 600 # 10 minute auto pause, so 15 min duration total since server connection idle is 5m
+        SecondsUntilAutoPause: 300
       VpcSecurityGroupIds:
         - !Ref AppDbSecurityGroup
 
