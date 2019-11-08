@@ -507,7 +507,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref LambdaBucket
-      SourceBucket: prod-polycosm-assets.reticulum.io
+      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
       Prefix: ""
       Objects:
         - lambdas/speelycaptor/speelycaptor-0.1.2.zip
@@ -518,7 +518,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref LambdaBucket
-      SourceBucket: prod-polycosm-assets.reticulum.io
+      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
       Prefix: ""
       Objects:
         - lambdas/nearspark/nearspark-0.1.0.zip
@@ -529,7 +529,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref LambdaBucket
-      SourceBucket: prod-polycosm-assets.reticulum.io
+      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
       Prefix: ""
       Objects:
         - lambdas/photomnemonic/photomnemonic-0.1.0.zip
@@ -540,7 +540,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref LambdaBucket
-      SourceBucket: prod-polycosm-assets.reticulum.io
+      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
       Prefix: ""
       Objects:
         - lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.4.zip
@@ -551,7 +551,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref LambdaBucket
-      SourceBucket: prod-polycosm-assets.reticulum.io
+      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
       Prefix: ""
       Objects:
         - lambdas/keymaster/keymaster-0.1.8.zip
@@ -1287,8 +1287,8 @@ Resources:
                  - s3:ListBucket
                  - s3:GetObject
                Resource:
-                 - arn:aws:s3:::prod-polycosm-assets.reticulum.io
-                 - arn:aws:s3:::prod-polycosm-assets.reticulum.io/*
+                 - arn:aws:s3:::polycosm-assets-prod-77ae26402152f4ea
+                 - arn:aws:s3:::polycosm-assets-prod-77ae26402152f4ea/*
              - Effect: Allow
                Action:
                  - s3:PutObject
@@ -2051,7 +2051,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref AssetsBucket
-      SourceBucket: prod-polycosm-assets.reticulum.io
+      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
       Prefix: ""
       Objects:
         - assets/js/pdfjs-dist@2.1.266/build/pdf.worker.js
@@ -2108,7 +2108,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CopyFileFunction.Arn
       DestBucket: !Ref LinkRedirectorBucket
-      SourceBucket: prod-polycosm-assets.reticulum.io
+      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
       Prefix: ""
       Objects:
         - link-redirector-index.html
