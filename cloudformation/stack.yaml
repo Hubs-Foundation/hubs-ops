@@ -3723,3 +3723,7 @@ Outputs:
   StackName:
     Description: Stack name [reticulum/ret/pool]
     Value: !Ref "AWS::StackName"
+
+  LambdaBucketName:
+    Description: Lambdas Bucket
+    Value: !Ref LambdaBucket

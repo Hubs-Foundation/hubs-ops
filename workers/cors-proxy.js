@@ -2,7 +2,7 @@ const ALLOWED_ORIGINS = ["https://hubs.local:8080", "https://hubs.local:9090", "
 const PROXY_HOST = "https://hubs-proxy.com"
 const STORAGE_HOST = "https://hubs.mozilla.com";
 const ASSETS_HOST = "https://assets-prod.reticulum.io";
-
+  
 let cache = caches.default;
 
 addEventListener("fetch", e => {
@@ -10,7 +10,9 @@ addEventListener("fetch", e => {
   const origin = request.headers.get("Origin");
   const proxyUrl = new URL(PROXY_HOST);
   // eslint-disable-next-line no-useless-escape
-  const targetPath = request.url.substring(PROXY_HOST.length + 1);
+
+  const isCorsProxy = request.url.indexOf("https://cors-proxy.") === 0;
+  const targetPath = request.url.replace(/^https:\/\/cors-proxy\./, "https://").substring(PROXY_HOST.length + 1);
   let useCache = false;
   let targetUrl;
 
@@ -21,13 +23,16 @@ addEventListener("fetch", e => {
     useCache = true;
     targetUrl = `${ASSETS_HOST}/${targetPath}`;
   } else {
-    targetUrl = request.url.substring(PROXY_HOST.length + 1).replace(/^http(s?):\/([^/])/, "http$1://$2");
+    if (!isCorsProxy) {
+      // Do not allow cors proxying from main domain, always require cors-proxy. subdomain to ensure CSP stays sane.
+      return;
+    }
+    targetUrl = targetPath.replace(/^http(s?):\/([^/])/, "http$1://$2");
 
     if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
       targetUrl = proxyUrl.protocol + "//" + targetUrl;
     }
   }
-  
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete("Origin"); // Some domains disallow access from improper Origins
 
