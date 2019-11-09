@@ -136,9 +136,9 @@ Parameters:
     ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
   AppInstanceCount:
     Type: Number
-    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for Hubs Cloud. You must run at least one app server.
+    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for Hubs Cloud. You must run at least one app server. Set to zero to temporarily shut down your site.
     Default: 1
-    MinValue: 1
+    MinValue: 0
     ConstraintDescription: You must run at least one app server.
   AppInstanceType:
     Type: String
