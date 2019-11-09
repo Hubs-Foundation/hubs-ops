@@ -31,23 +31,26 @@ Metadata:
           - StreamInstanceType
           - MaintenenceWindow
       - Label:
+          default: Database Configuration
+        Parameters:
+          - AutoPauseDb
+          - DbBackupRetentionPeriod
+      - Label:
           default: SSL Certificates
         Parameters:
           - UnmanagedDomainCertArn
       - Label:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
-          - LoadBalancingMethod
-          - AutoPauseDb
           - DbMaxCapacity
-          - DbPreferredBackupWindow
-          - DbPreferredMaintenanceWindow
-          - DbBackupRetentionPeriod
+          - LoadBalancingMethod
           - NewCMKForDiskEncryption
           - ChannelType
           - SubnetAZs
           - ClassB
           - AppPlacementGroupStrategy
+          - DbPreferredBackupWindow
+          - DbPreferredMaintenanceWindow
     ParameterLabels:
       DomainName:
         default: Domain Name
@@ -192,6 +195,8 @@ Parameters:
   DbMaxCapacity:
     Type: Number
     Description: "Maximum ACU Capacity for the database. The database will be a serverless Aurora PostgreSQL-compatible cluster."
+    MinValue: 2
+    MaxValue: 384
     Default: 2
   NewCMKForDiskEncryption:
     Type: String
@@ -227,7 +232,7 @@ Parameters:
     AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
   AutoPauseDb:
     Type: String
-    Description: Hubs Cloud uses the Aurora Serverless database, which can save costs by pausing the database when your Hubs Cloud instance is not in use. However, when the database is paused, it can take up to 20 seconds for your site to come back up when you visit it. You can turn off database pausing if you prefer your database to remain available so there will never be a delay in loading your site. Turning off pausing will incur an hourly cost.
+    Description: Hubs Cloud uses the Aurora Serverless database, which can greatly save costs by pausing the database when your Hubs Cloud instance is not in use. However, when the database is paused, it can take up to 20 seconds for your site to come back up when you visit it. You can turn off database pausing if you prefer your database to remain available so there will never be a delay in loading your site. Turning off pausing will incur continuous hourly costs for the database.
     Default: "Yes - Pause database when not in use"
     AllowedValues: ["Yes - Pause database when not in use", "No - Keep database running to reduce delays"]
 
@@ -2513,6 +2518,19 @@ Resources:
             Action:
               - ses:GetSendQuota
             Resource: "*"
+          - Effect: Allow
+            Action:
+              - lambda:ListFunctions
+              - lambda:ListTags
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - lambda:UpdateFunctionCode
+            Resource:
+              - !GetAtt SpeelycaptorInitLambdaFunction.Arn
+              - !GetAtt SpeelycaptorConvertLambdaFunction.Arn
+              - !GetAtt NearsparkThumbnailLambdaFunction.Arn
+              - !GetAtt PhotomnemonicScreenshotLambdaFunction.Arn
 
   AppALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
