@@ -2498,6 +2498,12 @@ Resources:
               - !Sub '${AssetsBucket.Arn}/spoke/*'
           - Effect: Allow
             Action:
+              - s3:PutObject
+              - s3:PutObjectAcl
+            Resource:
+              - !Sub '${LambdaBucket.Arn}/*'
+          - Effect: Allow
+            Action:
               - s3:ListBucket
             Resource:
               - !Sub '${AssetsBucket.Arn}'
