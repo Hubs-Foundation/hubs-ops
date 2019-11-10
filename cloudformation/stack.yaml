@@ -559,7 +559,7 @@ Resources:
       SourceBucket: polycosm-assets-prod-77ae26402152f4ea
       Prefix: ""
       Objects:
-        - lambdas/keymaster/keymaster-0.1.8.zip
+        - lambdas/keymaster/keymaster-0.1.9.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -995,10 +995,10 @@ Resources:
     Properties:
       UserName: !Sub "${AWS::StackName}-send-email"
 
-  WriteBoxKeysRole:
+  KeymasterRole:
    Type: AWS::IAM::Role
    Properties:
-     RoleName: !Sub "${AWS::StackName}-WriteBoxKeys"
+     RoleName: !Sub "${AWS::StackName}-KeymasterRole"
      AssumeRolePolicyDocument:
        Version: '2012-10-17'
        Statement:
@@ -1019,6 +1019,11 @@ Resources:
                  - s3:PutObject
                Resource:
                  - !Sub '${BoxKeysBucket.Arn}/*'
+             - Effect: Allow
+               Action:
+                 - ssm:PutParameter
+                 - ssm:DeleteParameter
+               Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/keymaster/${AWS::StackName}/*"
 
   GenerateBioRingKeyFunction:
     Type: AWS::Lambda::Function
@@ -1026,9 +1031,9 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.8.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
       Handler: index.generate_ring_key
-      Role: !GetAtt WriteBoxKeysRole.Arn
+      Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
       Description: Generates bio ring key
       Timeout: 30
@@ -1042,9 +1047,9 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.8.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
       Handler: index.generate_service_key
-      Role: !GetAtt WriteBoxKeysRole.Arn
+      Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
       Description: Generates bio service key
       Timeout: 30
@@ -1058,9 +1063,9 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-totp"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.8.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
       Handler: index.generate_totp
-      Role: !GetAtt WriteBoxKeysRole.Arn
+      Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
       Description: Generates ssh TOTP
       Timeout: 30
@@ -1074,11 +1079,27 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-jwt-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.8.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
       Handler: index.generate_jwt_keys
-      Role: !GetAtt WriteBoxKeysRole.Arn
+      Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
       Description: Generates JWT keys
+      Timeout: 30
+      MemorySize: 128
+    DependsOn:
+      - CopyKeymasterLambda
+
+  GenerateSecret:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-generate-secret"
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
+      Handler: index.generate_secret
+      Role: !GetAtt KeymasterRole.Arn
+      Runtime: nodejs10.x
+      Description: Generate Secret Into Parameter Store
       Timeout: 30
       MemorySize: 128
     DependsOn:
@@ -1090,9 +1111,9 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-vapid-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.8.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
       Handler: index.generate_vapid_keys
-      Role: !GetAtt WriteBoxKeysRole.Arn
+      Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
       Description: Generates Vapid keys
       Timeout: 30
@@ -2498,6 +2519,7 @@ Resources:
               - !Sub '${AssetsBucket.Arn}/spoke/*'
           - Effect: Allow
             Action:
+              - s3:GetObject
               - s3:PutObject
               - s3:PutObjectAcl
             Resource:
@@ -3259,33 +3281,13 @@ Resources:
             Action: "secretsmanager:DeleteSecret"
             Resource: "*"
 
-  AppPostgrestDbSecret:
-    Type: AWS::SecretsManager::Secret
+  AppPostgrestDbSecretParameter:
+    Type: Custom::GenerateSecret
     Properties:
-      Description: 'App postgrest db secret'
-      GenerateSecretString:
-        SecretStringTemplate: '{ "username": "postgrest_authenticator" }'
-        GenerateStringKey: 'password'
-        PasswordLength: 64
-        ExcludePunctuation: true
-
-  AppPostgrestDbSecretResourcePolicy:
-    Type: AWS::SecretsManager::ResourcePolicy
-    Properties: 
-      SecretId: !Ref AppPostgrestDbSecret
-      ResourcePolicy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: "Deny"
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "secretsmanager:DeleteSecret"
-            Resource: "*"
+      ServiceToken: !GetAtt GenerateSecret.Arn
+      Name: postgrest-db-secret
+      Region: !Ref "AWS::Region"
+      StackName: !Ref "AWS::StackName"
 
   AppDb:
     Type: AWS::RDS::DBCluster
@@ -3609,8 +3611,8 @@ Outputs:
     Value: !Ref AppDbSecret
 
   AppPostgrestDbSecret:
-    Description: App PostgREST DB Secret [reticulum/db/postgrest_password!read-aws-secret]
-    Value: !Ref AppPostgrestDbSecret
+    Description: App PostgREST DB Secret [reticulum/db/postgrest_password!read-keymaster-secret]
+    Value: postgrest-db-secret
 
   AppDbDatabase:
     Description: App DB Database [reticulum/db/database,ita/db/database]
@@ -3621,8 +3623,8 @@ Outputs:
     Value: !GetAtt AppDb.Endpoint.Address
 
   PostgrestDbURI:
-    Description: Postgrest DB URI [postgrest/db/uri!inject-aws-secret]
-    Value: !Sub "postgres://postgrest_authenticator:{${AppPostgrestDbSecret}}@${AppDb.Endpoint.Address}/polycosm_production"
+    Description: Postgrest DB URI [postgrest/db/uri!inject-keymaster-secret]
+    Value: !Sub "postgres://postgrest_authenticator:{postgrest-db-secret}@${AppDb.Endpoint.Address}/polycosm_production"
 
   PgbouncerDb:
     Description: Pgbouncer DB Info [pgbouncer/pgbouncer/db!inject-aws-secret]
