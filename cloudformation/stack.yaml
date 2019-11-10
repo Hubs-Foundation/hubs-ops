@@ -2541,7 +2541,9 @@ Resources:
               - ssm:GetParameters
               - ssm:GetParameter
               - ssm:DeleteParameters
-            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ita/${AWS::StackName}/*"
+            Resource:
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ita/${AWS::StackName}/*"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/keymaster/${AWS::StackName}/*"
           - Effect: Allow
             Action:
               - ses:GetSendQuota
