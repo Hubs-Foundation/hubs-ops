@@ -321,9 +321,13 @@ Conditions:
   HasOfflineRedirectUrl: !Not [!Equals [!Ref StackOfflineRedirectUrl, ""]]
   PerformOfflineRedirect: !And [ Condition: IsOffline, Condition: HasOfflineRedirectUrl ]
   PerformOfflineRedirectWithUnmanagedDomain: !And [Condition: PerformOfflineRedirect, Condition: HasUnmangedDomain]
+  EnableDbAutoPause: !Equals [!Ref AutoPauseDb, "Yes - Pause database when not in use"]
+
+  # NOTE: keep the ALB around if we are doing an offline redirect *and* we have an unmanaged domain, because otherwise
+  # it would require the user to go update their external DNS CNAME to get the redirect to work. The downside is that
+  # for this specific scenario the user will continue to pay for the ALB.
   HasALB: !And [!Or [Condition: IsOnline, Condition: PerformOfflineRedirectWithUnmanagedDomain], !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]]
   HasManagedDomainOnALB: !And [Condition: HasALB, Condition: HasManagedDomain]
-  EnableDbAutoPause: !Equals [!Ref AutoPauseDb, "Yes - Pause database when not in use"]
 
 Resources:
 
@@ -2671,13 +2675,15 @@ Resources:
       DefaultActions:
         - TargetGroupArn: !If [PerformOfflineRedirect, !Ref "AWS::NoValue", !Ref AppALBRetTargetGroup]
           Type: !If [PerformOfflineRedirect, redirect, forward]
-          RedirectConfig:
-            Protocol: HTTPS
-            Port: 443
-            Host: "hubs.mozilla.com"
-            Path: "/spoke"
-            Query: ""
-            StatusCode: "HTTP_307"
+          RedirectConfig: !If
+            - PerformOfflineRedirect
+            - Protocol: HTTPS
+              Port: 443
+              Host: "hubs.mozilla.com"
+              Path: "/spoke"
+              Query: ""
+              StatusCode: "HTTP_307"
+            - !Ref "AWS::NoValue"
 
   AppALBRetSSLListenerInternalCert:
     Type: AWS::ElasticLoadBalancingV2::ListenerCertificate
