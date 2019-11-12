@@ -3281,9 +3281,10 @@ Resources:
             Action: "secretsmanager:DeleteSecret"
             Resource: "*"
 
-  AppPostgrestDbSecretParameter:
+  AppPostgrestDbSecret:
     Type: Custom::GenerateSecret
     Properties:
+      Description: 'PostgREST admin db password'
       ServiceToken: !GetAtt GenerateSecret.Arn
       Name: postgrest-db-secret
       Region: !Ref "AWS::Region"
@@ -3315,199 +3316,76 @@ Resources:
         - !Ref AppDbSecurityGroup
 
 # Secrets
-
   JanusAndReticulumAdminSecret:
-    Type: AWS::SecretsManager::Secret
+    Type: Custom::GenerateSecret
+    DependsOn: AppPostgrestDbSecret
     Properties:
-      Description: 'Janus admin password and reticulum admin secret'
-      GenerateSecretString:
-        SecretStringTemplate: '{}'
-        GenerateStringKey: 'password'
-        PasswordLength: 32
-        ExcludePunctuation: true
-
-  JanusAndReticulumAdminSecretResourcePolicy:
-    Type: AWS::SecretsManager::ResourcePolicy
-    Properties: 
-      SecretId: !Ref JanusAndReticulumAdminSecret
-      ResourcePolicy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: "Deny"
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "secretsmanager:DeleteSecret"
-            Resource: "*"
+      Description: 'Janus and Reticulum Admin Secret'
+      ServiceToken: !GetAtt GenerateSecret.Arn
+      Name: janus-and-reticulum-admin
+      Region: !Ref "AWS::Region"
+      StackName: !Ref "AWS::StackName"
 
   PhoenixKeySecret:
-    Type: AWS::SecretsManager::Secret
+    Type: Custom::GenerateSecret
+    DependsOn: JanusAndReticulumAdminSecret
     Properties:
       Description: 'Phoenix secret base key'
-      GenerateSecretString:
-        SecretStringTemplate: '{}'
-        GenerateStringKey: 'password'
-        PasswordLength: 128
-        ExcludePunctuation: true
-
-  PhoenixKeySecretResourcePolicy:
-    Type: AWS::SecretsManager::ResourcePolicy
-    Properties: 
-      SecretId: !Ref PhoenixKeySecret
-      ResourcePolicy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: "Deny"
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "secretsmanager:DeleteSecret"
-            Resource: "*"
-
+      ServiceToken: !GetAtt GenerateSecret.Arn
+      Name: phoenix-key
+      Region: !Ref "AWS::Region"
+      StackName: !Ref "AWS::StackName"
 
   GuardianSecretKeySecret:
-    Type: AWS::SecretsManager::Secret
+    Type: Custom::GenerateSecret
+    DependsOn: PhoenixKeySecret
     Properties:
       Description: 'Reticulum guardian secret key'
-      GenerateSecretString:
-        SecretStringTemplate: '{}'
-        GenerateStringKey: 'password'
-        PasswordLength: 128
-        ExcludePunctuation: true
-
-  GuardianSecretKeySecretResourcePolicy:
-    Type: AWS::SecretsManager::ResourcePolicy
-    Properties: 
-      SecretId: !Ref GuardianSecretKeySecret
-      ResourcePolicy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: "Deny"
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "secretsmanager:DeleteSecret"
-            Resource: "*"
+      ServiceToken: !GetAtt GenerateSecret.Arn
+      Name: guardian-secret-key
+      Region: !Ref "AWS::Region"
+      StackName: !Ref "AWS::StackName"
 
   ReticulumOAuthTokenSecret:
-    Type: AWS::SecretsManager::Secret
+    Type: Custom::GenerateSecret
+    DependsOn: GuardianSecretKeySecret
     Properties:
       Description: 'Reticulum OAuth Token'
-      GenerateSecretString:
-        SecretStringTemplate: '{}'
-        GenerateStringKey: 'password'
-        PasswordLength: 128
-        ExcludePunctuation: true
-
-  ReticulumOAuthTokenSecretResourcePolicy:
-    Type: AWS::SecretsManager::ResourcePolicy
-    Properties: 
-      SecretId: !Ref ReticulumOAuthTokenSecret
-      ResourcePolicy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: "Deny"
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "secretsmanager:DeleteSecret"
-            Resource: "*"
+      ServiceToken: !GetAtt GenerateSecret.Arn
+      Name: reticulum-oauth-token
+      Region: !Ref "AWS::Region"
+      StackName: !Ref "AWS::StackName"
 
   ReticulumCookieSecret:
-    Type: AWS::SecretsManager::Secret
+    Type: Custom::GenerateSecret
+    DependsOn: ReticulumOAuthTokenSecret
     Properties:
-      Description: 'Reticulum admin access key'
-      GenerateSecretString:
-        SecretStringTemplate: '{}'
-        GenerateStringKey: 'password'
-        PasswordLength: 64
-        ExcludePunctuation: true
-
-  ReticulumCookieSecretResourcePolicy:
-    Type: AWS::SecretsManager::ResourcePolicy
-    Properties: 
-      SecretId: !Ref ReticulumCookieSecret
-      ResourcePolicy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: "Deny"
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "secretsmanager:DeleteSecret"
-            Resource: "*"
+      Description: 'Reticulum cookie'
+      ServiceToken: !GetAtt GenerateSecret.Arn
+      Name: reticulum-cookie
+      Region: !Ref "AWS::Region"
+      StackName: !Ref "AWS::StackName"
 
   ReticulumBotAccessKeySecret:
-    Type: AWS::SecretsManager::Secret
+    Type: Custom::GenerateSecret
+    DependsOn: ReticulumCookieSecret
     Properties:
       Description: 'Reticulum bot access key'
-      GenerateSecretString:
-        SecretStringTemplate: '{}'
-        GenerateStringKey: 'password'
-        PasswordLength: 128
-        ExcludePunctuation: true
-
-  ReticulumBotAccessKeySecretResourcePolicy:
-    Type: AWS::SecretsManager::ResourcePolicy
-    Properties: 
-      SecretId: !Ref ReticulumBotAccessKeySecret
-      ResourcePolicy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: "Deny"
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "secretsmanager:DeleteSecret"
-            Resource: "*"
+      ServiceToken: !GetAtt GenerateSecret.Arn
+      Name: reticulum-bot-access-key
+      Region: !Ref "AWS::Region"
+      StackName: !Ref "AWS::StackName"
 
   SendEmailPasswordSecret:
-    Type: AWS::SecretsManager::Secret
+    Type: Custom::GenerateSecret
+    DependsOn: ReticulumBotAccessKeySecret
     Properties:
       Description: 'Send email password'
-      SecretString: !Sub "{ \"password\": \"${SendEmailPassword.Key}\" }"
-
-  SendEmailPasswordSecretResourcePolicy:
-    Type: AWS::SecretsManager::ResourcePolicy
-    Properties: 
-      SecretId: !Ref SendEmailPasswordSecret
-      ResourcePolicy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt AppRole.Arn
-            Action: secretsmanager:GetSecretValue
-            Resource: "*"
-          - Effect: "Deny"
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "secretsmanager:DeleteSecret"
-            Resource: "*"
+      ServiceToken: !GetAtt GenerateSecret.Arn
+      Name: send-email-password
+      Region: !Ref "AWS::Region"
+      StackName: !Ref "AWS::StackName"
+      SecretString: !GetAtt SendEmailPassword.Key
 
 Outputs:
   AddressForRootDomain:
@@ -3527,8 +3405,8 @@ Outputs:
     Value: !Sub "${DomainName},${InternalZoneInfo.Name},${AppAssetsDNS},${AWS::StackName}-${AWS::AccountId}-hubs-worker.com"
 
   JanusAndReticulumAdminSecret:
-    Description: Janus and Reticulum Admin Secret [reticulum/phx/admin_access_key!read-aws-secret,janus-gateway/general/admin_secret!read-aws-secret,reticulum/janus/admin_secret!read-aws-secret]
-    Value: !Ref JanusAndReticulumAdminSecret
+    Description: Janus and Reticulum Admin Secret [reticulum/phx/admin_access_key!read-keymaster-secret,janus-gateway/general/admin_secret!read-keymaster-secret,reticulum/janus/admin_secret!read-keymaster-secret]
+    Value: janus-and-reticulum-admin
 
   JanusMediaRtpPortRange:
     Description: Janus WebRTC Port Range [janus-gateway/media/rtp_port_range]
@@ -3555,8 +3433,8 @@ Outputs:
     Value: !FindInMap [ServicesMeta, RetInternal, Port]
 
   RetPhoenixSecretKey:
-    Description: Reticulum Phoenix Secret Key [reticulum/phx/secret_key!read-aws-secret]
-    Value: !Ref PhoenixKeySecret
+    Description: Reticulum Phoenix Secret Key [reticulum/phx/secret_key!read-keymaster-secret]
+    Value: phoenix-key
 
   RetExternalPort:
     Description: Reticulum URL Port [reticulum/phx/url_port]
@@ -3575,8 +3453,8 @@ Outputs:
     Value: -local
 
   GuardianSecretKeySecret:
-    Description: Guardian Secret Key [reticulum/guardian/secret_key!read-aws-secret]
-    Value: !Ref GuardianSecretKeySecret
+    Description: Guardian Secret Key [reticulum/guardian/secret_key!read-keymaster-secret]
+    Value: guardian-secret-key
 
   ReticulumPermsKey:
     Description: Reticulum Perms Key [reticulum/guardian/perms_key!read-s3-file-escaped]
@@ -3591,16 +3469,16 @@ Outputs:
     Value: !Sub "mailto:info@${SESDomain}"
 
   ReticulumOAuthTokenSecret:
-    Description: Reticulum OAuth Token Secret [reticulum/guardian/oauth_token_key!read-aws-secret]
-    Value: !Ref ReticulumOAuthTokenSecret
+    Description: Reticulum OAuth Token Secret [reticulum/guardian/oauth_token_key!read-keymaster-secret]
+    Value: reticulum-oauth-token
 
   ReticulumCookieSecret:
-    Description: Reticulum Cookie Secret [reticulum/erlang/node_cookie!read-aws-secret]
-    Value: !Ref ReticulumCookieSecret
+    Description: Reticulum Cookie Secret [reticulum/erlang/node_cookie!read-keymaster-secret]
+    Value: reticulum-cookie
 
   ReticulumBotAccessKeySecret:
-    Description: Reticulum Bot Access Key Secret [reticulum/ret/bot_access_key!read-aws-secret]
-    Value: !Ref ReticulumBotAccessKeySecret
+    Description: Reticulum Bot Access Key Secret [reticulum/ret/bot_access_key!read-keymaster-secret]
+    Value: reticulum-bot-access-key
 
   AppDbUsername:
     Description: App DB Username [reticulum/db/username,ita/db/username]
@@ -3687,8 +3565,8 @@ Outputs:
     Value: !Ref SendEmailAccessKey
 
   SmtpSendPassword:
-    Description: SMTP send access key for email zone [reticulum/email/password!read-aws-secret]
-    Value: !Ref SendEmailPasswordSecret
+    Description: SMTP send access key for email zone [reticulum/email/password!read-keymaster-secret]
+    Value: send-email-password
 
   SmtpSendFromAddress:
     Description: SMTP send from address [reticulum/email/from]
