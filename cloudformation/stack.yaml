@@ -236,7 +236,7 @@ Parameters:
     AllowedValues: ["Stable", "Unstable"]
   LoadBalancingMethod:
     Type: String
-    Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer, which will incur additional costs. If you are using an domain not on Route 53, be sure to note the "AddressForRootDomain" in the Outputs tab after the stack update to set your DNS to point to the ALB. Also, if you are using an ALB with an domain not on Route 53 and want to redirect to a URL when the stack is Offline, you'll need to update your DNS in the same way when you take the stack Offline.
+    Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer, which will incur additional costs. If you are using an domain not on Route 53, be sure to note the "AddressForRootDomain" in the Outputs tab after the stack update to set your DNS to point to the ALB.
     Default: "DNS Round Robin"
     AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
   AutoPauseDb:
@@ -303,7 +303,8 @@ Mappings:
       PlacementForCluster: cluster
 
 Conditions:
-  HasMangedDomain: !Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]
+  HasManagedDomain: !Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]
+  HasUnmangedDomain: !Not [Condition: HasManagedDomain]
   HasStreamingServers: !And [!Equals [!Ref StackOffline, "Online"], !Not [!Equals [!Ref StreamInstanceCount, 0]]]
   AppIsNoPlacement: !Equals [!Ref AppPlacementGroupStrategy, none]
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
@@ -319,9 +320,9 @@ Conditions:
   IsOnline: !Not [Condition: IsOffline]
   HasOfflineRedirectUrl: !Not [!Equals [!Ref StackOfflineRedirectUrl, ""]]
   PerformOfflineRedirect: !And [ Condition: IsOffline, Condition: HasOfflineRedirectUrl ]
-  HasALB: !And [Condition: IsOnline, !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]]
-  NoALB: !Not [Condition: HasALB]
-  HasManagedDomainOnALB: !And [Condition: HasALB, Condition: HasMangedDomain]
+  PerformOfflineRedirectWithUnmanagedDomain: !And [Condition: PerformOfflineRedirect, Condition: HasUnmangedDomain]
+  HasALB: !And [!Or [Condition: IsOnline, Condition: PerformOfflineRedirectWithUnmanagedDomain], !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]]
+  HasManagedDomainOnALB: !And [Condition: HasALB, Condition: HasManagedDomain]
   EnableDbAutoPause: !Equals [!Ref AutoPauseDb, "Yes - Pause database when not in use"]
 
 Resources:
@@ -827,7 +828,7 @@ Resources:
 # Zones + SSL Certs
   ExternalZoneInfo:
     Type: Custom::Route53
-    Condition: HasMangedDomain
+    Condition: HasManagedDomain
     Properties:
       Domain: !Ref DomainName
       ServiceToken: !GetAtt Route53DependencyLambda.Arn
@@ -864,7 +865,7 @@ Resources:
 
   ExternalZoneSSLCertEast:
     Type: Custom::DNSCertificate
-    Condition: HasMangedDomain
+    Condition: HasManagedDomain
     Properties: 
       DomainName: !GetAtt ExternalZoneInfo.Name
       SubjectAlternativeNames:
@@ -2127,6 +2128,7 @@ Resources:
               ReplaceKeyPrefixWith: "spoke"
               Protocol: https
               HostName: "hubs.mozilla.com"
+              HttpRedirectCode: 307
 
   LinkRedirectorBucket:
     Type: AWS::S3::Bucket
@@ -2665,10 +2667,17 @@ Resources:
       Protocol: HTTPS
       SslPolicy: ELBSecurityPolicy-2015-05
       Certificates:
-        - CertificateArn: !If [HasMangedDomain, !Ref ExternalZoneSSLCert, !Ref UnmanagedDomainCertArn]
+        - CertificateArn: !If [HasManagedDomain, !Ref ExternalZoneSSLCert, !Ref UnmanagedDomainCertArn]
       DefaultActions:
-        - TargetGroupArn: !Ref AppALBRetTargetGroup
-          Type: forward
+        - TargetGroupArn: !If [PerformOfflineRedirect, !Ref "AWS::NoValue", !Ref AppALBRetTargetGroup]
+          Type: !If [PerformOfflineRedirect, redirect, forward]
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: 443
+            Host: "hubs.mozilla.com"
+            Path: "/spoke"
+            Query: ""
+            StatusCode: "HTTP_307"
 
   AppALBRetSSLListenerInternalCert:
     Type: AWS::ElasticLoadBalancingV2::ListenerCertificate
@@ -2721,7 +2730,7 @@ Resources:
 
   DomainDNS:
     Type: AWS::Route53::RecordSet
-    Condition: HasMangedDomain
+    Condition: HasManagedDomain
     Properties:
       Name: !Ref DomainName
       HostedZoneId: !GetAtt ExternalZoneInfo.Id
@@ -2796,7 +2805,7 @@ Resources:
           DefaultTTL: 3600
           MaxTTL: 3600
         ViewerCertificate:
-          AcmCertificateArn: !If [HasMangedDomain, !Ref ExternalZoneSSLCertEast, !Ref UnmanagedDomainCertArn]
+          AcmCertificateArn: !If [HasManagedDomain, !Ref ExternalZoneSSLCertEast, !Ref UnmanagedDomainCertArn]
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1
 
