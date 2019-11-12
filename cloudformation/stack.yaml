@@ -105,7 +105,7 @@ Parameters:
   IsDomainOnRoute53:
     Type: String
     Description: We recommended you use Route 53 to manage your domain. Set to Yes if your domain is set up on Route 53, and you can move onto the next item. Set to No if your domain is on a third party service such as GoDaddy or Namecheap. If you choose 'No', you'll need to set the 'Unmanaged Domain SSL Certificate ARN' configuration setting in the 'SSL Certificates' section below. Also, if you choose 'No', once your stack is created you'll need to update your DNS provider using the information in the 'Outputs' tab. See the 'Outputs' tab once the stack is created for more information on what to do next.
-    AllowedValues: ["Yes - My domain is set up on Route 53.", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section."]
+    AllowedValues: ["Yes - My domain is set up on Route 53", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section"]
   ShortlinkZone:
     Type: AWS::Route53::HostedZone::Id
     Description: You'll need a Route 53 domain name for short room permalinks, entry codes, and device linking. (eg myhubs.link) It should *not* be the same domain as the any of the Hubs Cloud domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type since it will be typed by users on mobile devices and in VR.
