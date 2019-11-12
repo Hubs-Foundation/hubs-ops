@@ -40,6 +40,11 @@ Metadata:
         Parameters:
           - UnmanagedDomainCertArn
       - Label:
+          default: Stack Status
+        Parameters:
+          - StackOffline
+          - StackOfflineRedirectUrl
+      - Label:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
           - DbMaxCapacity
@@ -96,6 +101,10 @@ Metadata:
         default : "Auto-Pause Database"
       SubnetAZs:
         default : "Subnet Availability Zones"
+      StackOffline:
+        default: "Stack Status"
+      StackOfflineRedirectUrl:
+        default: "Offline Redirect URL"
 Parameters:
   DomainName:
     Type: String
@@ -235,6 +244,14 @@ Parameters:
     Description: Hubs Cloud uses the Aurora Serverless database, which can greatly save costs by pausing the database when your Hubs Cloud instance is not in use. However, when the database is paused, it can take up to 20 seconds for your site to come back up when you visit it. You can turn off database pausing if you prefer your database to remain available so there will never be a delay in loading your site. Turning off pausing will incur continuous hourly costs for the database.
     Default: "Yes - Pause database when not in use"
     AllowedValues: ["Yes - Pause database when not in use", "No - Keep database running to reduce delays"]
+  StackOffline:
+    Type: String
+    Description: To save costs, you can switch your stack from being Online to Offline when it is not needed. This will shut down the servers while keeping all of your data. Once your service is switched back to Online, it will come back up just how you left it.
+    AllowedValues: ["Online", "Offline - Temporarily shut off servers"]
+    Default: "Online"
+  StackOfflineRedirectUrl:
+    Type: String
+    Description: (Optional) If your domain is set up on Route 53, when your stack is Offline users will be redirected to this URL.
 
 Mappings:
   Regions:
@@ -286,8 +303,8 @@ Mappings:
       PlacementForCluster: cluster
 
 Conditions:
-  HasMangedDomain: !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]]
-  HasStreamingServers: !Not [!Equals [!Ref StreamInstanceCount, 0]]
+  HasMangedDomain: !Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]
+  HasStreamingServers: !And [!Equals [!Ref StackOffline, "Online"], !Not [!Equals [!Ref StreamInstanceCount, 0]]]
   AppIsNoPlacement: !Equals [!Ref AppPlacementGroupStrategy, none]
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
   HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
@@ -298,8 +315,13 @@ Conditions:
   SubnetChoiceD: !Equals [!Ref SubnetAZs, "Use zone b and d"]
   IsStableChannel: !Equals [!Ref ChannelType, "Stable"]
   IsWindowA: !Equals [!Ref MaintenenceWindow, "10:00-11:00 GMT (02:00-03:00 PT)"]
-  HasALB: !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]
-  HasManagedDomainOnALB: !And [ !Not [!Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]] , !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]]
+  IsOffline: !Equals [!Ref StackOffline, "Offline - Temporarily shut off servers"]
+  IsOnline: !Not [Condition: IsOffline]
+  HasOfflineRedirectUrl: !Not [!Equals [!Ref StackOfflineRedirectUrl, ""]]
+  PerformOfflineRedirect: !And [ !And [ Condition: IsOffline, Condition: HasOfflineRedirectUrl], Condition: HasMangedDomain]
+  HasALB: !And [Condition: IsOnline, !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]]
+  NoALB: !Not [Condition: HasALB]
+  HasManagedDomainOnALB: !And [Condition: HasALB, Condition: HasMangedDomain]
   EnableDbAutoPause: !Equals [!Ref AutoPauseDb, "Yes - Pause database when not in use"]
 
 Resources:
@@ -2078,6 +2100,35 @@ Resources:
       Prefix: ""
       Objects:
         - assets/js/pdfjs-dist@2.1.266/build/pdf.worker.js
+
+  RootRedirectorBucket:
+    Type: AWS::S3::Bucket
+    Condition: HasMangedDomain
+    Properties:
+      AccessControl: PublicRead
+      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-root-redirector", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+            - "*"
+            AllowedMethods:
+            - GET
+            - HEAD
+            AllowedOrigins:
+            - "*"
+            ExposedHeaders:
+            - Date
+            - ETag
+            MaxAge: 31536000
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+        RoutingRules:
+          - RedirectRule:
+              ReplaceKeyPrefixWith: "spoke"
+              Protocol: https
+              HostName: "hubs.mozilla.com"
+
   LinkRedirectorBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -2687,8 +2738,7 @@ Resources:
         Enabled: true
         Origins:
           - Id: !Sub "${AWS::StackName}-app"
-            DomainName: !If [ HasALB, !Sub "${AWS::StackName}-app-alb.${InternalZoneInfo.Name}", !Sub "${AWS::StackName}-app.${InternalZoneInfo.Name}"]
-
+            DomainName: !If [ PerformOfflineRedirect, !Select [2, !Split ["/", !GetAtt RootRedirectorBucket.WebsiteURL]], !If [ HasALB, !Sub "${AWS::StackName}-app-alb.${InternalZoneInfo.Name}", !Sub "${AWS::StackName}-app.${InternalZoneInfo.Name}"]]
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -2963,21 +3013,21 @@ Resources:
           - AZRebalance
           - AlarmNotification
           - ScheduledActions
-        MinInstancesInService: !Ref AppInstanceCount
+        MinInstancesInService: !If [IsOffline, 0, !Ref AppInstanceCount]
         WaitOnResourceSignals: true
     Properties:
       AutoScalingGroupName: !Sub "${AWS::StackName}-app"
       AvailabilityZones: !If [AppIsClusterPlacement, [!GetAtt SubnetAPublic.AvailabilityZone], [!GetAtt SubnetAPublic.AvailabilityZone, !GetAtt SubnetBPublic.AvailabilityZone]]
       VPCZoneIdentifier: !If [AppIsClusterPlacement, [!Ref SubnetAPublic], [!Ref SubnetAPublic, !Ref SubnetBPublic]]
       TargetGroupARNs: !If [ HasALB, [ !Ref AppALBRetTargetGroup ], !Ref "AWS::NoValue" ]
-      MinSize: 1
+      MinSize: 0
       MaxSize: 64
       NotificationConfigurations:
         - NotificationTypes:
           - autoscaling:EC2_INSTANCE_LAUNCH
           - autoscaling:EC2_INSTANCE_TERMINATE
           TopicARN: !Ref AppASGTopic
-      DesiredCapacity: !Ref AppInstanceCount
+      DesiredCapacity: !If [IsOffline, 0, !Ref AppInstanceCount]
       PlacementGroup: !If [AppIsNoPlacement, !Ref "AWS::NoValue", !Ref AppPlacementGroup]
       LaunchConfigurationName: !Ref AppLaunchConfiguration
       Tags:
@@ -3039,7 +3089,7 @@ Resources:
           - AZRebalance
           - AlarmNotification
           - ScheduledActions
-        MinInstancesInService: !Ref StreamInstanceCount
+        MinInstancesInService: !If [IsOffline, 0, !Ref StreamInstanceCount]
         WaitOnResourceSignals: true
     Properties:
       AutoScalingGroupName: !Sub "${AWS::StackName}-stream"
@@ -3047,7 +3097,7 @@ Resources:
       VPCZoneIdentifier: [!Ref SubnetAPublic, !Ref SubnetBPublic]
       MinSize: 0
       MaxSize: 64
-      DesiredCapacity: !Ref StreamInstanceCount
+      DesiredCapacity: !If [IsOffline, 0, !Ref StreamInstanceCount]
       LaunchConfigurationName: !Ref StreamLaunchConfiguration
       Tags:
       - Key: polycosm-roles
