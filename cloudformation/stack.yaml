@@ -236,7 +236,7 @@ Parameters:
     AllowedValues: ["Stable", "Unstable"]
   LoadBalancingMethod:
     Type: String
-    Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer, which will incur additional costs.
+    Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer, which will incur additional costs. If you are using an domain not on Route 53, be sure to note the "AddressForRootDomain" in the Outputs tab after the stack update to set your DNS to point to the ALB. Also, if you are using an ALB with an domain not on Route 53 and want to redirect to a URL when the stack is Offline, you'll need to update your DNS in the same way when you take the stack Offline.
     Default: "DNS Round Robin"
     AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
   AutoPauseDb:
@@ -251,7 +251,7 @@ Parameters:
     Default: "Online"
   StackOfflineRedirectUrl:
     Type: String
-    Description: (Optional) If your domain is set up on Route 53, when your stack is Offline users will be redirected to this URL.
+    Description: (Optional) When your stack is Offline users will be redirected to this URL.
 
 Mappings:
   Regions:
@@ -318,7 +318,7 @@ Conditions:
   IsOffline: !Equals [!Ref StackOffline, "Offline - Temporarily shut off servers"]
   IsOnline: !Not [Condition: IsOffline]
   HasOfflineRedirectUrl: !Not [!Equals [!Ref StackOfflineRedirectUrl, ""]]
-  PerformOfflineRedirect: !And [ !And [ Condition: IsOffline, Condition: HasOfflineRedirectUrl], Condition: HasMangedDomain]
+  PerformOfflineRedirect: !And [ Condition: IsOffline, Condition: HasOfflineRedirectUrl ]
   HasALB: !And [Condition: IsOnline, !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]]
   NoALB: !Not [Condition: HasALB]
   HasManagedDomainOnALB: !And [Condition: HasALB, Condition: HasMangedDomain]
