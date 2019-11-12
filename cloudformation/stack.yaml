@@ -733,6 +733,111 @@ Resources:
           PolicyName: !Sub '${AWS::StackName}Route53DependencyCustomPolicy'
     Type: AWS::IAM::Role
 
+# URL parsing for offline redirector
+  ParseURL:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Parse a URL into its constituent parts for redirector
+      Handler: index.handler
+      Role: !GetAtt ParseURLRole.Arn
+      Runtime: nodejs8.10
+      Timeout: 900
+      Code:
+        ZipFile: |
+          index.handler = function(event, context) {
+          	const url = event.ResourceProperties.URL || "https://en.wikipedia.org/wiki/Rubber_duck";
+          
+          	try {
+          		const parsed = new URL(url);
+          		const pathname = parsed.pathname;
+          
+          		return sendResponse(event, context, "SUCCESS", {
+          			S3ReplaceKeyPrefixWith: `${parsed.pathname.substring(1)}${parsed.search}${parsed.hash}`,
+          			S3Protocol: parsed.protocol.replace(":", ""),
+          			S3Hostname: parsed.host,
+          			ALBProtocol: parsed.protocol.replace(":", "").toUpperCase(),
+          			ALBPort: parsed.port,
+          			ALBHost: parsed.host,
+          			ALBPath: parsed.pathname,
+          			ALBQuery: `${parsed.search}${parsed.hash}`.replace(/^\?/, "")
+          		});
+          	} catch (e) {
+              return sendResponse(event, context, "FAILED", null, `Invalid URL specified: ${url}`);
+          	}
+          };
+          
+          function getReason(err) {
+            if (err)
+              return err.message;
+            else
+              return '';
+          }
+          
+          function sendResponse(event, context, status, data, err) {
+            var responseBody = {
+              StackId: event.StackId,
+              RequestId: event.RequestId,
+              LogicalResourceId: event.LogicalResourceId,
+              PhysicalResourceId: 'parseUrl-' + btoa(event.ResourceProperties.URL),
+              Status: status,
+              Reason: getReason(err) + " See details in CloudWatch Log: " + context.logStreamName,
+              Data: data
+            };
+          
+            console.log("RESPONSE:\n", responseBody);
+            var json = JSON.stringify(responseBody);
+          
+            var https = require("https");
+            var url = require("url");
+          
+            var parsedUrl = url.parse(event.ResponseURL);
+            var options = {
+              hostname: parsedUrl.hostname,
+              port: 443,
+              path: parsedUrl.path,
+              method: "PUT",
+              headers: {
+                "content-type": "",
+                "content-length": json.length
+              }
+            };
+          
+            var request = https.request(options, function(response) {
+              console.log("STATUS: " + response.statusCode);
+              console.log("HEADERS: " + JSON.stringify(response.headers));
+              context.done(null, data);
+            });
+          
+            request.on("error", function(error) {
+              console.log("sendResponse Error:\n", error);
+              context.done(error);
+            });
+          
+            request.on("end", function() {
+              console.log("end");
+            });
+            request.write(json);
+            request.end();
+          }
+          
+          module.exports = index;
+
+  ParseURLRole:
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-ParseURLRole"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+    Type: AWS::IAM::Role
+
 # CustomAcmCertificateLambda
   CustomAcmCertificateLambda:
     Metadata:
@@ -2129,9 +2234,9 @@ Resources:
         ErrorDocument: error.html
         RoutingRules:
           - RedirectRule:
-              ReplaceKeyPrefixWith: "spoke"
-              Protocol: https
-              HostName: "hubs.mozilla.com"
+              ReplaceKeyPrefixWith: ParsedOfflineRedirectUrl.S3ReplaceKeyPrefixWith
+              Protocol: ParsedOfflineRedirectUrl.S3Protocol
+              HostName: ParsedOfflineRedirectUrl.S3Hostname
               HttpRedirectCode: 307
 
   LinkRedirectorBucket:
@@ -2677,11 +2782,11 @@ Resources:
           Type: !If [PerformOfflineRedirect, redirect, forward]
           RedirectConfig: !If
             - PerformOfflineRedirect
-            - Protocol: HTTPS
+            - Protocol: ParsedOfflineRedirectUrl.ALBProtocol
               Port: 443
-              Host: "hubs.mozilla.com"
-              Path: "/spoke"
-              Query: ""
+              Host: ParsedOfflineRedirectUrl.ALBHost
+              Path: ParsedOfflineRedirectUrl.ALBPath
+              Query: ParsedOfflineRedirectUrl.ALBQuery
               StatusCode: "HTTP_307"
             - !Ref "AWS::NoValue"
 
@@ -2744,6 +2849,12 @@ Resources:
       AliasTarget:
         DNSName: !If [ HasALB, !GetAtt AppALB.DNSName, !GetAtt AppCloudfrontDistribution.DomainName ]
         HostedZoneId: !If [ HasALB, !GetAtt AppALB.CanonicalHostedZoneID, Z2FDTNDATAQYW2 ]
+
+  ParsedOfflineRedirectUrl:
+    Type: Custom::ParsedURL
+    Properties:
+      URL: !Ref StackOfflineRedirectUrl
+      ServiceToken: !GetAtt ParseURL.Arn
 
   AppCloudfrontDistribution:
     Type: AWS::CloudFront::Distribution
