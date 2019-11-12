@@ -13,14 +13,14 @@ parseURL.handler = function(event, context) {
 		const pathname = parsed.pathname;
 
 		return sendResponse(event, context, "SUCCESS", {
-			S3ReplaceKeyWith: `${parsed.pathname.substring(1)}${parsed.search}${parsed.hash}`,
+			S3ReplaceKeyPrefixWith: `${parsed.pathname.substring(1)}${parsed.search || ""}${parsed.hash || ""}`,
 			S3Protocol: parsed.protocol.replace(":", ""),
 			S3Hostname: parsed.host,
 			ALBProtocol: parsed.protocol.replace(":", "").toUpperCase(),
 			ALBPort: parsed.port,
 			ALBHost: parsed.host,
       ALBPath: parsed.pathname,
-			ALBQuery: `${parsed.search}${parsed.hash}`.replace(/^\?/, "")
+			ALBQuery: `${parsed.search || ""}${parsed.hash || ""}`.replace(/^\?/, "")
 		});
 	} catch (e) {
     return sendResponse(event, context, "FAILED", null, `Invalid URL specified: ${url}`);

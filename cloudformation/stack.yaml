@@ -31,19 +31,24 @@ Metadata:
           - StreamInstanceType
           - MaintenenceWindow
       - Label:
-          default: Database Configuration
+          default: Cost Management
         Parameters:
-          - AutoPauseDb
-          - DbBackupRetentionPeriod
-      - Label:
-          default: SSL Certificates
-        Parameters:
-          - UnmanagedDomainCertArn
+          - DatabaseMonthlyBudget
+          - MaxStorageUsage
       - Label:
           default: Stack Status
         Parameters:
           - StackOffline
           - StackOfflineRedirectUrl
+      - Label:
+          default: Custom SSL Certificates
+        Parameters:
+          - UnmanagedDomainCertArn
+      - Label:
+          default: Database Configuration
+        Parameters:
+          - AutoPauseDb
+          - DbBackupRetentionPeriod
       - Label:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
@@ -105,6 +110,10 @@ Metadata:
         default: "Stack Status"
       StackOfflineRedirectUrl:
         default: "Offline Redirect URL"
+      DatabaseMonthlyBudget:
+        default: "Monthly Database Budget"
+      MaxStorage:
+        default: "Storage Limit (in GB)"
 Parameters:
   DomainName:
     Type: String
@@ -203,7 +212,7 @@ Parameters:
     Default: 14
   DbMaxCapacity:
     Type: Number
-    Description: "Maximum ACU Capacity for the database. The database will be a serverless Aurora PostgreSQL-compatible cluster."
+    Description: "Maximum ACU Capacity for the database. The database will be a serverless Aurora PostgreSQL-compatible cluster. Increasing the Maximum ACUs will increase the available resources to your instance for database queries."
     MinValue: 2
     MaxValue: 384
     Default: 2
@@ -241,9 +250,9 @@ Parameters:
     AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
   AutoPauseDb:
     Type: String
-    Description: Hubs Cloud uses the Aurora Serverless database, which can greatly save costs by pausing the database when your Hubs Cloud instance is not in use. However, when the database is paused, it can take up to 20 seconds for your site to come back up when you visit it. You can turn off database pausing if you prefer your database to remain available so there will never be a delay in loading your site. Turning off pausing will incur continuous hourly costs for the database.
+    Description: Hubs Cloud uses the Aurora Serverless database, which can greatly save costs by pausing the database when your Hubs Cloud instance is not in use. However, when the database is paused, it can take up to 20 seconds for your site to come back up when you visit it. You can turn off database pausing if you'd like to avoid any delay in loading your site. Turning off pausing will incur continuous hourly database costs. Full pricing info https://aws.amazon.com/rds/aurora/serverless/
     Default: "Yes - Pause database when not in use"
-    AllowedValues: ["Yes - Pause database when not in use", "No - Keep database running to reduce delays"]
+    AllowedValues: ["Yes - Pause database when not in use", "No - Pay for database continuously to prevent loading delays"]
   StackOffline:
     Type: String
     Description: To save costs, you can switch your stack from being Online to Offline when it is not needed. This will shut down the servers while keeping all of your data. Once your service is switched back to Online, it will come back up just how you left it.
@@ -251,7 +260,15 @@ Parameters:
     Default: "Online"
   StackOfflineRedirectUrl:
     Type: String
-    Description: (Optional) When your stack is Offline users will be redirected to this URL.
+    Description: (Optional) When your stack is set to Offline, visitors will be redirected to this URL.
+  DatabaseMonthlyBudget:
+    Type: String
+    Description: To save costs, your database will be shut down when nobody is hitting your site. When visitors are using your site, you'll incur database costs. To avoid unexpected charges, you can set a monthly budget. Your stack will automatically switch into Offline mode if the database charges exceed your budget. A $20 budget will provide more than 40 hours a week of connectivity. You only pay for what you use. Leave this field blank to fall back to your "Max database capacity" setting in "Advanced" to limit your database cost. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
+    Default: $20.00
+  MaxStorage:
+    Type: Number
+    Description: When users upload scenes, avatars, or files, they will use disk storage. You only pay for the storage you use. You can set a maximum storage amount here (in GB) to ensure there are no unexpected charges. Pricing info can be found at https://aws.amazon.com/efs/pricing/
+    Default: 100
 
 Mappings:
   Regions:
@@ -322,6 +339,7 @@ Conditions:
   PerformOfflineRedirect: !And [ Condition: IsOffline, Condition: HasOfflineRedirectUrl ]
   PerformOfflineRedirectWithUnmanagedDomain: !And [Condition: PerformOfflineRedirect, Condition: HasUnmangedDomain]
   EnableDbAutoPause: !Equals [!Ref AutoPauseDb, "Yes - Pause database when not in use"]
+  HasDataMonthlyBudget: !Equals [!Ref DatabaseMonthlyBudget, ""]
 
   # NOTE: keep the ALB around if we are doing an offline redirect *and* we have an unmanaged domain, because otherwise
   # it would require the user to go update their external DNS CNAME to get the redirect to work. The downside is that
@@ -754,25 +772,25 @@ Resources:
           }
           
           parseURL.handler = function(event, context) {
-          	const url = event.ResourceProperties.URL || "https://en.wikipedia.org/wiki/Rubber_duck";
+            const url = event.ResourceProperties.URL || "https://en.wikipedia.org/wiki/Rubber_duck";
           
-          	try {
-          		const parsed = URL.parse(url);
-          		const pathname = parsed.pathname;
+            try {
+              const parsed = URL.parse(url);
+              const pathname = parsed.pathname;
           
-          		return sendResponse(event, context, "SUCCESS", {
-          			S3ReplaceKeyWith: `${parsed.pathname.substring(1)}${parsed.search}${parsed.hash}`,
-          			S3Protocol: parsed.protocol.replace(":", ""),
-          			S3Hostname: parsed.host,
-          			ALBProtocol: parsed.protocol.replace(":", "").toUpperCase(),
-          			ALBPort: parsed.port,
-          			ALBHost: parsed.host,
+              return sendResponse(event, context, "SUCCESS", {
+                S3ReplaceKeyPrefixWith: `${parsed.pathname.substring(1)}${parsed.search || ""}${parsed.hash || ""}`,
+                S3Protocol: parsed.protocol.replace(":", ""),
+                S3Hostname: parsed.host,
+                ALBProtocol: parsed.protocol.replace(":", "").toUpperCase(),
+                ALBPort: parsed.port,
+                ALBHost: parsed.host,
                 ALBPath: parsed.pathname,
-          			ALBQuery: `${parsed.search}${parsed.hash}`.replace(/^\?/, "")
-          		});
-          	} catch (e) {
+                ALBQuery: `${parsed.search || ""}${parsed.hash || ""}`.replace(/^\?/, "")
+              });
+            } catch (e) {
               return sendResponse(event, context, "FAILED", null, `Invalid URL specified: ${url}`);
-          	}
+            }
           };
           
           function getReason(err) {
