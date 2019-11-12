@@ -805,28 +805,25 @@ Resources:
 # Zones + SSL Certs
   ExternalZoneInfo:
     Type: Custom::Route53
+    Condition: HasMangedDomain
     Properties:
       Domain: !Ref DomainName
       ServiceToken: !GetAtt Route53DependencyLambda.Arn
-    Condition: HasMangedDomain
 
   ShortlinkZoneInfo:
     Type: Custom::Route53
-    Condition: HasMangedDomain
     Properties:
       Id: !Ref ShortlinkZone
       ServiceToken: !GetAtt Route53DependencyLambda.Arn
 
   InternalZoneInfo:
     Type: Custom::Route53
-    Condition: HasMangedDomain
     Properties:
       Id: !Ref InternalZone
       ServiceToken: !GetAtt Route53DependencyLambda.Arn
 
   EmailZoneInfo:
     Type: Custom::Route53
-    Condition: HasMangedDomain
     Properties:
       Id: !Ref EmailZone
       ServiceToken: !GetAtt Route53DependencyLambda.Arn
