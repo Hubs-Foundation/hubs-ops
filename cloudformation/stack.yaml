@@ -1631,8 +1631,13 @@ Resources:
                Action: 
                  - ec2:*
                Resource: 
-                 - !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/${AWS::StackName}-app-alb"
-                 - !Ref AppSecurityGroup
+                 - !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*"
+             - Effect: Allow
+               Action: 
+                 - ec2:Describe*
+                 - ec2:Get*
+               Resource: 
+                 - "*"
   StackTopicHandler:
     Type: AWS::Lambda::Function
     Properties:

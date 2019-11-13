@@ -10,7 +10,6 @@ const promisify = f =>
 const OFFLINE_SETTING = "Offline - Temporarily shut off servers";
 
 async function handleBudgetAlert(event, context) {
-  
   const topicArn = event.Records[0].Sns.TopicArn;
   const sns = new AWS.SNS();
   const tags = (await promisify(sns.listTagsForResource.bind(sns))({ ResourceArn: topicArn })).Tags;
@@ -38,19 +37,6 @@ async function handleBudgetAlert(event, context) {
 }
 
 function handleASGMessage(message, context) {
-}
-
-exports.handler = async function (event, context) {
-  console.log(event.Records[0].Sns.Message);
-  /*if (event.Records[0].Sns.Message.indexOf("Budget Name") >= 0) {
-    return handleBudgetAlert(event, context);
-  } else {
-    const message = JSON.parse(event.Records[0].Sns.Message);
-    return handleASGMessage(message, context);
-  }*/
-};
-
-/*function handleASGMessage(message, context) {
   const asgName = message.AutoScalingGroupName;
   const asgEvent = message.Event;
   const region = "${AWS::Region}";
@@ -202,4 +188,13 @@ exports.handler = async function (event, context) {
     context.done("Unsupported ASG event: " + asgName + " " + asgEvent);
   }
 }
-*/
+
+exports.handler = async function (event, context) {
+  if (event.Records[0].Sns.Message.indexOf("Budget Name") >= 0) {
+    return handleBudgetAlert(event, context);
+  } else {
+    const message = JSON.parse(event.Records[0].Sns.Message);
+    return handleASGMessage(message, context);
+  }
+};
+
