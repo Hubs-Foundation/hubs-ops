@@ -19,18 +19,31 @@ async function handleBudgetAlert(event, context) {
   const cf = new AWS.CloudFormation({ region: stackRegion });
 
   await new Promise(res => {
-    const interval = setInterval(async () => {
+    let interval;
+
+    const f = async () => {
       const stackInfo = (await promisify(cf.describeStacks.bind(cf))(({ StackName: stackName })));
 
       if (stackInfo) {
         const stackStatus = stackInfo.Stacks[0].StackStatus;
+
         if (stackStatus.endsWith("_COMPLETE") || stackStatus.endsWith("_FAILED")) {
+          if (interval) {
+            clearInterval(interval);
+          }
 
           res();
-          clearInterval(interval);
+
+          return true;
         }
       }
-    }, 30000);
+
+      return false;
+    };
+
+    if (!f()) {
+      interval = setInterval(f, 30000);
+    }
   });
 
   const stackInfo = (await promisify(cf.describeStacks.bind(cf))(({ StackName: stackName })));

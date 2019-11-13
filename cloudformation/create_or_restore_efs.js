@@ -77,7 +77,7 @@ exports.handler = async function (event, context) {
 			const BackupVaultName = event.ResourceProperties.RestoreBackupVaultArn;
 			const RecoveryPointArn = event.ResourceProperties.RestoreRecoveryPointArn;
 
-			if (RecoveryPointArn && RestoreBackupVaultName) {
+			if (RecoveryPointArn && BackupVaultName) {
 				const backup = new AWS.Backup();
 
 				const restorePointMetadata = (await promisify(backup.GetRecoveryPointRestoreMetadata.bind(backup))({
@@ -97,41 +97,65 @@ exports.handler = async function (event, context) {
 				})).RestoreJobId;
 
 				FileSystemId = await new Promise(res => {
-					const interval = setInterval(async () => {
+					let interval;
+
+					const f = async () => {
 						const restoreStatus = await promisify(backup.describeRestoreJob.bind(backup))({
 							RestoreJobId
 						});
 
 						if (restoreStatus.Status === "COMPLETED") {
-							clearInterval(interval);
+							if (interval) {
+								clearInterval(interval);
+							}
+
 							res(restoreStatus.CreatedResourceArn);
+							return true;
 						}
-					}, 10000);
+
+						return false;
+					};
+
+					if (!f()) {
+						interval = setInterval(f, 10000);
+					}
 				});
 			} else {
-				FileSystemId = (await promisify(efs.createFileSystem.bind(efs)({
+				FileSystemId = (await promisify(efs.createFileSystem.bind(efs))({
 					PerformanceMode, CreationToken, ThroughputMode, Encrypted, Tags, KmsKeyId, ProvisionedThroughputInMibps
-				}))).FileSystemId;
+				})).FileSystemId;
 			}
 		} else {
 			FileSystemId = event.PhysicalResourceId;
 
-			await promisify(efs.updateFileSystem.bind(efs)({
+			await promisify(efs.updateFileSystem.bind(efs))({
 				FileSystemId, ThroughputMode, ProvisionedThroughputInMibps
-			}));
+			});
 		}
 
 		await new Promise(res => {
-			const interval = setInterval(async () => {
+			let interval;
+
+			const f = async () => {
 				const info = (await promisify(efs.describeFileSystems.bind(efs))({
 					FileSystemId
 				}));
 
-				if (info.LifeCycleState === "available") {
+				if (info.FileSystems[0].LifeCycleState === "available") {
+					if (interval) {
+						clearInterval(interval);
+					}
+
 					res();
-					clearInterval(interval);
+					return true;
 				}
-			}, 10000);
+
+				return false;
+			};
+
+			if (!f()) {
+				interval = setInterval(f, 10000);
+			}
 		});
 
 		const LifecyclePolicies = event.ResourceProperties.LifecyclePolicies;
