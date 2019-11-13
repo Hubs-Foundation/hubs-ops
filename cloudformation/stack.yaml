@@ -1717,7 +1717,7 @@ Resources:
            Statement:
              - Effect: Allow
                Action:
-                 - efs:*
+                 - elasticfilesystem:*
                  - kms:Get*
                  - kms:Describe*
                  - kms:Decrypt
