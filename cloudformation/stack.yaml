@@ -34,7 +34,7 @@ Metadata:
           default: Cost Management
         Parameters:
           - DatabaseMonthlyBudget
-          - MaxStorageUsage
+          - MaxStorage
       - Label:
           default: Stack Status
         Parameters:
@@ -53,6 +53,7 @@ Metadata:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
           - DbMaxCapacity
+          - DbSnapshotIdentifier
           - LoadBalancingMethod
           - NewCMKForDiskEncryption
           - ChannelType
@@ -96,6 +97,8 @@ Metadata:
         default: "Database backup retention period (in days)"
       DbMaxCapacity:
         default: "Max database capacity (in ACUs)"
+      DbSnapshotIdentifier:
+        default: "Database snapshot identifier"
       MaintenenceWindow:
         default: "Scheduled maintenence window"
       ChannelType:
@@ -111,7 +114,7 @@ Metadata:
       StackOfflineRedirectUrl:
         default: "Offline Redirect URL"
       DatabaseMonthlyBudget:
-        default: "Monthly Database Budget"
+        default: "Monthly Database Budget (US dollars, no $ and no cents)"
       MaxStorage:
         default: "Storage Limit (in GB)"
 Parameters:
@@ -216,6 +219,9 @@ Parameters:
     MinValue: 2
     MaxValue: 384
     Default: 2
+  DbSnapshotIdentifier:
+    Type: String
+    Description: "Aurora database snapshot identifier to restore from. Leave this blank unless you want to restore the data from a snapshot taken from another Hubs Cloud instance. If you are trying to restore a stack or make a copy, you will also need to restore the relevant EFS volume from your AWS Backup Vault. WARNING: do *not* change this value after your stack is created, otherwise you will replace your database!"
   NewCMKForDiskEncryption:
     Type: String
     Description: "Select 'Yes' if you'd like to create a dedicated CMK in KMS for database and backup encryption. KMS charges for a single managed key will apply."
@@ -250,7 +256,7 @@ Parameters:
     AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
   AutoPauseDb:
     Type: String
-    Description: Hubs Cloud uses the Aurora Serverless database, which can greatly save costs by pausing the database when your Hubs Cloud instance is not in use. However, when the database is paused, it can take up to 20 seconds for your site to come back up when you visit it. You can turn off database pausing if you'd like to avoid any delay in loading your site. Turning off pausing will incur continuous hourly database costs. Full pricing info https://aws.amazon.com/rds/aurora/serverless/
+    Description: Hubs Cloud uses the Aurora Serverless database, which can greatly save costs by pausing the database when your Hubs Cloud instance is not in use. However, when the database is paused, it can take up to 20 seconds for your site to come back up when you visit it. You can turn off database pausing if you'd like to avoid any delay in loading your site. Turning off pausing will incur continuous hourly database costs. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
     Default: "Yes - Pause database when not in use"
     AllowedValues: ["Yes - Pause database when not in use", "No - Pay for database continuously to prevent loading delays"]
   StackOffline:
@@ -264,10 +270,12 @@ Parameters:
   DatabaseMonthlyBudget:
     Type: String
     Description: To save costs, your database will be shut down when nobody is hitting your site. When visitors are using your site, you'll incur database costs. To avoid unexpected charges, you can set a monthly budget. Your stack will automatically switch into Offline mode if the database charges exceed your budget. A $20 budget will provide more than 40 hours a week of connectivity. You only pay for what you use. Leave this field blank to fall back to your "Max database capacity" setting in "Advanced" to limit your database cost. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
-    Default: $20.00
+    Default: 20
   MaxStorage:
     Type: Number
     Description: When users upload scenes, avatars, or files, they will use disk storage. You only pay for the storage you use. You can set a maximum storage amount here (in GB) to ensure there are no unexpected charges. Pricing info can be found at https://aws.amazon.com/efs/pricing/
+    MinValue: 5
+    MaxValue: 1048576
     Default: 100
 
 Mappings:
@@ -339,7 +347,8 @@ Conditions:
   PerformOfflineRedirect: !And [ Condition: IsOffline, Condition: HasOfflineRedirectUrl ]
   PerformOfflineRedirectWithUnmanagedDomain: !And [Condition: PerformOfflineRedirect, Condition: HasUnmangedDomain]
   EnableDbAutoPause: !Equals [!Ref AutoPauseDb, "Yes - Pause database when not in use"]
-  HasDataMonthlyBudget: !Equals [!Ref DatabaseMonthlyBudget, ""]
+  HasDataMonthlyBudget: !Not [!Equals [!Ref DatabaseMonthlyBudget, ""]]
+  HasDbSnapshotIdentifier: !Not [!Equals [!Ref DbSnapshotIdentifier, ""]]
 
   # NOTE: keep the ALB around if we are doing an offline redirect *and* we have an unmanaged domain, because otherwise
   # it would require the user to go update their external DNS CNAME to get the redirect to work. The downside is that
@@ -3524,8 +3533,26 @@ Resources:
         MaxCapacity: !Ref DbMaxCapacity
         MinCapacity: 2
         SecondsUntilAutoPause: 300
+      SnapshotIdentifier: !If [HasDbSnapshotIdentifier, !Ref DbSnapshotIdentifier, !Ref "AWS::NoValue"]
       VpcSecurityGroupIds:
         - !Ref AppDbSecurityGroup
+      Tags:
+        - Key: !Sub "${AWS::StackName}-db-budget"
+          Value: !Sub "${AWS::StackName}"
+
+  AppDbBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasDataMonthlyBudget
+    Properties:
+      Budget:
+        BudgetLimit: 
+          Amount: !Ref DatabaseMonthlyBudget
+          Unit: USD
+        BudgetName: !Sub "${AWS::StackName}-efs-budget"
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        CostFilters: 
+          Tag: [!Sub "${AWS::StackName}-db-budget"]
 
 # Secrets
   JanusAndReticulumAdminSecret:
