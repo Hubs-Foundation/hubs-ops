@@ -17,7 +17,7 @@ async function sendResponse(fileSystemId, event, context, status, data, err) {
     StackId: event.StackId,
     RequestId: event.RequestId,
     LogicalResourceId: event.LogicalResourceId,
-    PhysicalResourceId: 'efs-' + fileSystemId,
+    PhysicalResourceId: fileSystemId,
     Status: status,
     Reason: getReason(err) + " See details in CloudWatch Log: " + context.logStreamName,
     Data: data
@@ -38,157 +38,155 @@ async function sendResponse(fileSystemId, event, context, status, data, err) {
     }
   };
 
-	await new Promise((res, rej) => {
-		const request = https.request(options, () => {
-			context.done(null, data)
-			res();
-		});
+  await new Promise((res, rej) => {
+    const request = https.request(options, () => {
+      context.done(null, data)
+      res();
+    });
 
-		request.on("error", (error) => {
-			console.log("sendResponse Error:\n", error);
-			context.done(error);
-			rej();
-		});
+    request.on("error", (error) => {
+      console.log("sendResponse Error:\n", error);
+      context.done(error);
+      rej();
+    });
 
-		request.write(json);
-		request.end();
-	});
+    request.write(json);
+    request.end();
+  });
 }
 
 exports.handler = async function (event, context) {
-	const efs = new AWS.EFS();
+  const efs = new AWS.EFS();
 
-	if (event.RequestType == 'Create' || event.RequestType == 'Update') {
-		const PerformanceMode = event.ResourceProperties.PerformanceMode || "generalPurpose";
-		const ThroughputMode = event.ResourceProperties.ThroughputMode || "bursting";
-		const CreationToken = event.RequestId;
-		let ProvisionedThroughputInMibps = null;
+  if (event.RequestType == 'Create' || event.RequestType == 'Update') {
+    const PerformanceMode = event.ResourceProperties.PerformanceMode || "generalPurpose";
+    const ThroughputMode = event.ResourceProperties.ThroughputMode || "bursting";
+    const CreationToken = event.RequestId;
+    let ProvisionedThroughputInMibps = null;
 
-		if (ThroughputMode === "provisioned") {
-			ProvisionedThroughputInMibps = event.ResourceProperties.ProvisionedThroughputInMibps;
-		}
+    if (ThroughputMode === "provisioned") {
+      ProvisionedThroughputInMibps = event.ResourceProperties.ProvisionedThroughputInMibps;
+    }
 
-		const Encrypted = event.ResourceProperties.Encrypted || false;
-		const Tags = event.ResourceProperties.FileSystemTags || [];
-		const KmsKeyId = event.ResourceProperties.KmsKeyId || null;
-		let FileSystemId;
+    const Encrypted = event.ResourceProperties.Encrypted || false;
+    const Tags = event.ResourceProperties.FileSystemTags || [];
+    const KmsKeyId = event.ResourceProperties.KmsKeyId || null;
+    let FileSystemId;
 
-		if (event.RequestType === 'Create') {
-			const BackupVaultName = event.ResourceProperties.RestoreBackupVaultName;
-			const RecoveryPointArn = event.ResourceProperties.RestoreRecoveryPointArn;
-			const IamRoleArn = event.ResourceProperties.RestoreIamRoleArn;
+    if (event.RequestType === 'Create') {
+      const BackupVaultName = event.ResourceProperties.RestoreBackupVaultName;
+      const RecoveryPointArn = event.ResourceProperties.RestoreRecoveryPointArn;
+      const IamRoleArn = event.ResourceProperties.RestoreIamRoleArn;
 
-			if (RecoveryPointArn && BackupVaultName) {
-				const backup = new AWS.Backup();
+      if (RecoveryPointArn && BackupVaultName) {
+        const backup = new AWS.Backup();
 
-				const restorePointMetadata = (await promisify(backup.getRecoveryPointRestoreMetadata.bind(backup))({
-					BackupVaultName, RecoveryPointArn
-				})).RestoreMetadata;
+        const restorePointMetadata = (await promisify(backup.getRecoveryPointRestoreMetadata.bind(backup))({
+          BackupVaultName, RecoveryPointArn
+        })).RestoreMetadata;
 
-				const RestoreJobId = (await promisify(backup.startRestoreJob.bind(backup))({
-					RecoveryPointArn,
-					Metadata: {
-						"file-system-id": restorePointMetadata["file-system-id"],
-						PerformanceMode,
-						CreationToken,
-						newFileSystem: "true"
-					},
-					ResourceType: "EFS",
-					IdempotencyToken: CreationToken,
-					IamRoleArn
-				})).RestoreJobId;
+        const RestoreJobId = (await promisify(backup.startRestoreJob.bind(backup))({
+          RecoveryPointArn,
+          Metadata: {
+            "file-system-id": restorePointMetadata["file-system-id"],
+            PerformanceMode,
+            CreationToken,
+            Encrypted,
+            KmsKeyId,
+            newFileSystem: "true"
+          },
+          ResourceType: "EFS",
+          IdempotencyToken: CreationToken,
+          IamRoleArn
+        })).RestoreJobId;
 
-				FileSystemId = await new Promise(async (res, rej) => {
-					let interval;
+        FileSystemId = await new Promise(async (res, rej) => {
+          let interval;
 
-					const f = async () => {
-						const restoreStatus = await promisify(backup.describeRestoreJob.bind(backup))({
-							RestoreJobId
-						});
+          const f = async () => {
+            const restoreStatus = await promisify(backup.describeRestoreJob.bind(backup))({
+              RestoreJobId
+            });
 
-						if (restoreStatus.Status === "COMPLETED") {
-							if (interval) {
-								clearInterval(interval);
-							}
+            if (restoreStatus.Status === "COMPLETED" || restoreStatus.Status === "FAILED") {
+              if (interval) {
+                clearInterval(interval);
+              }
 
-							res(restoreStatus.CreatedResourceArn);
-							return true;
-						}
+              if (restoreStatus.Status === "COMPLETED") {
+                res(restoreStatus.CreatedResourceArn);
+              } else {
+                await sendResponse(null, event, context, "FAILED", {}, "Restore job failed.");
+                rej();
+              }
 
-						if (restoreStatus.Status === "FAILED") {
-							if (interval) {
-								clearInterval(interval);
-							}
+              return true;
+            }
 
-							rej();
+            return false;
+          };
 
-							return true;
-						}
+          if (!await f()) {
+            interval = setInterval(f, 10000);
+          }
+        });
+      } else {
+        FileSystemId = (await promisify(efs.createFileSystem.bind(efs))({
+          PerformanceMode, CreationToken, ThroughputMode, Encrypted, Tags, KmsKeyId, ProvisionedThroughputInMibps
+        })).FileSystemId;
+      }
+    } else {
+      FileSystemId = event.PhysicalResourceId;
 
-						return false;
-					};
+      await promisify(efs.updateFileSystem.bind(efs))({
+        FileSystemId, ThroughputMode, ProvisionedThroughputInMibps
+      });
+    }
 
-					if (!await f()) {
-						interval = setInterval(f, 10000);
-					}
-				});
-			} else {
-				FileSystemId = (await promisify(efs.createFileSystem.bind(efs))({
-					PerformanceMode, CreationToken, ThroughputMode, Encrypted, Tags, KmsKeyId, ProvisionedThroughputInMibps
-				})).FileSystemId;
-			}
-		} else {
-			FileSystemId = event.PhysicalResourceId;
+    await new Promise(async res => {
+      let interval;
 
-			await promisify(efs.updateFileSystem.bind(efs))({
-				FileSystemId, ThroughputMode, ProvisionedThroughputInMibps
-			});
-		}
+      const f = async () => {
+        const info = (await promisify(efs.describeFileSystems.bind(efs))({
+          FileSystemId
+        }));
 
-		await new Promise(async res => {
-			let interval;
+        if (info.FileSystems[0].LifeCycleState === "available") {
+          if (interval) {
+            clearInterval(interval);
+          }
 
-			const f = async () => {
-				const info = (await promisify(efs.describeFileSystems.bind(efs))({
-					FileSystemId
-				}));
+          res();
+          return true;
+        }
 
-				if (info.FileSystems[0].LifeCycleState === "available") {
-					if (interval) {
-						clearInterval(interval);
-					}
+        return false;
+      };
 
-					res();
-					return true;
-				}
+      if (!await f()) {
+        interval = setInterval(f, 10000);
+      }
+    });
 
-				return false;
-			};
+    const LifecyclePolicies = event.ResourceProperties.LifecyclePolicies;
 
-			if (!await f()) {
-				interval = setInterval(f, 10000);
-			}
-		});
+    if (LifecyclePolicies) {
+      await promisify(efs.putLifecycleConfiguration.bind(efs))({
+        FileSystemId, LifecyclePolicies
+      });
+    }
 
-		const LifecyclePolicies = event.ResourceProperties.LifecyclePolicies;
-
-		if (LifecyclePolicies) {
-			await promisify(efs.putLifecycleConfiguration.bind(efs))({
-				FileSystemId, LifecyclePolicies
-			});
-		}
-
-		await sendResponse(FileSystemId, event, context, "SUCCESS");
-
-		return;
-	}
-
-  if (event.RequestType == 'Delete') {
-		const FileSystemId = event.PhysicalResourceId;
-
-		await promisify(efs.deleteFileSystem.bind(efs))({ FileSystemId });
     await sendResponse(FileSystemId, event, context, "SUCCESS");
 
-		return;
+    return;
+  }
+
+  if (event.RequestType == 'Delete') {
+    const FileSystemId = event.PhysicalResourceId;
+
+    await promisify(efs.deleteFileSystem.bind(efs))({ FileSystemId });
+    await sendResponse(FileSystemId, event, context, "SUCCESS");
+
+    return;
   }
 }
