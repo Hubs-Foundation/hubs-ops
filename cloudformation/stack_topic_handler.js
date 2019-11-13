@@ -5,21 +5,49 @@ const promisify = f =>
   arg =>
     new Promise((res, rej) => f(arg, (err, data) => { if (err) { console.log(err); rej(err); } else { res(data); } }));
 
-function handleBudgetAlert(event, context) {
-  const topicArn = event.Record[0].Sns.TopicArn;
-  console.log(topicArn);
+// Note this doesn't have to be an exact match since we explicit don't check
+// for the full offline string, only online string, in template.
+const OFFLINE_SETTING = "Offline - Temporarily shut off servers";
+
+async function handleBudgetAlert(event, context) {
+  
+  const topicArn = event.Records[0].Sns.TopicArn;
+  const sns = new AWS.SNS();
+  const tags = (await promisify(sns.listTagsForResource.bind(sns))({ ResourceArn: topicArn })).Tags;
+  const stackName = tags.find(t => t.Key === "stack-name").Value;
+  const stackRegion = tags.find(t => t.Key === "stack-region").Value;
+  const cf = new AWS.CloudFormation({ region: stackRegion });
+  const stackInfo = (await promisify(cf.describeStacks.bind(cf))(({ StackName: stackName })));
+  const params = stackInfo.Stacks[0].Parameters;
+  const newParams = [];
+  
+  for (const p of params) {
+    if (p.ParameterKey === "StackOffline") {
+        newParams.push({ ParameterKey: p.ParameterKey, ParameterValue: OFFLINE_SETTING });
+    } else {
+        newParams.push({ ParameterKey: p.ParameterKey, UsePreviousValue: true });
+    }
+  }
+  
+  await promisify(cf.updateStack.bind(cf))({
+      StackName: stackName,
+      UsePreviousTemplate: true,
+      Parameters: newParams,
+      Capabilities: ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"]
+  });
 }
 
 function handleASGMessage(message, context) {
 }
 
 exports.handler = async function (event, context) {
-  if (event.Records[0].Sns.Message.indexOf("Budget Name") >= 0) {
+  console.log(event.Records[0].Sns.Message);
+  /*if (event.Records[0].Sns.Message.indexOf("Budget Name") >= 0) {
     return handleBudgetAlert(event, context);
   } else {
     const message = JSON.parse(event.Records[0].Sns.Message);
     return handleASGMessage(message, context);
-  }
+  }*/
 };
 
 /*function handleASGMessage(message, context) {
