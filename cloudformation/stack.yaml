@@ -1626,7 +1626,7 @@ Resources:
                Action: 
                  - cloudfront:*
                Resource: 
-                 - !GetAtt AppCloudfrontDistribution.Arn
+                 - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${AppCloudfrontDistribution}"
              - Effect: Allow
                Action: 
                  - ec2:*
