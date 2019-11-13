@@ -83,7 +83,7 @@ exports.handler = async function (event, context) {
 
 				const restorePointMetadata = (await promisify(backup.getRecoveryPointRestoreMetadata.bind(backup))({
 					BackupVaultName, RecoveryPointArn
-				}));
+				})).RestoreMetadata;
 
 				const RestoreJobId = (await promisify(backup.startRestoreJob.bind(backup))({
 					RecoveryPointArn,
@@ -98,7 +98,7 @@ exports.handler = async function (event, context) {
 					IamRoleArn
 				})).RestoreJobId;
 
-				FileSystemId = await new Promise(async res => {
+				FileSystemId = await new Promise(async (res, rej) => {
 					let interval;
 
 					const f = async () => {
@@ -112,6 +112,16 @@ exports.handler = async function (event, context) {
 							}
 
 							res(restoreStatus.CreatedResourceArn);
+							return true;
+						}
+
+						if (restoreStatus.Status === "FAILED") {
+							if (interval) {
+								clearInterval(interval);
+							}
+
+							rej();
+
 							return true;
 						}
 
