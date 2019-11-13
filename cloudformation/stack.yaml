@@ -360,7 +360,6 @@ Conditions:
   # for this specific scenario the user will continue to pay for the ALB.
   RequestedALB: !Equals [!Ref LoadBalancingMethod, "Application Load Balancer"]
   HasALB: !And [!Or [Condition: IsOnline, Condition: PerformOfflineRedirectWithUnmanagedDomain], Condition: RequestedALB]
-  CreateCertForALB: !And [Condition: RequestedALB, Condition: HasManagedDomain]
 
 Resources:
 
@@ -1004,7 +1003,7 @@ Resources:
 
   ExternalZoneSSLCert:
     Type: Custom::DNSCertificate
-    Condition: CreateCertForALB
+    Condition: HasManagedDomain
     Properties: 
       DomainName: !GetAtt ExternalZoneInfo.Name
       DomainValidationOptions:
