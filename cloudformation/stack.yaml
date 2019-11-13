@@ -631,7 +631,7 @@ Resources:
       Description: Lookup Route 53 info
       Handler: index.handler
       Role: !GetAtt Route53DependencyRole.Arn
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Timeout: 900
       Code:
         ZipFile: |
@@ -774,7 +774,7 @@ Resources:
       Description: Parse a URL into its constituent parts for redirector
       Handler: index.handler
       Role: !GetAtt ParseURLRole.Arn
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Timeout: 900
       Code:
         ZipFile: |
@@ -2087,7 +2087,7 @@ Resources:
       Handler: index.handler
       MemorySize: 1024
       Role: !GetAtt PhotomnemonicRole.Arn
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Timeout: 30
     DependsOn:
       - CopyPhotomnemonicLambda
