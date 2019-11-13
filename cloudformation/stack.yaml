@@ -1597,8 +1597,8 @@ Resources:
                Action: 
                  - route53:*
                Resource: 
-                 - !Ref InternalZone
-                 - !If [HasManagedDomain, !GetAtt ExternalZoneInfo.Id, "DEADZONE"]
+                 - !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+                 - !If [HasManagedDomain, !Sub "arn:aws:route53:::hostedzone/${ExternalZoneInfo.Id}", "arn:aws:route53:::hostedzone/DEADZONE*"]
              - Effect: Allow
                Action: 
                  - cloudformation:DescribeStacks
@@ -1608,6 +1608,7 @@ Resources:
              - Effect: Allow
                Action: 
                  - sns:ListTagsForResource
+               Resource: "*"
              - Effect: Allow
                Action: 
                  - autoscaling:*
@@ -1625,7 +1626,7 @@ Resources:
                Action: 
                  - cloudfront:*
                Resource: 
-                 - !Ref AppCloudfrontDistribution
+                 - !GetAtt AppCloudfrontDistribution.Arn
              - Effect: Allow
                Action: 
                  - ec2:*
