@@ -1554,7 +1554,7 @@ Resources:
                   timer.cancel()
                   cfnresponse.send(event, context, status, {}, None)
 
-# StackTopicHandlerDNS
+# StackTopicHandler
   StackTopicHandlerRole:
    Type: AWS::IAM::Role
    Properties:
@@ -1694,6 +1694,52 @@ Resources:
               Condition:
                 ArnLike:
                   AWS:SourceArn: !Ref AppASG
+
+# EFSCreateOrRestore
+  EFSCreateOrRestoreRole:
+   Type: AWS::IAM::Role
+   Properties:
+     RoleName: !Sub "${AWS::StackName}-EFSCreateOrRestore"
+     AssumeRolePolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Principal:
+             Service: lambda.amazonaws.com
+           Action: sts:AssumeRole
+     ManagedPolicyArns:
+       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+     Path: /
+     Policies:
+       - PolicyName: efs-create-or-restore-role
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                 - efs:*
+                 - kms:Get*
+                 - kms:Describe*
+                 - kms:Decrypt
+                 - backup:StartRestoreJob
+                 - backup:Get*
+                 - backup:Describe*
+                 - backup:List*
+               Resource:
+                 - "*"
+
+  EFSCreateOrRestore:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-efs-create-or-restore"
+      Description: Creates or restores EFS volumes
+      Handler: index.handler
+      Runtime: nodejs10.x
+      Role: !GetAtt EFSCreateOrRestoreRole.Arn
+      Timeout: 900
+      Code:
+        ZipFile: !Sub |
+          const https=require("https"),url=require("url"),AWS=require("aws-sdk"),promisify=e=>t=>new Promise((s,o)=>e(t,(e,t)=>{e?(console.log(e),o(e)):s(t)}));function getReason(e){return e?e.message:""}async function sendResponse(e,t,s,o,r,i){const n={StackId:t.StackId,RequestId:t.RequestId,LogicalResourceId:t.LogicalResourceId,PhysicalResourceId:"efs-"+e,Status:o,Reason:getReason(i)+" See details in CloudWatch Log: "+s.logStreamName,Data:r},a=JSON.stringify(n),c=url.parse(t.ResponseURL),d={hostname:c.hostname,port:443,path:c.path,method:"PUT",headers:{"content-type":"","content-length":a.length}};await new Promise((e,t)=>{const o=https.request(d,()=>{s.done(null,r),e()});o.on("error",e=>{console.log("sendResponse Error:\n",e),s.done(e),t()}),o.write(a),o.end()})}exports.handler=async function(e,t){const s=new AWS.EFS;if("Create"==e.RequestType||"Update"==e.RequestType){const o=e.ResourceProperties.PerformanceMode||"generalPurpose",r=e.ResourceProperties.ThroughputMode||"bursting",i=e.RequestId;let n=null;"provisioned"===r&&(n=e.ResourceProperties.ProvisionedThroughputInMibps);const a=e.ResourceProperties.Encrypted||!1,c=e.ResourceProperties.FileSystemTags||[],d=e.ResourceProperties.KmsKeyId||null;let u;if("Create"===e.RequestType){const t=e.ResourceProperties.RestoreBackupVaultArn,l=e.ResourceProperties.RestoreRecoveryPointArn;if(l&&RestoreBackupVaultName){const e=new AWS.Backup,s=(await promisify(e.GetRecoveryPointRestoreMetadata.bind(e))({BackupVaultName:t,RecoveryPointArn:l})).restorePointMetadata,r=(await promisify(e.startRestoreJob.bind(e))({RecoveryPointArn:l,Metadata:{"file-system-id":s["file-system-id"],PerformanceMode:o,CreationToken:i,newFileSystem:!0},ResourceType:"EFS",IdempotencyToken:i})).RestoreJobId;u=await new Promise(t=>{const s=setInterval(async()=>{const o=await promisify(e.describeRestoreJob.bind(e))({RestoreJobId:r});"COMPLETED"===o.Status&&(clearInterval(s),t(o.CreatedResourceArn))},1e4)})}else u=(await promisify(s.createFileSystem.bind(s)({PerformanceMode:o,CreationToken:i,ThroughputMode:r,Encrypted:a,Tags:c,KmsKeyId:d,ProvisionedThroughputInMibps:n}))).FileSystemId}else u=e.PhysicalResourceId,await promisify(s.updateFileSystem.bind(s)({FileSystemId:u,ThroughputMode:r,ProvisionedThroughputInMibps:n}));await new Promise(e=>{const t=setInterval(async()=>{"available"===(await promisify(s.describeFileSystems.bind(s))({FileSystemId:u})).LifeCycleState&&(e(),clearInterval(t))},1e4)});const l=e.ResourceProperties.LifecyclePolicies;return l&&await promisify(s.putLifecycleConfiguration.bind(s))({FileSystemId:u,LifecyclePolicies:l}),void await sendResponse(u,e,t,"SUCCESS")}if("Delete"==e.RequestType){const o=e.PhysicalResourceId;return await promisify(s.deleteFileSystem.bind(s))({FileSystemId:o}),void await sendResponse(o,e,t,"SUCCESS")}};
 
   LambdaBucket:
     Type: AWS::S3::Bucket

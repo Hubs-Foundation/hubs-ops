@@ -1,5 +1,9 @@
 const https = require("https");
 const url = require("url");
+const AWS = require('aws-sdk');
+const promisify = f =>
+  arg =>
+    new Promise((res, rej) => f(arg, (err, data) => { if (err) { console.log(err); rej(err); } else { res(data); } }));
 
 function getReason(err) {
   if (err)
@@ -57,6 +61,7 @@ exports.handler = async function (event, context) {
 	if (event.RequestType == 'Create' || event.RequestType == 'Update') {
 		const PerformanceMode = event.ResourceProperties.PerformanceMode || "generalPurpose";
 		const ThroughputMode = event.ResourceProperties.ThroughputMode || "bursting";
+		const CreationToken = event.RequestId;
 		let ProvisionedThroughputInMibps = null;
 
 		if (ThroughputMode === "provisioned") {
@@ -69,9 +74,45 @@ exports.handler = async function (event, context) {
 		let FileSystemId;
 
 		if (event.RequestType === 'Create') {
-			FileSystemId = (await promisify(efs.createFileSystem.bind(efs)({
-				PerformanceMode, ThroughputMode, Encrypted, Tags, KmsKeyId, ProvisionedThroughputInMibps
-			}))).FileSystemId;
+			const BackupVaultName = event.ResourceProperties.RestoreBackupVaultArn;
+			const RecoveryPointArn = event.ResourceProperties.RestoreRecoveryPointArn;
+
+			if (RecoveryPointArn && RestoreBackupVaultName) {
+				const backup = new AWS.Backup();
+
+				const restorePointMetadata = (await promisify(backup.GetRecoveryPointRestoreMetadata.bind(backup))({
+					BackupVaultName, RecoveryPointArn
+				})).restorePointMetadata;
+
+				const RestoreJobId = (await promisify(backup.startRestoreJob.bind(backup))({
+					RecoveryPointArn,
+					Metadata: {
+						"file-system-id": restorePointMetadata["file-system-id"],
+						PerformanceMode,
+						CreationToken,
+						newFileSystem: true
+					},
+					ResourceType: "EFS",
+					IdempotencyToken: CreationToken
+				})).RestoreJobId;
+
+				FileSystemId = await new Promise(res => {
+					const interval = setInterval(async () => {
+						const restoreStatus = await promisify(backup.describeRestoreJob.bind(backup))({
+							RestoreJobId
+						});
+
+						if (restoreStatus.Status === "COMPLETED") {
+							clearInterval(interval);
+							res(restoreStatus.CreatedResourceArn);
+						}
+					}, 10000);
+				});
+			} else {
+				FileSystemId = (await promisify(efs.createFileSystem.bind(efs)({
+					PerformanceMode, CreationToken, ThroughputMode, Encrypted, Tags, KmsKeyId, ProvisionedThroughputInMibps
+				}))).FileSystemId;
+			}
 		} else {
 			FileSystemId = event.PhysicalResourceId;
 
@@ -102,10 +143,16 @@ exports.handler = async function (event, context) {
 		}
 
 		await sendResponse(FileSystemId, event, context, "SUCCESS");
+
 		return;
 	}
 
   if (event.RequestType == 'Delete') {
-    return sendResponse(event, context, "SUCCESS");
+		const FileSystemId = event.PhysicalResourceId;
+
+		await promisify(efs.deleteFileSystem.bind(efs))({ FileSystemId });
+    await sendResponse(FileSystemId, event, context, "SUCCESS");
+
+		return;
   }
 }
