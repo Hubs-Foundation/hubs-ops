@@ -6,25 +6,25 @@ function btoa(s) {
 }
 
 parseURL.handler = function(event, context) {
-	const url = event.ResourceProperties.URL || "https://en.wikipedia.org/wiki/Rubber_duck";
+  const url = event.ResourceProperties.URL || "https://en.wikipedia.org/wiki/Rubber_duck";
 
-	try {
-		const parsed = URL.parse(url);
-		const pathname = parsed.pathname;
+  try {
+    const parsed = URL.parse(url);
+    const pathname = parsed.pathname;
 
-		return sendResponse(event, context, "SUCCESS", {
-			S3ReplaceKeyPrefixWith: `${parsed.pathname.substring(1)}${parsed.search || ""}${parsed.hash || ""}`,
-			S3Protocol: parsed.protocol.replace(":", ""),
-			S3Hostname: parsed.host,
-			ALBProtocol: parsed.protocol.replace(":", "").toUpperCase(),
-			ALBPort: parsed.port,
-			ALBHost: parsed.host,
+    return sendResponse(event, context, "SUCCESS", {
+      S3ReplaceKeyPrefixWith: `${parsed.pathname.substring(1)}${parsed.search || ""}${parsed.hash || ""}`,
+      S3Protocol: parsed.protocol.replace(":", ""),
+      S3Hostname: parsed.host,
+      ALBProtocol: parsed.protocol.replace(":", "").toUpperCase(),
+      ALBPort: parsed.port,
+      ALBHost: parsed.host,
       ALBPath: parsed.pathname,
-			ALBQuery: `${parsed.search || ""}${parsed.hash || ""}`.replace(/^\?/, "")
-		});
-	} catch (e) {
+      ALBQuery: `${parsed.search || ""}${parsed.hash || ""}`.replace(/^\?/, "")
+    });
+  } catch (e) {
     return sendResponse(event, context, "FAILED", null, `Invalid URL specified: ${url}`);
-	}
+  }
 };
 
 function getReason(err) {

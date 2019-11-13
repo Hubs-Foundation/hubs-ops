@@ -1,5 +1,5 @@
 // Underlying source to RegisterNodeLambda.
-// Quick packer http://dean.edwards.name/packer/
+// Packer: https://skalman.github.io/UglifyJS-online/
 const AWS = require('aws-sdk');
 const promisify = f =>
   arg =>
@@ -15,7 +15,24 @@ async function handleBudgetAlert(event, context) {
   const tags = (await promisify(sns.listTagsForResource.bind(sns))({ ResourceArn: topicArn })).Tags;
   const stackName = tags.find(t => t.Key === "stack-name").Value;
   const stackRegion = tags.find(t => t.Key === "stack-region").Value;
+
   const cf = new AWS.CloudFormation({ region: stackRegion });
+
+  await new Promise(res => {
+    const interval = setInterval(async () => {
+      const stackInfo = (await promisify(cf.describeStacks.bind(cf))(({ StackName: stackName })));
+
+      if (stackInfo) {
+        const stackStatus = stackInfo.Stacks[0].StackStatus;
+        if (stackStatus.endsWith("_COMPLETE") || stackStatus.endsWith("_FAILED")) {
+
+          res();
+          clearInterval(interval);
+        }
+      }
+    }, 30000);
+  });
+
   const stackInfo = (await promisify(cf.describeStacks.bind(cf))(({ StackName: stackName })));
   const params = stackInfo.Stacks[0].Parameters;
   const newParams = [];
@@ -36,7 +53,7 @@ async function handleBudgetAlert(event, context) {
   });
 }
 
-function handleASGMessage(message, context) {
+async function handleASGMessage(message, context) {
   const asgName = message.AutoScalingGroupName;
   const asgEvent = message.Event;
   const region = "${AWS::Region}";
