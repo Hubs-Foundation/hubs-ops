@@ -5,11 +5,24 @@ const promisify = f =>
   arg =>
     new Promise((res, rej) => f(arg, (err, data) => { if (err) { console.log(err); rej(err); } else { res(data); } }));
 
-function handleBudgetingMessage(message, context) {
-  console.log(message);
+function handleBudgetAlert(event, context) {
+  const topicArn = event.Record[0].Sns.TopicArn;
+  console.log(topicArn);
 }
 
 function handleASGMessage(message, context) {
+}
+
+exports.handler = async function (event, context) {
+  if (event.Records[0].Sns.Message.indexOf("Budget Name") >= 0) {
+    return handleBudgetAlert(event, context);
+  } else {
+    const message = JSON.parse(event.Records[0].Sns.Message);
+    return handleASGMessage(message, context);
+  }
+};
+
+/*function handleASGMessage(message, context) {
   const asgName = message.AutoScalingGroupName;
   const asgEvent = message.Event;
   const region = "${AWS::Region}";
@@ -161,14 +174,4 @@ function handleASGMessage(message, context) {
     context.done("Unsupported ASG event: " + asgName + " " + asgEvent);
   }
 }
-
-exports.handler = async function (event, context) {
-  const message = JSON.parse(event.Records[0].Sns.Message);
-
-  if (message.AutoScalingGroupName) {
-    return handleASGMessage(message, context);
-  } else {
-    return handleBudgetingMessage(message, context);
-  }
-};
-
+*/
