@@ -1,14 +1,17 @@
 // Underlying source to RegisterNodeLambda.
 // Quick packer http://dean.edwards.name/packer/
 const AWS = require('aws-sdk');
+const promisify = f =>
+  arg =>
+    new Promise((res, rej) => f(arg, (err, data) => { if (err) { console.log(err); rej(err); } else { res(data); } }));
 
-exports.handler = async function (event, context) {
-  const asgMessage = JSON.parse(event.Records[0].Sns.Message);
-  const asgName = asgMessage.AutoScalingGroupName;
-  const asgEvent = asgMessage.Event;
-  const promisify = f =>
-    arg =>
-      new Promise((res, rej) => f(arg, (err, data) => { if (err) { console.log(err); rej(err); } else { res(data); } }));
+function handleBudgetingMessage(message, context) {
+  console.log(message);
+}
+
+function handleASGMessage(message, context) {
+  const asgName = message.AutoScalingGroupName;
+  const asgEvent = message.Event;
   const region = "${AWS::Region}";
   const recordName = "${AWS::StackName}-app.${InternalZoneInfo.Name}.";
   const hostedZoneId = "${InternalZoneInfo.Id}";
@@ -156,6 +159,16 @@ exports.handler = async function (event, context) {
   } else {
     console.log("Unsupported ASG event: " + asgName + " " + asgEvent);
     context.done("Unsupported ASG event: " + asgName + " " + asgEvent);
+  }
+}
+
+exports.handler = async function (event, context) {
+  const message = JSON.parse(event.Records[0].Sns.Message);
+
+  if (message.AutoScalingGroupName) {
+    return handleASGMessage(message, context);
+  } else {
+    return handleBudgetingMessage(message, context);
   }
 };
 

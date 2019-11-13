@@ -352,7 +352,7 @@ Conditions:
   PerformOfflineRedirect: !And [ Condition: IsOffline, Condition: HasOfflineRedirectUrl ]
   PerformOfflineRedirectWithUnmanagedDomain: !And [Condition: PerformOfflineRedirect, Condition: HasUnmangedDomain]
   EnableDbAutoPause: !Equals [!Ref AutoPauseDb, "Yes - Pause database when not in use"]
-  HasDataMonthlyBudget: !Not [!Equals [!Ref DatabaseMonthlyBudget, ""]]
+  HasDbMonthlyBudget: !Not [!Equals [!Ref DatabaseMonthlyBudget, ""]]
   HasDbSnapshotIdentifier: !Not [!Equals [!Ref DbSnapshotIdentifier, ""]]
 
   # NOTE: keep the ALB around if we are doing an offline redirect *and* we have an unmanaged domain, because otherwise
@@ -1554,11 +1554,11 @@ Resources:
                   timer.cancel()
                   cfnresponse.send(event, context, status, {}, None)
 
-# RegisterNodeDNS
-  RegisterNodeRole:
+# StackTopicHandlerDNS
+  StackTopicHandlerRole:
    Type: AWS::IAM::Role
    Properties:
-     RoleName: !Sub "${AWS::StackName}-RegisterNode"
+     RoleName: !Sub "${AWS::StackName}-StackTopicHandler"
      AssumeRolePolicyDocument:
        Version: '2012-10-17'
        Statement:
@@ -1570,7 +1570,7 @@ Resources:
        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
      Path: /
      Policies:
-       - PolicyName: register-scaling-event
+       - PolicyName: stack-topic-handler-role
          PolicyDocument:
            Version: '2012-10-17'
            Statement:
@@ -1591,43 +1591,70 @@ Resources:
                  - route53:ListHealthChecks
                  - route53:DeleteHealthCheck
                Resource: "*"
+             - Effect: Allow
+               Action: 
+                 - cloudformation:DescribeStacks
+                 - cloudformation:UpdateStack
+               Resource: !Ref "AWS::StackId"
 
-  RegisterNodeFunction:
+  StackTopicHandler:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "${AWS::StackName}-register-node"
-      Description: Registers Node IPs into Round Robin DNS
+      FunctionName: !Sub "${AWS::StackName}-stack-topic-handler"
+      Description: Registers Node IPs into Round Robin DNS and manages stack if budgets are hit
       Handler: index.handler
       Runtime: nodejs10.x
-      Role: !GetAtt RegisterNodeRole.Arn
+      Role: !GetAtt StackTopicHandlerRole.Arn
       Timeout: 240
       Code:
         ZipFile: !Sub |
-          const AWS=require('aws-sdk');exports.handler=async function(event,context){const asgMessage=JSON.parse(event.Records[0].Sns.Message);const asgName=asgMessage.AutoScalingGroupName;const asgEvent=asgMessage.Event;const promisify=f=>arg=>new Promise((res,rej)=>f(arg,(err,data)=>{if(err){console.log(err);rej(err)}else{res(data)}}));const region="${AWS::Region}";const recordName="${AWS::StackName}-app.${InternalZoneInfo.Name}.";const hostedZoneId="${InternalZoneInfo.Id}";const ttl=15;if(asgEvent==="autoscaling:EC2_INSTANCE_LAUNCH"||asgEvent==="autoscaling:EC2_INSTANCE_TERMINATE"){const autoscaling=new AWS.AutoScaling({region});const ec2=new AWS.EC2({region});const route53=new AWS.Route53();const asgResponse=await promisify(autoscaling.describeAutoScalingGroups.bind(autoscaling))({AutoScalingGroupNames:[asgName],MaxRecords:1});const recordSets=(await promisify(route53.listResourceRecordSets.bind(route53))({StartRecordName:recordName,StartRecordType:"A",HostedZoneId:hostedZoneId,MaxItems:"100"})).ResourceRecordSets;const instanceIds=asgResponse.AutoScalingGroups[0].Instances.map(i=>i.InstanceId);const instanceInfo=await promisify(ec2.describeInstances.bind(ec2))({DryRun:false,InstanceIds:instanceIds});const ipAddresses=[];for(let i=0;i<instanceInfo.Reservations.length;i++){const reservation=instanceInfo.Reservations[i];for(let j=0;j<reservation.Instances.length;j++){const ip=reservation.Instances[j].NetworkInterfaces[0].Association.PublicIp;if(ip&&ipAddresses.indexOf(ip)<0){ipAddresses.push(ip)}}}for(let i=0,l=recordSets.length;i<l;i++){const record=recordSets[i];if(record.Name!==recordName||record.Type!=="A")continue;const resource=record.ResourceRecords.length>0&&record.ResourceRecords[0].Value;if(!resource)continue;if(!ipAddresses.find(ip=>ip===resource)){try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'DELETE',ResourceRecordSet:{MultiValueAnswer:true,Name:record.Name,Type:record.Type,TTL:record.TTL,SetIdentifier:record.SetIdentifier,ResourceRecords:record.ResourceRecords,HealthCheckId:record.HealthCheckId}}]},HostedZoneId:hostedZoneId})}catch(e){}}}let healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({MaxItems:"100"})).HealthChecks;if(ipAddresses.length>1){for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.createHealthCheck.bind(route53))({CallerReference:Math.floor(Math.random()*1000000000).toString(),HealthCheckConfig:{EnableSNI:true,FailureThreshold:2,FullyQualifiedDomainName:recordName,IPAddress:ip,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}}}healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({})).HealthChecks;for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!recordSets.find(r=>r.Name===recordName&&r.ResourceRecords&&r.ResourceRecords.length&&r.ResourceRecords[0].Value===ip)){const check=healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip);try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'UPSERT',ResourceRecordSet:{MultiValueAnswer:true,Name:recordName,Type:'A',HealthCheckId:check?check.Id:null,TTL:ttl,SetIdentifier:ip,ResourceRecords:[{Value:ip}]}}]},HostedZoneId:hostedZoneId})}catch(e){}}}for(let i=0,l=healthChecks.length;i<l;i++){const check=healthChecks[i];if(ipAddresses.length===1||!ipAddresses.find(ip=>check.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.deleteHealthCheck.bind(route53))({HealthCheckId:check.Id})}catch(e){}}}}else{console.log("Unsupported ASG event: "+asgName+" "+asgEvent);context.done("Unsupported ASG event: "+asgName+" "+asgEvent)}};
+          const AWS=require('aws-sdk');exports.handler=async function(event,context){console.log(event);const asgMessage=JSON.parse(event.Records[0].Sns.Message);const asgName=asgMessage.AutoScalingGroupName;const asgEvent=asgMessage.Event;const promisify=f=>arg=>new Promise((res,rej)=>f(arg,(err,data)=>{if(err){console.log(err);rej(err)}else{res(data)}}));const region="${AWS::Region}";const recordName="${AWS::StackName}-app.${InternalZoneInfo.Name}.";const hostedZoneId="${InternalZoneInfo.Id}";const ttl=15;if(asgEvent==="autoscaling:EC2_INSTANCE_LAUNCH"||asgEvent==="autoscaling:EC2_INSTANCE_TERMINATE"){const autoscaling=new AWS.AutoScaling({region});const ec2=new AWS.EC2({region});const route53=new AWS.Route53();const asgResponse=await promisify(autoscaling.describeAutoScalingGroups.bind(autoscaling))({AutoScalingGroupNames:[asgName],MaxRecords:1});const recordSets=(await promisify(route53.listResourceRecordSets.bind(route53))({StartRecordName:recordName,StartRecordType:"A",HostedZoneId:hostedZoneId,MaxItems:"100"})).ResourceRecordSets;const instanceIds=asgResponse.AutoScalingGroups[0].Instances.map(i=>i.InstanceId);const instanceInfo=await promisify(ec2.describeInstances.bind(ec2))({DryRun:false,InstanceIds:instanceIds});const ipAddresses=[];for(let i=0;i<instanceInfo.Reservations.length;i++){const reservation=instanceInfo.Reservations[i];for(let j=0;j<reservation.Instances.length;j++){const ip=reservation.Instances[j].NetworkInterfaces[0].Association.PublicIp;if(ip&&ipAddresses.indexOf(ip)<0){ipAddresses.push(ip)}}}for(let i=0,l=recordSets.length;i<l;i++){const record=recordSets[i];if(record.Name!==recordName||record.Type!=="A")continue;const resource=record.ResourceRecords.length>0&&record.ResourceRecords[0].Value;if(!resource)continue;if(!ipAddresses.find(ip=>ip===resource)){try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'DELETE',ResourceRecordSet:{MultiValueAnswer:true,Name:record.Name,Type:record.Type,TTL:record.TTL,SetIdentifier:record.SetIdentifier,ResourceRecords:record.ResourceRecords,HealthCheckId:record.HealthCheckId}}]},HostedZoneId:hostedZoneId})}catch(e){}}}let healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({MaxItems:"100"})).HealthChecks;if(ipAddresses.length>1){for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.createHealthCheck.bind(route53))({CallerReference:Math.floor(Math.random()*1000000000).toString(),HealthCheckConfig:{EnableSNI:true,FailureThreshold:2,FullyQualifiedDomainName:recordName,IPAddress:ip,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}}}healthChecks=(await promisify(route53.listHealthChecks.bind(route53))({})).HealthChecks;for(let i=0,l=ipAddresses.length;i<l;i++){const ip=ipAddresses[i];if(!recordSets.find(r=>r.Name===recordName&&r.ResourceRecords&&r.ResourceRecords.length&&r.ResourceRecords[0].Value===ip)){const check=healthChecks.find(h=>h.HealthCheckConfig.IPAddress===ip);try{await promisify(route53.changeResourceRecordSets.bind(route53))({ChangeBatch:{Changes:[{Action:'UPSERT',ResourceRecordSet:{MultiValueAnswer:true,Name:recordName,Type:'A',HealthCheckId:check?check.Id:null,TTL:ttl,SetIdentifier:ip,ResourceRecords:[{Value:ip}]}}]},HostedZoneId:hostedZoneId})}catch(e){}}}for(let i=0,l=healthChecks.length;i<l;i++){const check=healthChecks[i];if(ipAddresses.length===1||!ipAddresses.find(ip=>check.HealthCheckConfig.IPAddress===ip)){try{await promisify(route53.deleteHealthCheck.bind(route53))({HealthCheckId:check.Id})}catch(e){}}}}else{console.log("Unsupported ASG event: "+asgName+" "+asgEvent);context.done("Unsupported ASG event: "+asgName+" "+asgEvent)}};
   
-  InvokeRegisterNodePermission:
+  InvokeStackTopicHandlerPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: 'lambda:InvokeFunction'
-      FunctionName: !Ref RegisterNodeFunction
+      FunctionName: !Ref StackTopicHandler
       Principal: sns.amazonaws.com
 
-  RegisterNodeTopicPolicy:
+  StackTopicHandlerTopicPolicy:
     Type: 'AWS::SNS::TopicPolicy'
     Properties:
       Topics:
-        - !Ref AppASGTopic
+        - !Ref StackTopic
       PolicyDocument:
         Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action: 'sns:Publish'
-            Resource: !Ref AppASGTopic
-            Principal:
-              AWS: "*"
-            Condition:
-              ArnLike:
-                AWS:SourceArn: !Ref AppASG
+        Statement: !If
+          -  HasDbMonthlyBudget
+          - 
+            - Effect: Allow
+              Sid: !Sub "${AWS::StackName}-topic-policy-stmt-asg"
+              Action: 'sns:Publish'
+              Resource: !Ref StackTopic
+              Principal:
+                AWS: "*"
+              Condition:
+                ArnLike:
+                  AWS:SourceArn: !Ref AppASG
+            - Effect: Allow
+              Sid: !Sub "${AWS::StackName}-topic-policy-stmt-budget"
+              Action: 'sns:Publish'
+              Resource: !Ref StackTopic
+              Principal:
+                AWS: "*"
+              Condition:
+                ArnLike:
+                  AWS:SourceArn: !Ref AppDbBudget
+          - 
+            - Effect: Allow
+              Sid: !Sub "${AWS::StackName}-topic-policy-stmt-asg"
+              Action: 'sns:Publish'
+              Resource: !Ref StackTopic
+              Principal:
+                AWS: "*"
+              Condition:
+                ArnLike:
+                  AWS:SourceArn: !Ref AppASG
 
   LambdaBucket:
     Type: AWS::S3::Bucket
@@ -3168,14 +3195,14 @@ Resources:
     Properties:
       Strategy: !If [AppIsNoPlacement, cluster, !If [ AppIsClusterPlacement, !FindInMap [ InstanceTypeMeta, !Ref AppInstanceType, PlacementForCluster ], !Ref AppPlacementGroupStrategy ] ]
 
-  AppASGTopic:
+  StackTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub "${AWS::StackName}-app-asg-scaling-events"
-      DisplayName: App Server Scaling Events
+      TopicName: !Sub "${AWS::StackName}-topic"
+      DisplayName: Topic for handling scaling events and budget triggers
       Subscription:
         - Protocol: lambda
-          Endpoint: !GetAtt RegisterNodeFunction.Arn
+          Endpoint: !GetAtt StackTopicHandler.Arn
 
   AppASG:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -3202,7 +3229,7 @@ Resources:
         - NotificationTypes:
           - autoscaling:EC2_INSTANCE_LAUNCH
           - autoscaling:EC2_INSTANCE_TERMINATE
-          TopicARN: !Ref AppASGTopic
+          TopicARN: !Ref StackTopic
       DesiredCapacity: !If [IsOffline, 0, !Ref AppInstanceCount]
       PlacementGroup: !If [AppIsNoPlacement, !Ref "AWS::NoValue", !Ref AppPlacementGroup]
       LaunchConfigurationName: !Ref AppLaunchConfiguration
@@ -3547,7 +3574,7 @@ Resources:
 
   AppDbBudget:
     Type: AWS::Budgets::Budget
-    Condition: HasDataMonthlyBudget
+    Condition: HasDbMonthlyBudget
     Properties:
       Budget:
         BudgetLimit: 
@@ -3559,6 +3586,16 @@ Resources:
         CostFilters: 
           UsageType: 
             - !Join [ "-", [!FindInMap [Regions, !Ref "AWS::Region", Abbreviation], "Aurora:ServerlessUsage" ]]
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 99
+          Subscribers:
+           - SubscriptionType: EMAIL
+             Address: !Ref AdminEmailAddress
+           - SubscriptionType: SNS
+             Address: !Ref StackTopic
 
 # Secrets
   JanusAndReticulumAdminSecret:
