@@ -100,7 +100,7 @@ exports.handler = async function (event, context) {
           IamRoleArn
         })).RestoreJobId;
 
-        FileSystemId = await new Promise(async (res, rej) => {
+        const FileSystemArn = await new Promise(async (res, rej) => {
           let interval;
 
           const f = async () => {
@@ -131,8 +131,13 @@ exports.handler = async function (event, context) {
           }
         });
 
+        FileSystemId = FileSystemArn.split("/")[1];
+
         await promisify(efs.createTags.bind(efs))({ FileSystemId, Tags });
-				await promisify(efs.updateFileSystem.bind(efs))({ FileSystemId, ThroughputMode, ProvisionedThroughputInMibps });
+
+        if (ThroughputMode !== "bursting") {
+          await promisify(efs.updateFileSystem.bind(efs))({ FileSystemId, ThroughputMode, ProvisionedThroughputInMibps });
+        }
       } else {
         FileSystemId = (await promisify(efs.createFileSystem.bind(efs))({
           PerformanceMode, CreationToken, ThroughputMode, Encrypted, Tags, KmsKeyId, ProvisionedThroughputInMibps
