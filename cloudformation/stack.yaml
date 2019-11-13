@@ -3590,7 +3590,7 @@ Resources:
         - Notification:
             NotificationType: ACTUAL
             ComparisonOperator: GREATER_THAN
-            Threshold: 99
+            Threshold: 100
           Subscribers:
            - SubscriptionType: EMAIL
              Address: !Ref AdminEmailAddress
