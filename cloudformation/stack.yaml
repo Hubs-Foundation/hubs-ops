@@ -284,7 +284,8 @@ Parameters:
     Description: (Optional) When your stack is set to Offline, visitors will be redirected to this URL.
   DatabaseMonthlyBudget:
     Type: Number
-    Description: To save costs, your AWS Aurora Serverless database will be shut down when nobody is hitting your site. When visitors are using your site, you'll incur database costs. To avoid unexpected charges, you can set a monthly budget. If you are running multiple Hubs Cloud instances, this budget should reflect your maximum allowed cost across *all* your Hubs Cloud instances in this region. This instance will automatically switch into Offline mode if the Aurora Serverless database charges across all your instances in this region exceed this budget. A minimum $20 budget is recommended and will provide more than 40 hours a week of connectivity for an instance. You only pay for what you use. Leave this field blank to fall back to your "Max database capacity" setting in "Advanced" to limit your database cost. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
+    Description: If you do not want a monthly budget, set this to zero. To save costs, your AWS Aurora Serverless database will be shut down when nobody is hitting your site. When visitors are using your site, you'll incur database costs. To avoid unexpected charges, you can set a monthly budget. If you are running multiple Hubs Cloud instances, this budget should reflect your maximum allowed cost across *all* your Hubs Cloud instances in this region. This instance will automatically switch into Offline mode if the Aurora Serverless database charges across all your instances in this region exceed this budget. A minimum $20 budget is recommended and will provide more than 40 hours a week of connectivity for an instance. You only pay for what you use. Leave this field blank to fall back to your "Max database capacity" setting in "Advanced" to limit your database cost. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
+    Default: 0
   MaxStorage:
     Type: Number
     Description: When users upload scenes, avatars, or files, they will use disk storage. You only pay for the storage you use. You can set a maximum storage amount here (in GB) to ensure there are no unexpected charges. Pricing info can be found at https://aws.amazon.com/efs/pricing/
@@ -367,7 +368,7 @@ Conditions:
   PerformOfflineRedirect: !And [ Condition: IsOffline, Condition: HasOfflineRedirectUrl ]
   PerformOfflineRedirectWithUnmanagedDomain: !And [Condition: PerformOfflineRedirect, Condition: HasUnmangedDomain]
   EnableDbAutoPause: !Equals [!Ref AutoPauseDb, "Yes - Pause database when not in use"]
-  HasDbMonthlyBudget: !Not [!Equals [!Ref DatabaseMonthlyBudget, ""]]
+  HasDbMonthlyBudget: !Not [!Equals [!Ref DatabaseMonthlyBudget, 0]]
   HasDbSnapshotIdentifier: !Not [!Equals [!Ref DbSnapshotIdentifier, ""]]
 
   # NOTE: keep the ALB around if we are doing an offline redirect *and* we have an unmanaged domain, because otherwise
