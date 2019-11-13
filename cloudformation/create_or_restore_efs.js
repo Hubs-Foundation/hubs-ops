@@ -132,6 +132,7 @@ exports.handler = async function (event, context) {
         });
 
         await promisify(efs.createTags.bind(efs))({ FileSystemId, Tags });
+				await promisify(efs.updateFileSystem.bind(efs))({ FileSystemId, ThroughputMode, ProvisionedThroughputInMibps });
       } else {
         FileSystemId = (await promisify(efs.createFileSystem.bind(efs))({
           PerformanceMode, CreationToken, ThroughputMode, Encrypted, Tags, KmsKeyId, ProvisionedThroughputInMibps
