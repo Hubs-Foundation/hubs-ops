@@ -18,7 +18,7 @@ async function handleBudgetAlert(event, context) {
 
   const cf = new AWS.CloudFormation({ region: stackRegion });
 
-  await new Promise(res => {
+  await new Promise(async res => {
     let interval;
 
     const f = async () => {
@@ -41,7 +41,7 @@ async function handleBudgetAlert(event, context) {
       return false;
     };
 
-    if (!f()) {
+    if (!await f()) {
       interval = setInterval(f, 30000);
     }
   });

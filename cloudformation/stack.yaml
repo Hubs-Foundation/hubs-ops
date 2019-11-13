@@ -1730,6 +1730,11 @@ Resources:
                  - backup:List*
                Resource:
                  - "*"
+             - Effect: Allow
+               Action:
+                 - iam:PassRole
+               Resource:
+                 - !GetAtt DailyBackupRole.Arn
 
   EFSCreateOrRestore:
     Type: AWS::Lambda::Function
@@ -3516,6 +3521,8 @@ Resources:
      ManagedPolicyArns:
        -
         "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+       -
+        "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores"
 
   DailyBackupSelection:
     Type: AWS::Backup::BackupSelection

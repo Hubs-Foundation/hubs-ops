@@ -74,15 +74,16 @@ exports.handler = async function (event, context) {
 		let FileSystemId;
 
 		if (event.RequestType === 'Create') {
-			const BackupVaultName = event.ResourceProperties.RestoreBackupVaultArn;
+			const BackupVaultName = event.ResourceProperties.RestoreBackupVaultName;
 			const RecoveryPointArn = event.ResourceProperties.RestoreRecoveryPointArn;
+			const IamRoleArn = event.ResourceProperties.RestoreIamRoleArn;
 
 			if (RecoveryPointArn && BackupVaultName) {
 				const backup = new AWS.Backup();
 
-				const restorePointMetadata = (await promisify(backup.GetRecoveryPointRestoreMetadata.bind(backup))({
+				const restorePointMetadata = (await promisify(backup.getRecoveryPointRestoreMetadata.bind(backup))({
 					BackupVaultName, RecoveryPointArn
-				})).restorePointMetadata;
+				}));
 
 				const RestoreJobId = (await promisify(backup.startRestoreJob.bind(backup))({
 					RecoveryPointArn,
@@ -90,13 +91,14 @@ exports.handler = async function (event, context) {
 						"file-system-id": restorePointMetadata["file-system-id"],
 						PerformanceMode,
 						CreationToken,
-						newFileSystem: true
+						newFileSystem: "true"
 					},
 					ResourceType: "EFS",
-					IdempotencyToken: CreationToken
+					IdempotencyToken: CreationToken,
+					IamRoleArn
 				})).RestoreJobId;
 
-				FileSystemId = await new Promise(res => {
+				FileSystemId = await new Promise(async res => {
 					let interval;
 
 					const f = async () => {
@@ -116,7 +118,7 @@ exports.handler = async function (event, context) {
 						return false;
 					};
 
-					if (!f()) {
+					if (!await f()) {
 						interval = setInterval(f, 10000);
 					}
 				});
@@ -133,7 +135,7 @@ exports.handler = async function (event, context) {
 			});
 		}
 
-		await new Promise(res => {
+		await new Promise(async res => {
 			let interval;
 
 			const f = async () => {
@@ -153,7 +155,7 @@ exports.handler = async function (event, context) {
 				return false;
 			};
 
-			if (!f()) {
+			if (!await f()) {
 				interval = setInterval(f, 10000);
 			}
 		});
