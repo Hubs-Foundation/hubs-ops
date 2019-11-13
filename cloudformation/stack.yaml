@@ -114,7 +114,7 @@ Metadata:
       StackOfflineRedirectUrl:
         default: "Offline Redirect URL"
       DatabaseMonthlyBudget:
-        default: "Monthly Database Budget (US dollars, no $ and no cents)"
+        default: "Account Monthly Database Budget (US dollars, no $ and no cents)"
       MaxStorage:
         default: "Storage Limit (in GB)"
 Parameters:
@@ -268,9 +268,8 @@ Parameters:
     Type: String
     Description: (Optional) When your stack is set to Offline, visitors will be redirected to this URL.
   DatabaseMonthlyBudget:
-    Type: String
-    Description: To save costs, your database will be shut down when nobody is hitting your site. When visitors are using your site, you'll incur database costs. To avoid unexpected charges, you can set a monthly budget. Your stack will automatically switch into Offline mode if the database charges exceed your budget. A $20 budget will provide more than 40 hours a week of connectivity. You only pay for what you use. Leave this field blank to fall back to your "Max database capacity" setting in "Advanced" to limit your database cost. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
-    Default: 20
+    Type: Number
+    Description: To save costs, your AWS Aurora Serverless database will be shut down when nobody is hitting your site. When visitors are using your site, you'll incur database costs. To avoid unexpected charges, you can set a monthly budget. If you are running multiple Hubs Cloud instances, this budget should reflect your maximum allowed cost across *all* your Hubs Cloud instances in this region. This instance will automatically switch into Offline mode if the Aurora Serverless database charges across all your instances in this region exceed this budget. A minimum $20 budget is recommended and will provide more than 40 hours a week of connectivity for an instance. You only pay for what you use. Leave this field blank to fall back to your "Max database capacity" setting in "Advanced" to limit your database cost. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
   MaxStorage:
     Type: Number
     Description: When users upload scenes, avatars, or files, they will use disk storage. You only pay for the storage you use. You can set a maximum storage amount here (in GB) to ensure there are no unexpected charges. Pricing info can be found at https://aws.amazon.com/efs/pricing/
@@ -280,12 +279,18 @@ Parameters:
 
 Mappings:
   Regions:
-    us-east-2:
-
-Mappings:
-  Regions:
+    us-east-1:
+      Abbreviation: USE1
+    us-west-2:
+      Abbreviation: USW2
     us-east-2:
       ImageId: ami-0ba1d18b92224066a
+      Abbreviation: USE2
+    ap-northeast-1:
+      Abbreviation: APN1
+    eu-west-1:
+      Abbreviation: EU
+
   ServicesMeta:
     RetExternal:
       Port: 443
@@ -3537,8 +3542,8 @@ Resources:
       VpcSecurityGroupIds:
         - !Ref AppDbSecurityGroup
       Tags:
-        - Key: !Sub "${AWS::StackName}-db-budget"
-          Value: !Sub "${AWS::StackName}"
+        - Key: Name
+          Value: !Sub "app-db"
 
   AppDbBudget:
     Type: AWS::Budgets::Budget
@@ -3548,11 +3553,12 @@ Resources:
         BudgetLimit: 
           Amount: !Ref DatabaseMonthlyBudget
           Unit: USD
-        BudgetName: !Sub "${AWS::StackName}-efs-budget"
+        BudgetName: !Sub "${AWS::StackName}-app-db-budget"
         BudgetType: COST
         TimeUnit: MONTHLY
         CostFilters: 
-          Tag: [!Sub "${AWS::StackName}-db-budget"]
+          UsageType: 
+            - !Join [ "-", [!FindInMap [Regions, !Ref "AWS::Region", Abbreviation], "Aurora:ServerlessUsage" ]]
 
 # Secrets
   JanusAndReticulumAdminSecret:
