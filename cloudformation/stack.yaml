@@ -50,12 +50,12 @@ Metadata:
           - AutoPauseDb
           - DbBackupRetentionPeriod
       - Label:
-          default: Restore From Backup
+          default: Restore from Backup
         Parameters:
-          - DbSnapshotIdentifier
+          - RestoreDbSnapshotIdentifier
           - RestoreAppDbSecret
           - RestoreStackName
-          - RestoreStackSecret
+          - RestoreStackRegion
           - RestoreBackupVaultName
           - RestoreRecoveryPointArn
       - Label:
@@ -105,18 +105,18 @@ Metadata:
         default: "Database backup retention period (in days)"
       DbMaxCapacity:
         default: "Max database capacity (in ACUs)"
-      DbSnapshotIdentifier:
-        default: "Restore Snapshot Identifier"
+      RestoreDbSnapshotIdentifier:
+        default: "Restore From Db Snapshot Identifier"
       RestoreAppDbSecret:
-        default: "Restore App Db Secret ARN"
+        default: "Restore From Database Secret ARN"
       RestoreStackName:
-        default: "Restore Stack Name"
+        default: "Restore From Stack Name"
       RestoreStackRegion:
-        default: "Restore Stack Region"
+        default: "Restore From Stack Region"
       RestoreBackupVaultName:
-        default: "Restore Vault Name"
+        default: "Restore From Vault Name"
       RestoreRecoveryPointArn:
-        default: "Restore Recovery Point ARN"
+        default: "Restore From Recovery Point ARN"
       MaintenenceWindow:
         default: "Scheduled maintenence window"
       ChannelType:
@@ -130,7 +130,7 @@ Metadata:
       StackOffline:
         default: "Stack Status"
       StackOfflineRedirectUrl:
-        default: "Offline Redirect URL"
+        default: "Offline Redirect URL (Optional)"
       DatabaseMonthlyBudget:
         default: "Account Monthly Database Budget (US dollars, no $ and no cents)"
       MaxStorage:
@@ -237,25 +237,25 @@ Parameters:
     MinValue: 2
     MaxValue: 384
     Default: 2
-  DbSnapshotIdentifier:
+  RestoreDbSnapshotIdentifier:
     Type: String
-    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) Also you'll need to specify the other parameters below. WARNING: do *not* change this value after your stack is created, otherwise you will replace your existing database!"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) Also you'll need to specify the other parameters below. WARNING: do *not* change this value after your stack is created, otherwise you will replace your existing database!"
   RestoreAppDbSecret:
     Type: String
-    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the ARN for the database secret from the instance being restored from (eg AppDbSecret-XXXXXX)"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the ARN for the database secret from the instance being restored from. (eg arn:aws:secretsmanager:<region>:<account-id>:secret:AppDbSecret-xxxxxxxxx)"
   RestoreStackName:
     Type: String
-    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the stack name being restored from. To restore, the secrets stored in Parameter Store must still be available from the stack being restored from."
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the stack name being restored from. To restore, the secrets stored in Parameter Store must still be available from the stack being restored from. These parameters should still exist even if you deleted the old stack, unless you manually removed them."
   RestoreStackRegion:
     Type: String
-    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the region of the stack being restored from."
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the region of the stack being restored from."
     AllowedValues: ["us-east-1", "us-west-2", "us-east-2", "ap-northeast-1", "eu-west-1"]
   RestoreBackupVaultName:
     Type: String
-    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx)"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx)"
   RestoreRecoveryPointArn:
     Type: String
-    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the AWS Backup Vault's Recovery Point ARN to restore storage from. (eg arn:aws:backup:<region>:<account id>:recovery-point:xxxxxxxx)"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the AWS Backup Vault's Recovery Point ARN to restore storage from. (eg arn:aws:backup:<region>:<account id>:recovery-point:xxxxxxxx)"
   NewCMKForDiskEncryption:
     Type: String
     Description: "Select 'Yes' if you'd like to create a dedicated CMK in KMS for database and backup encryption. KMS charges for a single managed key will apply."
@@ -300,7 +300,7 @@ Parameters:
     Default: "Online"
   StackOfflineRedirectUrl:
     Type: String
-    Description: (Optional) When your stack is set to Offline, visitors will be redirected to this URL.
+    Description: When your stack is set to Offline, visitors will be redirected to this URL.
   DatabaseMonthlyBudget:
     Type: Number
     Description: If you do not want a monthly budget, set this to zero. To save costs, your AWS Aurora Serverless database will be shut down when nobody is hitting your site. When visitors are using your site, you'll incur database costs. To avoid unexpected charges, you can set a monthly budget. If you are running multiple Hubs Cloud instances, this budget should reflect your maximum allowed cost across *all* your Hubs Cloud instances in this region. This instance will automatically switch into Offline mode if the Aurora Serverless database charges across all your instances in this region exceed this budget. A minimum $20 budget is recommended and will provide more than 40 hours a week of connectivity for an instance. You only pay for what you use. Leave this field blank to fall back to your "Max database capacity" setting in "Advanced" to limit your database cost. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
@@ -388,7 +388,7 @@ Conditions:
   PerformOfflineRedirectWithUnmanagedDomain: !And [Condition: PerformOfflineRedirect, Condition: HasUnmangedDomain]
   EnableDbAutoPause: !Equals [!Ref AutoPauseDb, "Yes - Pause database when not in use"]
   HasDbMonthlyBudget: !Not [!Equals [!Ref DatabaseMonthlyBudget, 0]]
-  IsNotRestore: !Equals [!Ref DbSnapshotIdentifier, ""]
+  IsNotRestore: !Equals [!Ref RestoreDbSnapshotIdentifier, ""]
   IsRestore: !Not [Condition: IsNotRestore]
 
   # NOTE: keep the ALB around if we are doing an offline redirect *and* we have an unmanaged domain, because otherwise
@@ -3641,10 +3641,10 @@ Resources:
 
   AppDbSecret:
     Type: AWS::SecretsManager::Secret
-    Condition: IsNotRestore
     DeletionPolicy: Retain
     Properties:
-      Description: !Sub "${AWS::StackName} app db secret"
+      Name: !If [IsRestore, "${AWS::StackName} Unused Secret", !Sub "${AWS::StackName} Database Secret"]
+      Description: !If [IsRestore, "${AWS::StackName} Unused Secret", !Sub "${AWS::StackName} Database Secret"]
       GenerateSecretString:
         SecretStringTemplate: '{ "username": "postgres" }'
         GenerateStringKey: 'password'
@@ -3685,8 +3685,8 @@ Resources:
       Name: postgrest-db-secret
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
-      CopyFromStackName: !If [IsRestore, RestoreStackName, !Ref "AWS::NoValue"]
-      CopyFromStackRegion: !If [IsRestore, RestoreStackRegion, !Ref "AWS::NoValue"]
+      CopyFromStackName: !If [IsRestore, !Ref RestoreStackName, !Ref "AWS::NoValue"]
+      CopyFromStackRegion: !If [IsRestore, !Ref RestoreStackRegion, !Ref "AWS::NoValue"]
 
   AppDb:
     Type: AWS::RDS::DBCluster
@@ -3710,7 +3710,7 @@ Resources:
         MaxCapacity: !Ref DbMaxCapacity
         MinCapacity: 2
         SecondsUntilAutoPause: 300
-      SnapshotIdentifier: !If [IsRestore, !Ref DbSnapshotIdentifier, !Ref "AWS::NoValue"]
+      SnapshotIdentifier: !If [IsRestore, !Ref RestoreDbSnapshotIdentifier, !Ref "AWS::NoValue"]
       VpcSecurityGroupIds:
         - !Ref AppDbSecurityGroup
       Tags:
@@ -3764,8 +3764,8 @@ Resources:
       Name: phoenix-key
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
-      CopyFromStackName: !If [IsRestore, RestoreStackName, !Ref "AWS::NoValue"]
-      CopyFromStackRegion: !If [IsRestore, RestoreStackRegion, !Ref "AWS::NoValue"]
+      CopyFromStackName: !If [IsRestore, !Ref RestoreStackName, !Ref "AWS::NoValue"]
+      CopyFromStackRegion: !If [IsRestore, !Ref RestoreStackRegion, !Ref "AWS::NoValue"]
 
   GuardianSecretKeySecret:
     Type: Custom::GenerateSecret
