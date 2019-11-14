@@ -1691,11 +1691,6 @@ Resources:
                  - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener-rule/app/${AWS::StackName}-app/*"
              - Effect: Allow
                Action: 
-                 - cloudfront:*
-               Resource: 
-                 - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${AppCloudfrontDistribution}"
-             - Effect: Allow
-               Action: 
                  - ec2:*
                Resource: 
                  - !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*"
@@ -1708,6 +1703,22 @@ Resources:
                  - rds:Describe*
                Resource: 
                  - "*"
+
+  # Split this policy out, so we don't block topic, ALB, and ASG creation on cloudfront
+  StackTopicCloudfrontPolicy:
+   Type: AWS::IAM::Policy
+   Properties:
+     Roles:
+       - !Ref StackTopicHandlerRole
+     PolicyName: !Sub "${AWS::StackName}-stack-topic-cf-policy"
+     PolicyDocument:
+       Version: '2012-10-17'
+       Statement:
+         - Effect: Allow
+           Action: 
+             - cloudfront:*
+           Resource: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${AppCloudfrontDistribution}"
+
   StackTopicHandler:
     Type: AWS::Lambda::Function
     Properties:
