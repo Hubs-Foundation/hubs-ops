@@ -50,9 +50,10 @@ Metadata:
           - AutoPauseDb
           - DbBackupRetentionPeriod
       - Label:
-          default: Stack Restore
+          default: Restore From Backup
         Parameters:
           - DbSnapshotIdentifier
+          - DbSnapshotPassword
           - RestoreBackupVaultName
           - RestoreRecoveryPointArn
       - Label:
@@ -104,6 +105,8 @@ Metadata:
         default: "Max database capacity (in ACUs)"
       DbSnapshotIdentifier:
         default: "Restore Snapshot Identifier"
+      DbSnapshotPassword:
+        default: "Restored Database Password"
       RestoreBackupVaultName:
         default: "Restore Vault Name"
       RestoreRecoveryPointArn:
@@ -231,6 +234,9 @@ Parameters:
   DbSnapshotIdentifier:
     Type: String
     Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) Also you'll need to specify the storage backup Vault and Recovery Point ARN below. WARNING: do *not* change this value after your stack is created, otherwise you will replace your existing database!"
+  DbSnapshotPassword:
+    Type: String
+    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, you will need the database password for the database whose snapshot is being restored. Unless it's been deleted manually, you can find the password in AWS Secrets Manager in the region of the original instance."
   RestoreBackupVaultName:
     Type: String
     Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx)"
@@ -3621,11 +3627,13 @@ Resources:
 
   AppDbSecret:
     Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
     Properties:
-      Description: 'App db secret'
+      Description: !Sub "${AWS::StackName} app db secret"
       GenerateSecretString:
         SecretStringTemplate: '{ "username": "postgres" }'
-        GenerateStringKey: 'password'
+        GenerateStringKey: !If [HasDbSnapshotIdentifier, !Ref "AWS::NoValue", 'password']
+        SecretString: !If [HasDbSnapshotIdentifier, !Ref DbSnapshotPassword, !Ref "AWS::NoValue"]
         PasswordLength: 64
         ExcludePunctuation: true
 
