@@ -249,7 +249,7 @@ Parameters:
   RestoreStackRegion:
     Type: String
     Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the region of the stack being restored from."
-    AllowedValues: ["us-east-1", "us-west-2", "us-east-2", "ap-northeast-1", "eu-west-1"]
+    AllowedValues: ["", "us-east-1", "us-west-2", "us-east-2", "ap-northeast-1", "eu-west-1"]
   RestoreBackupVaultName:
     Type: String
     Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx)"
