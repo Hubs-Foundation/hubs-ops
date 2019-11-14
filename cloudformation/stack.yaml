@@ -53,7 +53,9 @@ Metadata:
           default: Restore From Backup
         Parameters:
           - DbSnapshotIdentifier
-          - DbSnapshotPassword
+          - RestoreAppDbSecret
+          - RestoreStackName
+          - RestoreStackSecret
           - RestoreBackupVaultName
           - RestoreRecoveryPointArn
       - Label:
@@ -105,8 +107,12 @@ Metadata:
         default: "Max database capacity (in ACUs)"
       DbSnapshotIdentifier:
         default: "Restore Snapshot Identifier"
-      DbSnapshotPassword:
-        default: "Restored Database Password"
+      RestoreAppDbSecret:
+        default: "Restore App Db Secret ARN"
+      RestoreStackName:
+        default: "Restore Stack Name"
+      RestoreStackRegion:
+        default: "Restore Stack Region"
       RestoreBackupVaultName:
         default: "Restore Vault Name"
       RestoreRecoveryPointArn:
@@ -233,10 +239,17 @@ Parameters:
     Default: 2
   DbSnapshotIdentifier:
     Type: String
-    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) Also you'll need to specify the storage backup Vault and Recovery Point ARN below. WARNING: do *not* change this value after your stack is created, otherwise you will replace your existing database!"
-  DbSnapshotPassword:
+    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) Also you'll need to specify the other parameters below. WARNING: do *not* change this value after your stack is created, otherwise you will replace your existing database!"
+  RestoreAppDbSecret:
     Type: String
-    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, you will need the database password for the database whose snapshot is being restored. Unless it's been deleted manually, you can find the password in AWS Secrets Manager in the region of the original instance."
+    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the ARN for the database secret from the instance being restored from (eg AppDbSecret-XXXXXX)"
+  RestoreStackName:
+    Type: String
+    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the stack name being restored from. To restore, the secrets stored in Parameter Store must still be available from the stack being restored from."
+  RestoreStackRegion:
+    Type: String
+    Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the region of the stack being restored from."
+    AllowedValues: ["us-east-1", "us-west-2", "us-east-2", "ap-northeast-1", "eu-west-1"]
   RestoreBackupVaultName:
     Type: String
     Description: "Leave blank to create an empty stack. To restore from an existing Hubs Cloud backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx)"
@@ -375,7 +388,8 @@ Conditions:
   PerformOfflineRedirectWithUnmanagedDomain: !And [Condition: PerformOfflineRedirect, Condition: HasUnmangedDomain]
   EnableDbAutoPause: !Equals [!Ref AutoPauseDb, "Yes - Pause database when not in use"]
   HasDbMonthlyBudget: !Not [!Equals [!Ref DatabaseMonthlyBudget, 0]]
-  HasDbSnapshotIdentifier: !Not [!Equals [!Ref DbSnapshotIdentifier, ""]]
+  IsNotRestore: !Equals [!Ref DbSnapshotIdentifier, ""]
+  IsRestore: !Not [Condition: IsNotRestore]
 
   # NOTE: keep the ALB around if we are doing an offline redirect *and* we have an unmanaged domain, because otherwise
   # it would require the user to go update their external DNS CNAME to get the redirect to work. The downside is that
@@ -3627,27 +3641,27 @@ Resources:
 
   AppDbSecret:
     Type: AWS::SecretsManager::Secret
+    Condition: IsNotRestore
     DeletionPolicy: Retain
     Properties:
       Description: !Sub "${AWS::StackName} app db secret"
       GenerateSecretString:
         SecretStringTemplate: '{ "username": "postgres" }'
-        GenerateStringKey: !If [HasDbSnapshotIdentifier, !Ref "AWS::NoValue", 'password']
-        SecretString: !If [HasDbSnapshotIdentifier, !Ref DbSnapshotPassword, !Ref "AWS::NoValue"]
+        GenerateStringKey: 'password'
         PasswordLength: 64
         ExcludePunctuation: true
 
   AppDbSecretAttachment:
     Type: AWS::SecretsManager::SecretTargetAttachment
     Properties:
-      SecretId: !Ref AppDbSecret
+      SecretId: !If [IsRestore, !Ref RestoreAppDbSecret, !Ref AppDbSecret]
       TargetId: !Ref AppDb
       TargetType: AWS::RDS::DBCluster
 
   AppDbSecretResourcePolicy:
     Type: AWS::SecretsManager::ResourcePolicy
     Properties: 
-      SecretId: !Ref AppDbSecret
+      SecretId: !If [IsRestore, !Ref RestoreAppDbSecret, !Ref AppDbSecret]
       ResourcePolicy:
         Version: 2012-10-17
         Statement:
@@ -3664,12 +3678,15 @@ Resources:
 
   AppPostgrestDbSecret:
     Type: Custom::GenerateSecret
+    DeletionPolicy: Retain
     Properties:
       Description: 'PostgREST admin db password'
       ServiceToken: !GetAtt GenerateSecret.Arn
       Name: postgrest-db-secret
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
+      CopyFromStackName: !If [IsRestore, RestoreStackName, !Ref "AWS::NoValue"]
+      CopyFromStackRegion: !If [IsRestore, RestoreStackRegion, !Ref "AWS::NoValue"]
 
   AppDb:
     Type: AWS::RDS::DBCluster
@@ -3686,14 +3703,14 @@ Resources:
       EngineVersion: 10.7
       KmsKeyId: !If [CreateDiskEncryptionKey, !Ref DiskKmsKey, !Ref "AWS::NoValue"]
       StorageEncrypted: true
-      MasterUsername: !If [HasDbSnapshotIdentifier, !Ref "AWS::NoValue", !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]]
-      MasterUserPassword: !If [HasDbSnapshotIdentifier, !Ref "AWS::NoValue", !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]]
+      MasterUsername: !If [IsRestore, !Ref "AWS::NoValue", !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]]
+      MasterUserPassword: !If [IsRestore, !Ref "AWS::NoValue", !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]]
       ScalingConfiguration:
         AutoPause: !If [EnableDbAutoPause, true, false]
         MaxCapacity: !Ref DbMaxCapacity
         MinCapacity: 2
         SecondsUntilAutoPause: 300
-      SnapshotIdentifier: !If [HasDbSnapshotIdentifier, !Ref DbSnapshotIdentifier, !Ref "AWS::NoValue"]
+      SnapshotIdentifier: !If [IsRestore, !Ref DbSnapshotIdentifier, !Ref "AWS::NoValue"]
       VpcSecurityGroupIds:
         - !Ref AppDbSecurityGroup
       Tags:
@@ -3739,6 +3756,7 @@ Resources:
 
   PhoenixKeySecret:
     Type: Custom::GenerateSecret
+    DeletionPolicy: Retain
     DependsOn: JanusAndReticulumAdminSecret
     Properties:
       Description: 'Phoenix secret base key'
@@ -3746,6 +3764,8 @@ Resources:
       Name: phoenix-key
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
+      CopyFromStackName: !If [IsRestore, RestoreStackName, !Ref "AWS::NoValue"]
+      CopyFromStackRegion: !If [IsRestore, RestoreStackRegion, !Ref "AWS::NoValue"]
 
   GuardianSecretKeySecret:
     Type: Custom::GenerateSecret
@@ -3897,7 +3917,7 @@ Outputs:
 
   AppDbSecret:
     Description: App DB Secret [ita/db/password!read-aws-secret]
-    Value: !Ref AppDbSecret
+    Value: !If [IsRestore, !Ref RestoreAppDbSecret, !Ref AppDbSecret]
 
   AppPostgrestDbSecret:
     Description: App PostgREST DB Secret [reticulum/db/postgrest_password!read-keymaster-secret]
