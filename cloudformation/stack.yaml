@@ -3057,7 +3057,6 @@ Resources:
     Properties:
       Name: !Ref DomainName
       HostedZoneId: !GetAtt ExternalZoneInfo.Id
-      TTL: 300
       Type: A
       AliasTarget:
         DNSName: !If [ HasALB, !GetAtt AppALB.DNSName, !GetAtt AppCloudfrontDistribution.DomainName ]
