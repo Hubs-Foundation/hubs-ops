@@ -37,6 +37,7 @@ data "aws_ami" "hab-base-ami" {
 }
 
 resource "aws_security_group" "builder-alb" {
+  count = "${var.enabled}"
   name = "${var.shared["env"]}-builder-alb"
   vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
 
@@ -56,6 +57,7 @@ resource "aws_security_group" "builder-alb" {
 }
 
 resource "aws_security_group_rule" "builder-alb-egress-ssl" {
+  count = "${var.enabled}"
   type = "egress"
   from_port = "443"
   to_port = "443"
