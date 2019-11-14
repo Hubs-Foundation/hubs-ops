@@ -68,20 +68,6 @@ resource "aws_security_group" "hab-ring" {
     from_port = "9631"
     to_port = "9631"
     protocol = "tcp"
-    self = true
-  }
-
-  egress {
-    from_port = "9631"
-    to_port = "9631"
-    protocol = "tcp"
-    self = true
-  }
-
-  ingress {
-    from_port = "9631"
-    to_port = "9631"
-    protocol = "tcp"
     security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
   }
 
