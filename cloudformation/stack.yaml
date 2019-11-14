@@ -2268,7 +2268,7 @@ Resources:
       MemorySize: 128
       Role: !GetAtt NearsparkRole.Arn
       Runtime: nodejs10.x
-      Timeout: 30
+      Timeout: 600
     DependsOn:
       - CopyNearsparkLambda
       - NearsparkThumbnailLogGroup
