@@ -2265,7 +2265,7 @@ Resources:
         S3Key: lambdas/nearspark/nearspark-0.1.0.zip
       FunctionName: !Sub "${AWS::StackName}-nearspark-thumbnail"
       Handler: index.handler
-      MemorySize: 128
+      MemorySize: 512
       Role: !GetAtt NearsparkRole.Arn
       Runtime: nodejs10.x
       Timeout: 600
