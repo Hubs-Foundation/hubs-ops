@@ -2015,7 +2015,7 @@ Resources:
       MemorySize: 1024
       Role: !GetAtt SpeelycaptorRole.Arn
       Runtime: nodejs10.x
-      Timeout: 120
+      Timeout: 300
       Environment:
         Variables:
           scratchBucketRegion: !Ref "AWS::Region"
@@ -2034,7 +2034,7 @@ Resources:
       MemorySize: 3000
       Role: !GetAtt SpeelycaptorRole.Arn
       Runtime: nodejs10.x
-      Timeout: 120
+      Timeout: 300
       Environment:
         Variables:
           scratchBucketRegion: !Ref "AWS::Region"
