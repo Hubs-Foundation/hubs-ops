@@ -91,7 +91,7 @@ exports.handler = async function (event, context) {
             "file-system-id": restorePointMetadata["file-system-id"],
             PerformanceMode,
             CreationToken,
-            Encrypted,
+            Encrypted: Encrypted ? "true" : "false",
             KmsKeyId,
             newFileSystem: "true"
           },
