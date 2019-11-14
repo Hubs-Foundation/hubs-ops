@@ -52,10 +52,10 @@ Metadata:
       - Label:
           default: Restore from Backup
         Parameters:
-          - RestoreDbSnapshotIdentifier
-          - RestoreAppDbSecret
           - RestoreStackName
           - RestoreStackRegion
+          - RestoreDbSnapshotIdentifier
+          - RestoreAppDbSecret
           - RestoreBackupVaultName
           - RestoreRecoveryPointArn
       - Label:
@@ -1216,7 +1216,7 @@ Resources:
        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
      Path: /
      Policies:
-       - PolicyName: write-box-keys
+       - PolicyName: keymaster
          PolicyDocument:
            Version: '2012-10-17'
            Statement:
@@ -1230,6 +1230,13 @@ Resources:
                  - ssm:PutParameter
                  - ssm:DeleteParameter
                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/keymaster/${AWS::StackName}/*"
+             - Effect: Allow
+               Action:
+                 - ssm:GetParameter
+               Resource: !If
+                 - IsRestore
+                 - !Sub "arn:aws:ssm:${RestoreStackRegion}:${AWS::AccountId}:parameter/keymaster/${RestoreStackName}/*"
+                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/keymaster/${AWS::StackName}/*"
 
   GenerateBioRingKeyFunction:
     Type: AWS::Lambda::Function
@@ -3643,7 +3650,6 @@ Resources:
     Type: AWS::SecretsManager::Secret
     DeletionPolicy: Retain
     Properties:
-      Name: !If [IsRestore, "${AWS::StackName} Unused Secret", !Sub "${AWS::StackName} Database Secret"]
       Description: !If [IsRestore, "${AWS::StackName} Unused Secret", !Sub "${AWS::StackName} Database Secret"]
       GenerateSecretString:
         SecretStringTemplate: '{ "username": "postgres" }'
