@@ -55,7 +55,7 @@ Metadata:
           - RestoreStackName
           - RestoreStackRegion
           - RestoreDbSnapshotIdentifier
-          - RestoreAppDbSecret
+          - RestoreAppDbSecretArn
           - RestoreBackupVaultName
           - RestoreRecoveryPointArn
       - Label:
@@ -107,7 +107,7 @@ Metadata:
         default: "Max database capacity (in ACUs)"
       RestoreDbSnapshotIdentifier:
         default: "Restore From Db Snapshot Identifier"
-      RestoreAppDbSecret:
+      RestoreAppDbSecretArn:
         default: "Restore From Database Secret ARN"
       RestoreStackName:
         default: "Restore From Stack Name"
@@ -240,7 +240,7 @@ Parameters:
   RestoreDbSnapshotIdentifier:
     Type: String
     Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) Also you'll need to specify the other parameters below. WARNING: do *not* change this value after your stack is created, otherwise you will replace your existing database!"
-  RestoreAppDbSecret:
+  RestoreAppDbSecretArn:
     Type: String
     Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the ARN for the database secret from the instance being restored from. (eg arn:aws:secretsmanager:<region>:<account-id>:secret:AppDbSecret-xxxxxxxxx)"
   RestoreStackName:
@@ -1227,6 +1227,13 @@ Resources:
                  - !Sub '${BoxKeysBucket.Arn}/*'
              - Effect: Allow
                Action:
+                 - secretsmanager:GetSecretValue
+               Resource: !If
+                 - IsRestore
+                 - !Ref RestoreAppDbSecretArn
+                 - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:NONE"
+             - Effect: Allow
+               Action:
                  - ssm:PutParameter
                  - ssm:DeleteParameter
                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/keymaster/${AWS::StackName}/*"
@@ -1313,6 +1320,22 @@ Resources:
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
       Description: Generate Secret Into Parameter Store
+      Timeout: 30
+      MemorySize: 128
+    DependsOn:
+      - CopyKeymasterLambda
+
+  ReadSecret:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-read-secret"
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
+      Handler: index.read_secret
+      Role: !GetAtt KeymasterRole.Arn
+      Runtime: nodejs10.x
+      Description: Reads existing AWS secrets
       Timeout: 30
       MemorySize: 128
     DependsOn:
@@ -2583,24 +2606,6 @@ Resources:
       GroupDescription: Bio
       VpcId: !Ref VPC
 
-  BioRingCensusIngress:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      GroupId: !Ref BioRingSecurityGroup
-      IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, BioCensus, Port]
-      ToPort: !FindInMap [ServicesMeta, BioCensus, Port]
-      SourceSecurityGroupId: !Ref BioRingSecurityGroup
-
-  BioRingCensusEgress:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !Ref BioRingSecurityGroup
-      IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, BioCensus, Port]
-      ToPort: !FindInMap [ServicesMeta, BioCensus, Port]
-      DestinationSecurityGroupId: !Ref BioRingSecurityGroup
-
   BioRingRPCIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -3647,28 +3652,38 @@ Resources:
         - !Ref SubnetAPrivate
         - !Ref SubnetBPrivate
 
+  RestoreAppDbSecret:
+    Type: Custom::ReadSecret
+    Condition: IsRestore
+    Properties:
+      ServiceToken: !GetAtt ReadSecret.Arn
+      SecretArn: !Ref RestoreAppDbSecretArn
+
   AppDbSecret:
     Type: AWS::SecretsManager::Secret
     DeletionPolicy: Retain
-    Properties:
-      Description: !If [IsRestore, "${AWS::StackName} Unused Secret", !Sub "${AWS::StackName} Database Secret"]
-      GenerateSecretString:
-        SecretStringTemplate: '{ "username": "postgres" }'
-        GenerateStringKey: 'password'
-        PasswordLength: 64
-        ExcludePunctuation: true
+    Properties: !If
+      - IsRestore
+      - Description: !Sub "${AWS::StackName} Database Secret"
+        GenerateSecretString:
+          SecretStringTemplate: '{ "username": "postgres" }'
+          GenerateStringKey: 'password'
+          PasswordLength: 64
+          ExcludePunctuation: true
+      - Description: !Sub "${AWS::StackName} Database Secret"
+        SecretString: !GetAtt RestoreAppDbSecret.SecretString
 
   AppDbSecretAttachment:
     Type: AWS::SecretsManager::SecretTargetAttachment
     Properties:
-      SecretId: !If [IsRestore, !Ref RestoreAppDbSecret, !Ref AppDbSecret]
+      SecretId: !Ref AppDbSecret
       TargetId: !Ref AppDb
       TargetType: AWS::RDS::DBCluster
 
   AppDbSecretResourcePolicy:
     Type: AWS::SecretsManager::ResourcePolicy
     Properties: 
-      SecretId: !If [IsRestore, !Ref RestoreAppDbSecret, !Ref AppDbSecret]
+      SecretId: !Ref AppDbSecret
       ResourcePolicy:
         Version: 2012-10-17
         Statement:
@@ -3924,7 +3939,7 @@ Outputs:
 
   AppDbSecret:
     Description: App DB Secret [ita/db/password!read-aws-secret]
-    Value: !If [IsRestore, !Ref RestoreAppDbSecret, !Ref AppDbSecret]
+    Value: !Ref AppDbSecret
 
   AppPostgrestDbSecret:
     Description: App PostgREST DB Secret [reticulum/db/postgrest_password!read-keymaster-secret]
