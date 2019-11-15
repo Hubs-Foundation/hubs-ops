@@ -36,7 +36,7 @@ Metadata:
           - DatabaseMonthlyBudget
           - MaxStorage
       - Label:
-          default: Stack Status
+          default: Offline Mode
         Parameters:
           - StackOffline
           - StackOfflineRedirectUrl
@@ -131,7 +131,7 @@ Metadata:
       SubnetAZs:
         default : "Subnet Availability Zones"
       StackOffline:
-        default: "Stack Status"
+        default: "Stack Mode"
       StackOfflineRedirectUrl:
         default: "Offline Redirect URL (Optional)"
       DatabaseMonthlyBudget:
