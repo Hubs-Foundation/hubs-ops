@@ -41,10 +41,6 @@ Metadata:
           - StackOffline
           - StackOfflineRedirectUrl
       - Label:
-          default: Custom SSL Certificates
-        Parameters:
-          - UnmanagedDomainCertArn
-      - Label:
           default: Database Configuration
         Parameters:
           - AutoPauseDb
@@ -58,6 +54,11 @@ Metadata:
           - RestoreAppDbSecretArn
           - RestoreBackupVaultName
           - RestoreRecoveryPointArn
+      - Label:
+          default: Custom SSL Certificates
+        Parameters:
+          - UnmanagedDomainCertArn
+          - UnmanagedDomainEastCertArn
       - Label:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
@@ -86,7 +87,9 @@ Metadata:
       AdminEmailAddress:
         default: Administrator Email Address
       UnmanagedDomainCertArn:
-        default: Unmanaged Domain SSL Certificate ARN
+        default: Non-Route 53 Domain SSL Certificate ARN
+      UnmanagedDomainEastCertArn:
+        default: Non-Route 53 Domain US-East-1 (N. Virginia) SSL Certificate ARN
       AppInstanceCount:
         default: Number of app servers
       AppInstanceType:
@@ -143,7 +146,7 @@ Parameters:
     ConstraintDescription: Must be a valid domain name (eg myhubs.com or hubs.mycompany.com)
   IsDomainOnRoute53:
     Type: String
-    Description: We recommended you use Route 53 to manage your domain. Set to Yes if your domain is set up on Route 53, and you can move onto the next item. Set to No if your domain is on a third party service such as GoDaddy or Namecheap. If you choose 'No', you'll need to set the 'Unmanaged Domain SSL Certificate ARN' configuration setting in the 'SSL Certificates' section below. Also, if you choose 'No', once your stack is created you'll need to update your DNS provider using the information in the 'Outputs' tab. See the 'Outputs' tab once the stack is created for more information on what to do next.
+    Description: We recommended you use Route 53 to manage your domain. Set to Yes if your domain is set up on Route 53, and you can move onto the next item. Set to No if your domain is on a third party service such as GoDaddy or Namecheap. If you choose 'No', you'll need to set the fields in 'Custom SSL Certificates' below. Also, if you choose 'No', once your stack is created you'll need to update your DNS provider using the 'AddressForRootDomain' information in the 'Outputs' tab. See the 'Outputs' tab once the stack is created for more information on what to do next.
     AllowedValues: ["Yes - My domain is set up on Route 53", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section"]
   ShortlinkZone:
     Type: AWS::Route53::HostedZone::Id
@@ -171,8 +174,12 @@ Parameters:
     ConstraintDescription: "You must enter a contact email address."
   UnmanagedDomainCertArn:
     Type: String
-    Description: "You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to create an SSL certificate in AWS Certificate Manager before completing this form. Instructions can be found at https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html. *Note* - make sure you create your SSL certificate in the AWS region you'd like to use for your Hubs Cloud stack. (The region can be found in the top right corner of the AWS console.) Once you've created the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console."
+    Description: "You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to create an SSL certificate in the same region as your stack in AWS Certificate Manager before completing this form. Instructions can be found at https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html. *Note* - make sure you create your SSL certificate in the AWS region you'd like to use for your Hubs Cloud stack. (The region can be found in the top right corner of the AWS console.) Once you've created the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console."
     ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
+  UnmanagedDomainEastCertArn:
+    Type: String
+    Description: "You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, you'll need to create a SSL certificate for your external domain in US-East-1 (N. Virginia). Instructions can be found at https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html. *Note* - make sure you provide a SSL certificate in US-East-1 regardless of what region you are creating the stack in. If you are creating your stack in US-East-1 (N. Virginia) and so already a certificate ARN in US-East-1 for the above field, you can paste the same certificate ARN here. Otherwise, you'll need to create a new SSL certificate in US-East-1 and paste its ARN here. (eg arn:aws:acm:us-east-1:<account>:certificate/<id>) Be sure to change the region in the top right of the console to 'US East (N. Virginia) creating the certificate."
+    ConstraintDescription: You must point to an ARN in US-East-1 (N. Virginia) AWS Certificate Manager for your domain.
   AppInstanceCount:
     Type: Number
     Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for Hubs Cloud. You must run at least one app server. Set to zero to temporarily shut down your site.
@@ -3145,7 +3152,7 @@ Resources:
           DefaultTTL: 3600
           MaxTTL: 3600
         ViewerCertificate:
-          AcmCertificateArn: !If [HasManagedDomain, !Ref ExternalZoneSSLCertEast, !Ref UnmanagedDomainCertArn]
+          AcmCertificateArn: !If [HasManagedDomain, !Ref ExternalZoneSSLCertEast, !Ref UnmanagedDomainEastCertArn]
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1
 
