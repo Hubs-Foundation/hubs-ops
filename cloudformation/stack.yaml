@@ -246,7 +246,7 @@ Parameters:
     Default: 2
   RestoreDbSnapshotIdentifier:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) Also you'll need to specify the other parameters below. WARNING: do *not* change this value after your stack is created, otherwise you will replace your existing database!"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) WARNING: do *not* change this value after your stack is created, otherwise you will replace your existing database!"
   RestoreAppDbSecretArn:
     Type: String
     Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the ARN for the database secret from the hub being restored from. (eg arn:aws:secretsmanager:<region>:<account-id>:secret:AppDbSecret-xxxxxxxxx)"
