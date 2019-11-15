@@ -2425,6 +2425,8 @@ Resources:
             AllowedOrigins:
               - !Sub "https://${DomainName}"
               - !Sub "https://${ShortlinkZoneInfo.Name}"
+              - !Sub "https://hubs.local:8080"
+              - !Sub "https://localhost:8080"
             ExposedHeaders: []
             MaxAge: 31536000
   AssetsPublicBucketPolicy:
@@ -3891,7 +3893,7 @@ Outputs:
 
   CorsOrigins:
     Description: Allowed CORS origins [reticulum/security/cors_origins]
-    Value: !Sub "https://${DomainName},https://${ShortlinkZoneInfo.Name}"
+    Value: !Sub "https://${DomainName},https://${ShortlinkZoneInfo.Name},https://hubs.local:8080,https://localhost:8080"
 
   NonCorsProxyDomains:
     Description: Non-CORS proxied domains [hubs/general/non_cors_proxy_domains,spoke/general/non_cors_proxy_domains]
