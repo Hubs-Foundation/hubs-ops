@@ -240,29 +240,29 @@ Parameters:
     Default: 14
   DbMaxCapacity:
     Type: Number
-    Description: "Maximum ACU Capacity for the database. If you are unsure, leave this at the default. The database will be a serverless Aurora PostgreSQL-compatible cluster. Increasing the Maximum ACUs will increase the available resources to your hub for database queries, but will cost more. This needs to be set to at least 2. Pricing info for ACUs can be found at https://aws.amazon.com/rds/aurora/serverless/"
+    Description: "Maximum ACU Capacity for the database. If you are unsure, leave this at the default. The database will be a serverless Aurora PostgreSQL-compatible cluster. Increasing the Maximum ACUs will increase the available resources to your hub for database queries, but will cost more. This needs to be set to at least 2. Pricing info for ACUs can be found at https://aws.amazon.com/rds/aurora/serverless/ WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
     MinValue: 2
     MaxValue: 384
     Default: 2
   RestoreDbSnapshotIdentifier:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) WARNING: do *not* change this value after your stack is created, otherwise you will replace your existing database!"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
   RestoreAppDbSecretArn:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the ARN for the database secret from the hub being restored from. (eg arn:aws:secretsmanager:<region>:<account-id>:secret:AppDbSecret-xxxxxxxxx)"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the ARN for the database secret from the hub being restored from. (eg arn:aws:secretsmanager:<region>:<account-id>:secret:AppDbSecret-xxxxxxxxx) WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
   RestoreStackName:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the stack name being restored from. To restore, the secrets stored in Parameter Store must still be available from the stack being restored from. These parameters should still exist even if you deleted the old stack, unless you manually removed them."
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the stack name being restored from. To restore, the secrets stored in Parameter Store must still be available from the stack being restored from. These parameters should still exist even if you deleted the old stack, unless you manually removed them. WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
   RestoreStackRegion:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the region of the stack being restored from."
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the region of the stack being restored from. WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
     AllowedValues: ["", "us-east-1", "us-west-2", "us-east-2", "ap-northeast-1", "eu-west-1"]
   RestoreBackupVaultName:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx)"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx) WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
   RestoreRecoveryPointArn:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Backup Vault's Recovery Point ARN to restore storage from. (eg arn:aws:backup:<region>:<account id>:recovery-point:xxxxxxxx)"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Backup Vault's Recovery Point ARN to restore storage from. (eg arn:aws:backup:<region>:<account id>:recovery-point:xxxxxxxx) WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
   NewCMKForDiskEncryption:
     Type: String
     Description: "Select 'Yes' if you'd like to create a dedicated CMK in KMS for database and backup encryption. KMS charges for a single managed key will apply."
