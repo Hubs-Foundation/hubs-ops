@@ -45,6 +45,7 @@ Metadata:
         Parameters:
           - AutoPauseDb
           - DbBackupRetentionPeriod
+          - DbMaxCapacity
       - Label:
           default: Restore from Backup
         Parameters:
@@ -62,7 +63,6 @@ Metadata:
       - Label:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
-          - DbMaxCapacity
           - LoadBalancingMethod
           - NewCMKForDiskEncryption
           - ChannelType
