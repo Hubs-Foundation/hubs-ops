@@ -292,7 +292,7 @@ Parameters:
     AllowedValues: ["Stable", "Unstable"]
   LoadBalancingMethod:
     Type: String
-    Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer, which will incur additional costs. If you are using an domain not on Route 53, be sure to note the "AddressForRootDomain" in the Outputs tab after the stack update to set your DNS to point to the ALB.
+    Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer, which will incur additional costs. If you are using a domain not on Route 53, be sure to note the "AddressForRootDomain" in the Outputs tab after the stack update to set your DNS to point to the ALB.
     Default: "DNS Round Robin"
     AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
   AutoPauseDb:
