@@ -69,7 +69,7 @@ resource "aws_security_group_rule" "builder-alb-egress-ssl" {
 resource "aws_route53_record" "builder-alb-dns" {
   count = "${var.enabled}"
   zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
-  name = "${var.shared["env"]}-builder.${data.aws_route53_zone.reticulum-zone.name}"
+  name = "${var.shared["env"]}-builder-alb.${data.aws_route53_zone.reticulum-zone.name}"
   type = "A"
 
   alias {
@@ -360,3 +360,93 @@ resource "aws_autoscaling_group" "builder" {
   tag { key = "hab-ring", value = "${var.shared["env"]}", propagate_at_launch = true }
 }
 
+resource "aws_cloudfront_distribution" "builder" {
+  count = "${var.enabled}"
+  enabled = true
+
+  origin {
+    origin_id = "builder-${var.shared["env"]}"
+    domain_name = "${var.shared["env"]}-builder-alb.${var.builder_domain}"
+
+    custom_origin_config {
+      http_port = 80
+      https_port = 443
+      origin_ssl_protocols = ["SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"]
+      origin_protocol_policy = "https-only"
+    }
+  }
+
+  http_version = "http2"
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  aliases = ["bldr.${var.builder_domain}"]
+
+  default_cache_behavior {
+    compress = true
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"]
+    cached_methods = ["GET", "HEAD"]
+    target_origin_id = "builder-${var.shared["env"]}"
+
+    forwarded_values {
+      query_string = true
+      headers = ["Origin", "Content-Type", "Authorization", "Range", "Host", "Authorization", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "https-only"
+    min_ttl = 0
+    default_ttl = 3600
+    max_ttl = 3600
+  }
+
+  custom_error_response {
+    error_code = 403
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 404
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 500
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 502
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 503
+    error_caching_min_ttl = 0
+  }
+
+  price_class = "PriceClass_All"
+
+  viewer_certificate {
+    acm_certificate_arn = "${data.aws_acm_certificate.builder-cert-east.arn}"
+    ssl_support_method = "sni-only"
+    minimum_protocol_version = "TLSv1"
+  }
+}
+
+resource "aws_route53_record" "builder-cf-dns" {
+  count = "${var.enabled}"
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "bldr.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_cloudfront_distribution.builder.domain_name}"
+    zone_id = "${aws_cloudfront_distribution.builder.hosted_zone_id}"
+    evaluate_target_health = false
+  }
+}
