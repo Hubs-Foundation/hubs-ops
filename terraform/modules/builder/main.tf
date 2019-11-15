@@ -339,6 +339,9 @@ sudo echo "${aws_efs_mount_target.builder-hab-fs.0.dns_name}:/       /hab       
 sudo mount /hab
 sudo chown hab:hab /hab
 
+cd /hab
+./start_builder.sh
+
 EOF
 }
 
