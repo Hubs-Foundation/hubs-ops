@@ -59,8 +59,8 @@ resource "aws_security_group" "builder-alb" {
 resource "aws_security_group_rule" "builder-alb-egress-ssl" {
   count = "${var.enabled}"
   type = "egress"
-  from_port = "443"
-  to_port = "443"
+  from_port = "80"
+  to_port = "80"
   protocol = "tcp"
   security_group_id = "${aws_security_group.builder-alb.id}"
   source_security_group_id = "${aws_security_group.builder.id}"
@@ -163,6 +163,138 @@ resource "aws_security_group" "builder" {
     protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  # NFS upload-fs
+  egress {
+    from_port = "2049"
+    to_port = "2049"
+    protocol = "tcp"
+    security_groups = ["${aws_security_group.builder-hab-fs.id}"]
+  }
+}
+
+resource "aws_efs_file_system" "builder-hab-fs" {
+  count = "${var.enabled}"
+  creation_token = "${var.shared["env"]}-builder-hab-fs"
+  performance_mode = "generalPurpose"
+  tags = {
+    backup = "builder-hab-daily"
+  }
+}
+
+resource "aws_kms_key" "builder-daily-backup-key" {
+  count = "${var.enabled}"
+  description = "Encryption key for builder hab storage backups"
+  enable_key_rotation = true
+  is_enabled = true
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+        "Effect": "Allow",
+        "Action": "kms:*",
+        "Principal": { "AWS": "arn:aws:iam::${var.shared["account_id"]}:root" },
+        "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_backup_vault" "builder-hab-daily-backup-vault" {
+  count = "${var.enabled}"
+  name = "${var.shared["env"]}-builder-hab-daily-backup"
+  kms_key_arn = "${aws_kms_key.builder-daily-backup-key.arn}"
+}
+
+resource "aws_backup_plan" "builder-hab-daily-backup-plan" {
+  count = "${var.enabled}"
+  name = "${var.shared["env"]}-builder-hab-daily-backup-plan"
+
+  rule {
+    rule_name = "daily"
+    target_vault_name = "${aws_backup_vault.builder-hab-daily-backup-vault.name}"
+    schedule = "cron(0 10 ? * * *)"
+  }
+}
+
+resource "aws_iam_role" "builder-hab-daily-backup-role" {
+  count = "${var.enabled}"
+  name = "${var.shared["env"]}-builder-hab-daily-backup"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+        "Effect": "Allow",
+        "Principal": { "Service": [ "backup.amazonaws.com" ] },
+        "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "builder-hab-daily-backup-aws-backup-policy" {
+  count = "${var.enabled}"
+  role = "${aws_iam_role.builder-hab-daily-backup-role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+}
+
+resource "aws_backup_selection" "builder-hab-daily-backup-selection" {
+  count = "${var.enabled}"
+  iam_role_arn = "${aws_iam_role.builder-hab-daily-backup-role.arn}"
+  name = "${var.shared["env"]}-builder-hab-daily-backup-selection"
+  plan_id = "${aws_backup_plan.builder-hab-daily-backup-plan.id}"
+
+  selection_tag {
+    type = "STRINGEQUALS"
+    key = "backup"
+    value = "builder-hab-daily"
+  }
+
+  depends_on = ["aws_iam_role_policy_attachment.builder-hab-daily-backup-aws-backup-policy"]
+}
+
+resource "aws_efs_mount_target" "builder-hab-fs" {
+  count = "${var.enabled}"
+  file_system_id = "${aws_efs_file_system.builder-hab-fs.id}"
+  subnet_id = "${element(data.terraform_remote_state.vpc.private_subnet_ids, count.index)}"
+  security_groups = ["${aws_security_group.builder-hab-fs.id}"]
+  count = "${length(data.terraform_remote_state.vpc.private_subnet_ids)}"
+}
+
+resource "aws_security_group" "builder-hab-fs" {
+  count = "${var.enabled}"
+  name = "${var.shared["env"]}-builder-hab-fs"
+  vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
+}
+
+resource "aws_security_group" "builder-hab-fs-connect" {
+  count = "${var.enabled}"
+  name = "${var.shared["env"]}-builder-hab-fs-connect"
+  vpc_id = "${data.terraform_remote_state.vpc.vpc_id}"
+}
+
+resource "aws_security_group_rule" "builder-builder-hab-fs-builder-ingress" {
+  count = "${var.enabled}"
+  type = "ingress"
+  from_port = "2049"
+  to_port = "2049"
+  protocol = "tcp"
+  security_group_id = "${aws_security_group.builder-hab-fs.id}"
+  source_security_group_id = "${aws_security_group.builder.id}"
+}
+
+resource "aws_security_group_rule" "builder-builder-hab-fs-connect-ingress" {
+  count = "${var.enabled}"
+  type = "ingress"
+  from_port = "2049"
+  to_port = "2049"
+  protocol = "tcp"
+  security_group_id = "${aws_security_group.builder-hab-fs.id}"
+  source_security_group_id = "${aws_security_group.builder-hab-fs-connect.id}"
 }
 
 resource "aws_iam_role" "builder" {
@@ -200,6 +332,12 @@ resource "aws_launch_configuration" "builder" {
 #!/usr/bin/env bash
 while ! nc -z localhost 9632 ; do sleep 1; done
 systemctl restart systemd-sysctl.service
+
+rm -rf /hab
+sudo mkdir /hab
+sudo echo "${aws_efs_mount_target.builder-hab-fs.0.dns_name}:/       /hab        nfs     nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=3,noresvport" >> /etc/fstab
+sudo mount /hab
+sudo chown hab:hab /hab
 
 EOF
 }
