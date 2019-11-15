@@ -3883,7 +3883,7 @@ Resources:
 Outputs:
   AddressForRootDomain:
     Description: Serving domain name for your stack. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Cloud on your site.
-    Value: !If [ HasALB, !Ref AppALBDNSInternal, !GetAtt AppCloudfrontDistribution.DomainName ]
+    Value: !If [ HasALB, !GetAtt AppALB.DNSName, !GetAtt AppCloudfrontDistribution.DomainName ]
 
   DomainName:
     Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
