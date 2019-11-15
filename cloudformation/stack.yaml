@@ -1061,8 +1061,6 @@ Resources:
     Condition: HasManagedDomain
     Properties: 
       DomainName: !GetAtt ExternalZoneInfo.Name
-      SubjectAlternativeNames:
-        - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
       DomainValidationOptions:
         - DomainName: !GetAtt ExternalZoneInfo.Name
           HostedZoneId: !GetAtt ExternalZoneInfo.Id
@@ -1098,6 +1096,8 @@ Resources:
     Type: Custom::DNSCertificate
     Properties: 
       DomainName: !Sub '*.${InternalZoneInfo.Name}'
+      SubjectAlternativeNames:
+        - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
       DomainValidationOptions:
         - DomainName: !GetAtt InternalZoneInfo.Name
           HostedZoneId: !Ref InternalZone
@@ -3112,7 +3112,6 @@ Resources:
             Locations: []
         Aliases:
           - !Ref DomainName
-          - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
         HttpVersion: http2
         PriceClass: PriceClass_All
         CustomErrorResponses:
@@ -3179,6 +3178,7 @@ Resources:
             Locations: []
         Aliases:
           - !Sub '${AWS::StackName}-assets.${InternalZoneInfo.Name}'
+          - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
         HttpVersion: http2
         PriceClass: PriceClass_All
         CustomErrorResponses:
@@ -3208,6 +3208,29 @@ Resources:
             ForwardedValues:
               QueryString: true
               Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+              Cookies:
+                Forward: none
+            ViewerProtocolPolicy: https-only
+            MinTTL: 0
+            DefaultTTL: 3600
+            MaxTTL: 3600
+          - PathPattern: "/http*" # CORS proxy
+            Compress: true
+            AllowedMethods:
+              - GET
+              - HEAD
+              - POST
+              - PATCH
+              - PUT
+              - DELETE
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+            TargetOriginId: !Sub "${AWS::StackName}-app"
+            ForwardedValues:
+              QueryString: true
+              Headers: ["Origin", "Content-Type", "Range", "Host", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
               Cookies:
                 Forward: none
             ViewerProtocolPolicy: https-only
@@ -3325,7 +3348,7 @@ Resources:
       Type: A
       AliasTarget:
         DNSName:
-          Fn::GetAtt: [ AppCloudfrontDistribution, DomainName ]
+          Fn::GetAtt: [ AppAssetsCloudfrontDistribution, DomainName ]
         HostedZoneId: Z2FDTNDATAQYW2
 
   AppLaunchConfiguration:
