@@ -240,7 +240,7 @@ Parameters:
     Default: 14
   DbMaxCapacity:
     Type: Number
-    Description: "Maximum ACU Capacity for the database. If you don't know, leave this alone. The database will be a serverless Aurora PostgreSQL-compatible cluster. Increasing the Maximum ACUs will increase the available resources to your hub for database queries, but will cost more. This needs to be set to at least 2. Pricing info for ACUs can be found at https://aws.amazon.com/rds/aurora/serverless/"
+    Description: "Maximum ACU Capacity for the database. If you are unsure, leave this at the default. The database will be a serverless Aurora PostgreSQL-compatible cluster. Increasing the Maximum ACUs will increase the available resources to your hub for database queries, but will cost more. This needs to be set to at least 2. Pricing info for ACUs can be found at https://aws.amazon.com/rds/aurora/serverless/"
     MinValue: 2
     MaxValue: 384
     Default: 2
@@ -310,7 +310,7 @@ Parameters:
     Description: When your stack is set to Offline, visitors will be redirected to this URL.
   DatabaseMonthlyBudget:
     Type: Number
-    Description: If you do not want a monthly database budget, set this to zero. To save costs, your AWS Aurora Serverless database will be shut down when nobody is hitting your site. When visitors are using your site, you'll incur database costs. To avoid unexpected charges, you can set a monthly budget. If you are running multiple hubs, this budget should reflect your maximum allowed cost across *all* your hubs in this region. This hub will automatically switch into Offline mode if the Aurora Serverless database charges across all your hubs in this region exceed this budget. A minimum $20 budget is recommended and will provide more than 40 hours a week of connectivity for a hub. You only pay for what you use. Leave this field blank to fall back to your "Max database capacity" setting in "Advanced" to limit your database cost. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
+    Description: If you do not want a monthly database budget, set this to zero. To save costs, your AWS Aurora Serverless database will be shut down when nobody is hitting your site. When visitors are using your site, you'll incur database costs. To avoid unexpected charges, you can set a monthly budget. If you are running multiple hubs, this budget should reflect your maximum allowed cost across *all* your hubs in this region. This hub will automatically switch into Offline mode if the Aurora Serverless database charges across all your hubs in this region exceed this budget. A minimum $20 budget is recommended and will provide more than 40 hours a week of connectivity for a hub. You only pay for what you use. Leave this field blank to fall back to your "Max database capacity" setting in "Database Configuration" to limit your database cost. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
     Default: 0
   MaxStorage:
     Type: Number
