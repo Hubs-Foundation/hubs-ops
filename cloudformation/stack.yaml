@@ -141,7 +141,7 @@ Metadata:
 Parameters:
   DomainName:
     Type: String
-    Description: Domain name Hubs Cloud will be hosted on. (eg myhubs.com or hubs.mydomain.com.) This should be a domain you already own, either on a third party provider (eg GoDaddy or Namecheap) or on AWS Route 53.
+    Description: Domain name your hub will be hosted on. (eg myhubs.com or hubs.mydomain.com.) This should be a domain you already own, either on a third party provider (eg GoDaddy or Namecheap) or on AWS Route 53.
     AllowedPattern: ^((?:([a-z0-9]\.|[a-z0-9][a-z0-9\-]{0,61}[a-z0-9])\.)+)([a-z0-9]{2,63}|(?:[a-z0-9][a-z0-9\-]{0,61}[a-z0-9]))\.?$
     ConstraintDescription: Must be a valid domain name (eg myhubs.com or hubs.mycompany.com)
   IsDomainOnRoute53:
@@ -150,17 +150,17 @@ Parameters:
     AllowedValues: ["Yes - My domain is set up on Route 53", "No - My domain is not on Route 53 and I will set up my SSL certificate below in the 'SSL Certificates' section"]
   ShortlinkZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: You'll need a Route 53 domain name for short room permalinks, entry codes, and device linking. (eg myhubs.link) It should *not* be the same domain as the any of the Hubs Cloud domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type since it will be typed by users on mobile devices and in VR.
+    Description: You'll need a Route 53 domain name for short room permalinks, entry codes, and device linking. (eg myhubs.link) It should *not* be the same domain as the any of the domain names that you specified above. This domain will be used by visitors to share room links, and ideally should be short and easy to type since it will be typed by users on mobile devices and in VR.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify a short link Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53, ideally one short and easy to type.
   InternalZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: Hubs Cloud needs a domain name to use internally for server management. If your primary domain is on Route 53 and you're not using it for anything else, you can choose it here. Otherwise, you'll need to register a new domain name on Route 53 for this (for example, myhubs-internal.com). This domain name will not be seen by users.
+    Description: Your hub needs a domain name to use internally for server management. If your primary domain is on Route 53 and you're not using it for anything else, you can choose it here. Otherwise, you'll need to register a new domain name on Route 53 for this (for example, myhubs-internal.com). This domain name will not be seen by users.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an internal Route 53 Zone. Please choose one or create a new domain name on AWS on Route 53. It can be anything you want and is used internally. It will not be seen by your visitors.
   EmailZone:
     Type: AWS::Route53::HostedZone::Id
-    Description: To verify email addresses, Hubs Cloud needs to be able to send email. If you do not have an existing email SMTP provider, choose a Route 53 domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing email provider you'd like to send email from (eg Mailchimp) or already have a verified domain in AWS Simple Email Service select the same zone you chose above for 'Internal Route 53 Zone' and you'll be able to enter the login credentials from your email provider later.
+    Description: To verify email addresses, your hub needs to be able to send email. If you do not have an existing email SMTP provider, choose a Route 53 domain you'd like to send email from. It will be set up automatically using AWS Simple Email Service. If you have an existing email provider you'd like to send email from (eg Mailchimp) or already have a verified domain in AWS Simple Email Service select the same zone you chose above for 'Internal Route 53 Zone' and you'll be able to enter the login credentials from your email provider later.
     AllowedPattern: ".+"
     ConstraintDescription: You didn't specify an Route 53 Zone to send email from. Please choose one. If you already have email set up, just choose your Internal Route 53 Zone.
   EmailSubdomain:
@@ -174,7 +174,7 @@ Parameters:
     ConstraintDescription: "You must enter a contact email address."
   UnmanagedDomainCertArn:
     Type: String
-    Description: "You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to create an SSL certificate in the same region as your stack in AWS Certificate Manager before completing this form. Instructions can be found at https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html. *Note* - make sure you create your SSL certificate in the AWS region you'd like to use for your Hubs Cloud stack. (The region can be found in the top right corner of the AWS console.) Once you've created the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console."
+    Description: "You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to create an SSL certificate in the same region as your stack in AWS Certificate Manager before completing this form. Instructions can be found at https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html. *Note* - make sure you create your SSL certificate in the AWS region you'd like to use for your hub's stack. (The region can be found in the top right corner of the AWS console.) Once you've created the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console."
     ConstraintDescription: You must point to an ARN in AWS Certificate Manager for your domain.
   UnmanagedDomainEastCertArn:
     Type: String
@@ -182,7 +182,7 @@ Parameters:
     ConstraintDescription: You must point to an ARN in US-East-1 (N. Virginia) AWS Certificate Manager for your domain.
   AppInstanceCount:
     Type: Number
-    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for Hubs Cloud. You must run at least one app server. Set to zero to temporarily shut down your site.
+    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for your hub. You must run at least one app server. Set to zero to temporarily shut down your site.
     Default: 1
     MinValue: 0
     ConstraintDescription: You must run at least one app server.
@@ -246,23 +246,23 @@ Parameters:
     Default: 2
   RestoreDbSnapshotIdentifier:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) Also you'll need to specify the other parameters below. WARNING: do *not* change this value after your stack is created, otherwise you will replace your existing database!"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Aurora database snapshot identifier to restore from. (eg mystack-snapshot-mystack-app-db-xxxxx) Also you'll need to specify the other parameters below. WARNING: do *not* change this value after your stack is created, otherwise you will replace your existing database!"
   RestoreAppDbSecretArn:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the ARN for the database secret from the hub being restored from. (eg arn:aws:secretsmanager:<region>:<account-id>:secret:AppDbSecret-xxxxxxxxx)"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the ARN for the database secret from the hub being restored from. (eg arn:aws:secretsmanager:<region>:<account-id>:secret:AppDbSecret-xxxxxxxxx)"
   RestoreStackName:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the stack name being restored from. To restore, the secrets stored in Parameter Store must still be available from the stack being restored from. These parameters should still exist even if you deleted the old stack, unless you manually removed them."
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the stack name being restored from. To restore, the secrets stored in Parameter Store must still be available from the stack being restored from. These parameters should still exist even if you deleted the old stack, unless you manually removed them."
   RestoreStackRegion:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the region of the stack being restored from."
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the region of the stack being restored from."
     AllowedValues: ["", "us-east-1", "us-west-2", "us-east-2", "ap-northeast-1", "eu-west-1"]
   RestoreBackupVaultName:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx)"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx)"
   RestoreRecoveryPointArn:
     Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing Hubs Cloud backup, specify the AWS Backup Vault's Recovery Point ARN to restore storage from. (eg arn:aws:backup:<region>:<account id>:recovery-point:xxxxxxxx)"
+    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Backup Vault's Recovery Point ARN to restore storage from. (eg arn:aws:backup:<region>:<account id>:recovery-point:xxxxxxxx)"
   NewCMKForDiskEncryption:
     Type: String
     Description: "Select 'Yes' if you'd like to create a dedicated CMK in KMS for database and backup encryption. KMS charges for a single managed key will apply."
@@ -297,7 +297,7 @@ Parameters:
     AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
   AutoPauseDb:
     Type: String
-    Description: Hubs Cloud uses the Aurora Serverless database, which can greatly save costs by pausing the database when your hub is not in use. However, when the database is paused, it can take up to 20 seconds for your site to come back up when you visit it. You can turn off database pausing if you'd like to avoid any delay in loading your site. Turning off pausing will incur continuous hourly database costs. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
+    Description: Your hub uses the Aurora Serverless database, which can greatly save costs by pausing the database when your hub is not in use. However, when the database is paused, it can take up to 20 seconds for your site to come back up when you visit it. You can turn off database pausing if you'd like to avoid any delay in loading your site. Turning off pausing will incur continuous hourly database costs. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
     Default: "Yes - Pause database when not in use"
     AllowedValues: ["Yes - Pause database when not in use", "No - Pay for database continuously to prevent loading delays"]
   StackOffline:
@@ -3884,11 +3884,11 @@ Resources:
 
 Outputs:
   AddressForRootDomain:
-    Description: Serving domain name for your stack. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to enable Hubs Cloud on your site.
+    Description: Serving domain name for your hub. If you did not set up your domain on Route 53, you should add a CNAME DNS record pointing to this domain name to to start serving your hub from your domain.
     Value: !If [ HasALB, !GetAtt AppALB.DNSName, !GetAtt AppCloudfrontDistribution.DomainName ]
 
   DomainName:
-    Description: Primary Hubs Cloud domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
+    Description: Primary hub domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
     Value: !Ref DomainName
 
   CorsOrigins:
