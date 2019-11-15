@@ -3396,7 +3396,7 @@ Resources:
     UpdatePolicy:
       AutoScalingRollingUpdate:
         MaxBatchSize: 10
-        PauseTime: PT20M
+        PauseTime: PT30M
         SuspendProcesses:
           - HealthCheck
           - ReplaceUnhealthy
@@ -3472,7 +3472,7 @@ Resources:
     UpdatePolicy:
       AutoScalingRollingUpdate:
         MaxBatchSize: 10
-        PauseTime: PT20M
+        PauseTime: PT30M
         SuspendProcesses:
           - HealthCheck
           - ReplaceUnhealthy
