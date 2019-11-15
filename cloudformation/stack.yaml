@@ -240,7 +240,7 @@ Parameters:
     Default: 14
   DbMaxCapacity:
     Type: Number
-    Description: "Maximum ACU Capacity for the database. The database will be a serverless Aurora PostgreSQL-compatible cluster. Increasing the Maximum ACUs will increase the available resources to your instance for database queries."
+    Description: "Maximum ACU Capacity for the database. If you don't know, leave this alone. The database will be a serverless Aurora PostgreSQL-compatible cluster. Increasing the Maximum ACUs will increase the available resources to your instance for database queries, but will cost more. This needs to be set to at least 2. Pricing info for ACUs can be found at https://aws.amazon.com/rds/aurora/serverless/"
     MinValue: 2
     MaxValue: 384
     Default: 2
