@@ -188,7 +188,7 @@ Parameters:
     ConstraintDescription: You must run at least one app server.
   AppInstanceType:
     Type: String
-    Description: The EC2 instance type for your app server(s). Choose a "t" instance type if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
+    Description: The EC2 instance type for your app server(s). Choose a "t" instance type if you expect bursty use of the service, and the "c" types if you expect steady usage.
     Default: t2.micro
     AllowedValues:
       - t2.micro
@@ -206,7 +206,7 @@ Parameters:
     MinValue: 0
   StreamInstanceType:
     Type: String
-    Description: The EC2 instance type for your streaming server(s), if you've added any. This field will not be used if you entered zero for the number of streaming servers. Choose a "t" instance type if you expect bursty use of the service, and the "c" or "m" types if you expect steady usage.
+    Description: The EC2 instance type for your streaming server(s), if you've added any. This field will not be used if you entered zero for the number of streaming servers. Choose a "t" instance type if you expect bursty use of the service, and the "c" types if you expect steady usage.
     Default: t2.micro
     AllowedValues:
       - t2.micro
