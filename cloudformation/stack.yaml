@@ -182,9 +182,9 @@ Parameters:
     ConstraintDescription: You must point to an ARN in US-East-1 (N. Virginia) AWS Certificate Manager for your domain.
   AppInstanceCount:
     Type: Number
-    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for your hub. You must run at least one app server. Set to zero to temporarily shut down your site.
+    Description: The number of app server(s) you'd like to run. The app servers provide all the necessary services for your hub. You must run at least one app server.
     Default: 1
-    MinValue: 0
+    MinValue: 1
     ConstraintDescription: You must run at least one app server.
   AppInstanceType:
     Type: String
