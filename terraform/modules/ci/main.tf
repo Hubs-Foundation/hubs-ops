@@ -294,11 +294,11 @@ sudo echo 'hab pkg promote -z $(cat /hab/cache/keys/mozillareality-github.token)
 sudo chmod +x /usr/bin/hab-pkg-promote
 
 sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-ret-pkg-upload
-sudo echo 'hab pkg upload -u https://bldr.reticulum.io -z $(cat /hab/cache/keys/mozillareality-reticulum.token) $1' >> /usr/bin/hab-ret-pkg-upload
+sudo echo 'hab pkg upload -u https://dev-builder-alb.reticulum.io -z $(cat /hab/cache/keys/mozillareality-reticulum.token) $1' >> /usr/bin/hab-ret-pkg-upload
 sudo chmod +x /usr/bin/hab-ret-pkg-upload
 
 sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-ret-pkg-promote
-sudo echo 'hab pkg promote -u https://bldr.reticulum.io -z $(cat /hab/cache/keys/mozillareality-reticulum.token) $1 $2' >> /usr/bin/hab-ret-pkg-promote
+sudo echo 'hab pkg promote -u https://dev-builder-alb.reticulum.io -z $(cat /hab/cache/keys/mozillareality-reticulum.token) $1 $2' >> /usr/bin/hab-ret-pkg-promote
 sudo chmod +x /usr/bin/hab-ret-pkg-promote
 
 sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-pkg-install
