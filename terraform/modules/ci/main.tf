@@ -313,6 +313,8 @@ sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-docker-studio" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-upload" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-promote" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-install" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-ret-pkg-promote" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-ret-pkg-install" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-user-toml-install" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-clean-perms" >> /etc/sudoers
 
