@@ -9,3 +9,7 @@ variable "builder_domain" {
 variable "enabled" {
   description = "Should create this module"
 }
+
+variable "mount_target_count" {
+  description = "Number of mount targets"
+}

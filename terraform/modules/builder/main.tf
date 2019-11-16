@@ -258,7 +258,7 @@ resource "aws_backup_selection" "builder-hab-daily-backup-selection" {
 }
 
 resource "aws_efs_mount_target" "builder-hab-fs" {
-  count = "${var.enabled}"
+  count = "${var.mount_target_count}"
   file_system_id = "${aws_efs_file_system.builder-hab-fs.id}"
   subnet_id = "${element(data.terraform_remote_state.vpc.private_subnet_ids, count.index)}"
   security_groups = ["${aws_security_group.builder-hab-fs.id}"]

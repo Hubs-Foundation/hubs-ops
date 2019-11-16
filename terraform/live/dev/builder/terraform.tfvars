@@ -15,3 +15,4 @@ terragrunt = {
 enabled = true
 builder_instance_type = "c4.2xlarge"
 builder_domain = "reticulum.io"
+mount_target_count = 2
