@@ -340,6 +340,9 @@ sudo mount /hab
 sudo chown hab:hab /hab
 
 cd /hab
+
+# Need to restart because of new sup key
+systemctl restart hab
 ./start_builder.sh
 
 EOF
