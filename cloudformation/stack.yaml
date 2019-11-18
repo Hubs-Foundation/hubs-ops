@@ -661,7 +661,7 @@ Resources:
       SourceBucket: polycosm-assets-prod-77ae26402152f4ea
       Prefix: ""
       Objects:
-        - lambdas/keymaster/keymaster-0.1.9.zip
+        - lambdas/keymaster/keymaster-0.1.11.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -1251,6 +1251,12 @@ Resources:
                  - IsRestore
                  - !Sub "arn:aws:ssm:${RestoreStackRegion}:${AWS::AccountId}:parameter/keymaster/${RestoreStackName}/*"
                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/keymaster/${AWS::StackName}/*"
+             - Effect: Allow
+               Action:
+                 - ssm:DescribeParameters
+                 - ssm:DeleteParameters
+               Resource:
+                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ita/${AWS::StackName}/*"
 
   GenerateBioRingKeyFunction:
     Type: AWS::Lambda::Function
@@ -1258,7 +1264,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
       Handler: index.generate_ring_key
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1274,7 +1280,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
       Handler: index.generate_service_key
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1290,7 +1296,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-totp"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
       Handler: index.generate_totp
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1306,7 +1312,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-jwt-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
       Handler: index.generate_jwt_keys
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1322,7 +1328,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-secret"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
       Handler: index.generate_secret
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1338,7 +1344,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-read-secret"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
       Handler: index.read_secret
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1354,7 +1360,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-vapid-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.9.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
       Handler: index.generate_vapid_keys
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1363,6 +1369,30 @@ Resources:
       MemorySize: 128
     DependsOn:
       - CopyKeymasterLambda
+
+  DeleteParameters:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-delete-parameters"
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
+      Handler: index.delete_parameters
+      Role: !GetAtt KeymasterRole.Arn
+      Runtime: nodejs10.x
+      Description: Deletes SSM parameters
+      Timeout: 30
+      MemorySize: 128
+    DependsOn:
+      - CopyKeymasterLambda
+
+  # Removes all /ita/<stack> SSM parameters on stack delete
+  DeleteItaParameters:
+    Type: Custom::DeleteParameters
+    Properties:
+      ServiceToken: !GetAtt DeleteParameters.Arn
+      Region: !Sub "${AWS::Region}"
+      Prefix: !Sub "/ita/${AWS::StackName}/"
 
 # EmptyBucket
   EmptyBucketRole:
