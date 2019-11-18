@@ -4115,7 +4115,7 @@ Outputs:
     Value: !Ref "AWS::Region"
 
   ShortlinkDomainName:
-    Description: Shortlink Domain Name
+    Description: Shortlink Domain Name [hubs/general/shortlink_domain]
     Value: !GetAtt ShortlinkZoneInfo.Name
 
   AdminEmailAddress:
