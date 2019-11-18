@@ -1254,6 +1254,10 @@ Resources:
              - Effect: Allow
                Action:
                  - ssm:DescribeParameters
+               Resource:
+                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:*"
+             - Effect: Allow
+               Action:
                  - ssm:DeleteParameters
                Resource:
                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ita/${AWS::StackName}/*"
