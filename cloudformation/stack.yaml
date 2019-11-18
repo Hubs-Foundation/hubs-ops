@@ -4119,7 +4119,7 @@ Outputs:
     Value: !GetAtt ShortlinkZoneInfo.Name
 
   AdminEmailAddress:
-    Description: Administrator Email Address [certbot/general/admin_email]
+    Description: Administrator Email Address [certbot/general/admin_email,reticulum/accounts/admin_email]
     Value: !Ref AdminEmailAddress
 
   YTDLURL:
