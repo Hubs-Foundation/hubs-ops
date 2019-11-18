@@ -1419,22 +1419,22 @@ Resources:
           
           def handler(event, context):
               try:
-                  bucket = event['ResourceProperties']['BucketName']
+                  bucketNames = event['ResourceProperties']['BucketNames']
           
                   if event['RequestType'] == 'Delete':
-                      s3 = boto3.resource('s3')
+                      for bucketName in bucketNames:
+                          s3 = boto3.resource('s3')
 
-                      try: 
-                          s3.meta.client.head_bucket(Bucket=bucket)
-                      except ClientError:
-                          # Bucket already removed/never existed
-                          sendResponseCfn(event, context, "SUCCESS")
-                          return
+                          try:
+                              s3.meta.client.head_bucket(Bucket=bucketName)
 
-                      bucket = s3.Bucket(bucket)
-                      for obj in bucket.objects.filter():
-                          s3.Object(bucket.name, obj.key).delete()
-          
+                              bucket = s3.Bucket(bucketName)
+                              for obj in bucket.objects.filter():
+                                  s3.Object(bucket.name, obj.key).delete()
+                          except ClientError:
+                              # Bucket already removed/never existed
+                              pass
+
                   sendResponseCfn(event, context, "SUCCESS")
               except Exception as e:
                   print(e)
@@ -1838,13 +1838,6 @@ Resources:
     Properties:
       AccessControl: Private
       BucketName: !Join ["-", [ !Sub "${AWS::StackName}-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
-  EmptyLambdaBucket:
-    Type: Custom::EmptyLambdaBucket
-    Properties:
-      ServiceToken: !GetAtt EmptyBucketFunction.Arn
-      BucketName: !Ref LambdaBucket
-    DependsOn:
-      - EmptyBucketRole
   SendEmailPassword:
     Type: Custom::SendEmailPassword
     Properties:
@@ -1858,11 +1851,16 @@ Resources:
     Properties:
       AccessControl: Private
       BucketName: !Join ["-", [ !Sub "${AWS::StackName}-box-keys", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
-  EmptyBoxKeysBucket:
-    Type: Custom::EmptyBoxKeysBucket
+  EmptyBuckets:
+    Type: Custom::EmptyBuckets
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
-      BucketName: !Ref BoxKeysBucket
+      BucketNames: 
+        - !Ref LambdaBucket
+        - !Ref BoxKeysBucket
+        - !Ref SpeelycaptorScratchBucket
+        - !Ref AssetsBucket
+        - !Ref LinkRedirectorBucket
     DependsOn:
       - EmptyBucketRole
 
@@ -1950,13 +1948,6 @@ Resources:
     Properties:
       AccessControl: Private
       BucketName: !Join ["-", [ !Sub "${AWS::StackName}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
-  EmptySpeelycaptorScratchBucket:
-    Type: Custom::EmptySpeelycaptorScratchBucket
-    Properties:
-      ServiceToken: !GetAtt EmptyBucketFunction.Arn
-      BucketName: !Ref SpeelycaptorScratchBucket
-    DependsOn:
-      - EmptyBucketRole
   SpeelycaptorRole:
     Type: AWS::IAM::Role
     Properties:
@@ -2442,13 +2433,6 @@ Resources:
             Action: 's3:GetObject'
             Resource: !Sub '${AssetsBucket.Arn}/*'
       Bucket: !Ref AssetsBucket
-  EmptyAssetsBucket:
-    Type: Custom::EmptyAssetsBucket
-    Properties:
-      ServiceToken: !GetAtt EmptyBucketFunction.Arn
-      BucketName: !Ref AssetsBucket
-    DependsOn:
-      - EmptyBucketRole
   CopyPDFJSAssets:
     Type: Custom::CopyPDFJSAssets
     UpdateReplacePolicy: Retain
@@ -2515,13 +2499,6 @@ Resources:
               ReplaceKeyPrefixWith: "link/"
               Protocol: https
               HostName: !Ref DomainName
-  EmptyLinkRedirectorBucket:
-    Type: Custom::EmptyLinkRedirectorBucket
-    Properties:
-      ServiceToken: !GetAtt EmptyBucketFunction.Arn
-      BucketName: !Ref LinkRedirectorBucket
-    DependsOn:
-      - EmptyBucketRole
   LinkRedirectorPublicBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
