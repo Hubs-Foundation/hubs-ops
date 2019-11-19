@@ -3159,7 +3159,7 @@ Resources:
             Headers: !If [ PerformOfflineRedirect, [], ["Origin", "Content-Type", "Range", "Host", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]]
             Cookies:
               Forward: none
-          ViewerProtocolPolicy: https-only
+          ViewerProtocolPolicy: redirect-to-https
           MinTTL: 0
           DefaultTTL: 3600
           MaxTTL: 3600
