@@ -4122,10 +4122,6 @@ Outputs:
     Description: Administrator Email Address [certbot/general/admin_email,reticulum/accounts/admin_email]
     Value: !Ref AdminEmailAddress
 
-  YTDLURL:
-    Description: YT-DL URL [reticulum/resolver/ytdl_host]
-    Value: !Sub ["http://localhost:${Port}", { Port: !FindInMap [ServicesMeta, YTDL, Port] }]
-
   CertBotPlugin:
     Description: Certbot plugin [certbot/general/plugin]
     Value: dns-route53
@@ -4137,3 +4133,7 @@ Outputs:
   LambdaBucketName:
     Description: Lambdas Bucket [polycosm-lambdas/aws/lambda_bucket]
     Value: !Ref LambdaBucket
+
+  MaxStorage:
+    Description: Max storage in GB [reticulum/uploads/quota_gb]
+    Value: !Ref MaxStorage
