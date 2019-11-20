@@ -345,7 +345,7 @@ Mappings:
     JanusWebRTCFrom:
       Port: 49152
     JanusWebRTCTo:
-      Port: 65534
+      Port: 60999
     YTDL:
       Port: 8080
     BioCensus:
