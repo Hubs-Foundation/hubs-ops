@@ -3030,7 +3030,7 @@ Resources:
               Host: !GetAtt ParsedOfflineRedirectUrl.ALBHost
               Path: !GetAtt ParsedOfflineRedirectUrl.ALBPath
               Query: !GetAtt ParsedOfflineRedirectUrl.ALBQuery
-              StatusCode: "HTTP_307"
+              StatusCode: "HTTP_302"
             - !Ref "AWS::NoValue"
 
   AppALBRetSSLListenerInternalCert:
