@@ -338,8 +338,10 @@ Mappings:
       Port: 443
     RetInternal:
       Port: 4000
-    JanusExternal:
+    JanusInternal:
       Port: 8443
+    JanusExternal:
+      Port: 80
     JanusAdmin:
       Port: 7000
     JanusWebRTCFrom:
@@ -3924,8 +3926,12 @@ Outputs:
     Description: Janus ICE Ignore List [janus-gateway/nat/ice_ignore_list]
     Value: eth0:0
 
+  JanusInternalPort:
+    Description: Janus Internal Port [janus-gateway/transports.websockets/wss_port]
+    Value: !FindInMap [ServicesMeta, JanusInternal, Port]
+
   JanusExternalPort:
-    Description: Janus External Port [janus-gateway/transports.websockets/wss_port,reticulum/janus/janus_port]
+    Description: Janus External Port [reticulum/janus/janus_port]
     Value: !FindInMap [ServicesMeta, JanusExternal, Port]
 
   JanusAdminPort:
@@ -4066,7 +4072,7 @@ Outputs:
 
   ReticulumCSP:
     Description: Default Reticulum Content Security Policy [reticulum/security/content_security_policy]
-    Value: !Sub "default-src 'none'; manifest-src 'self'; script-src https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AppAssetsDNS} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; prefetch-src 'self'https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AppAssetsDNS}; child-src 'self' blob:; worker-src https://${AppAssetsDNS} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AppAssetsDNS} https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${CorsProxyDNS}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AppAssetsDNS} https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com 'unsafe-inline'; connect-src 'self' https://${CorsProxyDNS} https://cors-proxy.${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AppAssetsDNS} https://${CorsProxyDNS} https://${NearsparkDNS} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:8443 https://cdn.aframe.io https://www.youtube.com https://api.github.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AppAssetsDNS} https://${CorsProxyDNS} https://cors-proxy.${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${NearsparkDNS} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${CorsProxyDNS} https://cors-proxy.${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AppAssetsDNS} https://${NearsparkDNS} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';"
+    Value: !Sub "default-src 'none'; manifest-src 'self'; script-src https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AppAssetsDNS} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; prefetch-src 'self'https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AppAssetsDNS}; child-src 'self' blob:; worker-src https://${AppAssetsDNS} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AppAssetsDNS} https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${CorsProxyDNS}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AppAssetsDNS} https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com 'unsafe-inline'; connect-src 'self' https://${CorsProxyDNS} https://cors-proxy.${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AppAssetsDNS} https://${CorsProxyDNS} https://${NearsparkDNS} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:80 https://cdn.aframe.io https://www.youtube.com https://api.github.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AppAssetsDNS} https://${CorsProxyDNS} https://cors-proxy.${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${NearsparkDNS} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${CorsProxyDNS} https://cors-proxy.${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AppAssetsDNS} https://${NearsparkDNS} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';"
 
   SmtpSendAccessKey:
     Description: SMTP send access key for email zone [reticulum/email/username]
@@ -4091,10 +4097,6 @@ Outputs:
   SESRegion:
     Description: SES region
     Value: us-east-1
-
-  StmpPort:
-    Description: SMTP port [reticulum/email/port]
-    Value: 587
 
   BioCensusPort:
     Description: Bio census HTTP port [reticulum/habitat/http_port]
