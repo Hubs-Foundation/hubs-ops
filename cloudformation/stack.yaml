@@ -1724,7 +1724,6 @@ Resources:
              - Effect: Allow
                Action: 
                  - elasticloadbalancing:*
-                 - elasticloadbalancingv2:*
                Resource: 
                  - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:loadbalancer/app/${AWS::StackName}-app/*"
                  - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:loadbalancer/app/${AWS::StackName}-app"
@@ -1743,6 +1742,8 @@ Resources:
                  - route53:Get*
                  - autoscaling:Describe*
                  - rds:Describe*
+                 - elasticloadbalancing:Describe*
+                 - elasticloadbalancingv2:Describe*
                Resource: 
                  - "*"
 
