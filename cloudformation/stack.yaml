@@ -189,10 +189,10 @@ Parameters:
   AppInstanceType:
     Type: String
     Description: The EC2 instance type for your app server(s). Choose a "t" instance type if you expect bursty use of the service, and the "c" types if you expect steady usage.
-    Default: t2.micro
+    Default: t3.micro
     AllowedValues:
-      - t2.micro
-      - t2.small
+      - t3.micro
+      - t3.small
       - t3.medium
       - t3.large
       - c5.large
@@ -207,10 +207,10 @@ Parameters:
   StreamInstanceType:
     Type: String
     Description: The EC2 instance type for your streaming server(s), if you've added any. This field will not be used if you entered zero for the number of streaming servers. Choose a "t" instance type if you expect bursty use of the service, and the "c" types if you expect steady usage.
-    Default: t2.micro
+    Default: t3.micro
     AllowedValues:
-      - t2.micro
-      - t2.small
+      - t3.micro
+      - t3.small
       - t3.medium
       - t3.large
       - c5.large
@@ -359,9 +359,9 @@ Mappings:
 
   InstanceTypeMeta:
     # Some instance types do not support cluster placement, so use spread
-    t2.micro:
+    t3.micro:
       PlacementForCluster: spread
-    t2.small:
+    t3.small:
       PlacementForCluster: spread
     t3.medium:
       PlacementForCluster: spread
