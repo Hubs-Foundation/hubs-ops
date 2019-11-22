@@ -302,7 +302,7 @@ Parameters:
     AllowedValues: ["Yes - Pause database when not in use", "No - Pay for database continuously to prevent loading delays"]
   StackOffline:
     Type: String
-    Description: To save costs, you can switch your stack from being Online to Offline when it is not needed. This will shut down the servers while keeping all of your data. Once your service is switched back to Online, it will come back up just how you left it.
+    Description: To save costs, you can switch your stack from being Online to Offline when it is not needed. This will shut down the servers while keeping all of your data. Once your stack is switched back to Online, it will come back up just how you left it.
     AllowedValues: ["Online", "Offline - Temporarily shut off servers"]
     Default: "Online"
   StackOfflineRedirectUrl:
