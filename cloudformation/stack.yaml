@@ -109,7 +109,7 @@ Metadata:
       DbMaxCapacity:
         default: "Max database capacity (in ACUs)"
       RestoreDbSnapshotIdentifier:
-        default: "Restore From Db Snapshot Identifier"
+        default: "Restore From Database Snapshot Identifier"
       RestoreAppDbSecretArn:
         default: "Restore From Database Secret ARN"
       RestoreStackName:
