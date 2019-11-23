@@ -201,6 +201,10 @@ Parameters:
       - c5.xlarge
       - c5.2xlarge
       - c5.4xlarge
+      - c5.9xlarge
+      - c5.12xlarge
+      - c5.18xlarge
+      - c5.24xlarge
   StreamInstanceCount:
     Type: Number
     Description: The number of dedicated voice/video streaming server(s) you'd like to run. These servers are optional - enter a zero here if you do not want to run any streaming servers. Adding streaming servers will take network and CPU load off of your app servers. These servers will transmit voice and streaming video data between users.
@@ -221,6 +225,10 @@ Parameters:
       - c5.xlarge
       - c5.2xlarge
       - c5.4xlarge
+      - c5.9xlarge
+      - c5.12xlarge
+      - c5.18xlarge
+      - c5.24xlarge
   KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
     Description: "SSH Keypair for server SSH access. If there no keypairs in this list, you'll need to add a SSH keypair via the EC2 console. See: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#having-ec2-create-your-key-pair."
@@ -382,6 +390,14 @@ Mappings:
     c5.2xlarge:
       PlacementForCluster: cluster
     c5.4xlarge:
+      PlacementForCluster: cluster
+    c5.9xlarge:
+      PlacementForCluster: cluster
+    c5.12xlarge:
+      PlacementForCluster: cluster
+    c5.18xlarge:
+      PlacementForCluster: cluster
+    c5.24xlarge:
       PlacementForCluster: cluster
 
 Conditions:
