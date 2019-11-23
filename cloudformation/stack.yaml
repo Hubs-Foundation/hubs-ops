@@ -195,8 +195,8 @@ Parameters:
       - t3.small
       - t3.medium
       - t3.large
+      - t3.xlarge
       - t3.2xlarge
-      - t3.4xlarge
       - c5.large
       - c5.xlarge
       - c5.2xlarge
@@ -215,8 +215,8 @@ Parameters:
       - t3.small
       - t3.medium
       - t3.large
+      - t3.xlarge
       - t3.2xlarge
-      - t3.4xlarge
       - c5.large
       - c5.xlarge
       - c5.2xlarge
@@ -371,9 +371,9 @@ Mappings:
       PlacementForCluster: spread
     t3.large:
       PlacementForCluster: spread
-    t3.2xlarge:
+    t3.xlarge:
       PlacementForCluster: spread
-    t3.4xlarge:
+    t3.2xlarge:
       PlacementForCluster: spread
     c5.large:
       PlacementForCluster: cluster
