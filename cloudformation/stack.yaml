@@ -3411,7 +3411,7 @@ Resources:
       UserData:
         Fn::Base64: |
           #!/usr/bin/env bash
-          /usr/bin/polycosm_boot.sh
+          /usr/bin/polycosm_boot.sh aws
 
   AppPlacementGroup:
     Type: AWS::EC2::PlacementGroup
@@ -3506,7 +3506,7 @@ Resources:
       UserData:
         Fn::Base64: |
           #!/usr/bin/env bash
-          /usr/bin/polycosm_boot.sh
+          /usr/bin/polycosm_boot.sh aws
 
   StreamASG:
     Type: AWS::AutoScaling::AutoScalingGroup
