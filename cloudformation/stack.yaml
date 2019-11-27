@@ -687,7 +687,7 @@ Resources:
       SourceBucket: polycosm-assets-prod-77ae26402152f4ea
       Prefix: ""
       Objects:
-        - lambdas/keymaster/keymaster-0.1.11.zip
+        - lambdas/keymaster/keymaster-0.1.12.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -1294,7 +1294,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
       Handler: index.generate_ring_key
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1310,11 +1310,27 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
       Handler: index.generate_service_key
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
       Description: Generates bio service key
+      Timeout: 30
+      MemorySize: 128
+    DependsOn:
+      - CopyKeymasterLambda
+
+  GenerateBioUserKeyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-generate-bio-user-key"
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
+      Handler: index.generate_user_key
+      Role: !GetAtt KeymasterRole.Arn
+      Runtime: nodejs10.x
+      Description: Generates bio user key
       Timeout: 30
       MemorySize: 128
     DependsOn:
@@ -1326,7 +1342,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-totp"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
       Handler: index.generate_totp
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1342,7 +1358,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-jwt-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
       Handler: index.generate_jwt_keys
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1358,7 +1374,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-secret"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
       Handler: index.generate_secret
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1374,7 +1390,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-read-secret"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
       Handler: index.read_secret
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1390,7 +1406,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-generate-vapid-keys"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
       Handler: index.generate_vapid_keys
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1406,7 +1422,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-delete-parameters"
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.11.zip
+        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
       Handler: index.delete_parameters
       Role: !GetAtt KeymasterRole.Arn
       Runtime: nodejs10.x
@@ -1960,41 +1976,35 @@ Resources:
       BucketRegion: !Ref "AWS::Region"
       KeyName: !Ref "AWS::StackName"
 
-  BioReticulumServiceKey:
-    Type: Custom::BioReticulumServiceKey
+  BioServiceKeys:
+    Type: Custom::BioServiceKeys
     Properties:
       ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
-      ServiceName: "reticulum.default"
+      ServiceNames:
+        - reticulum.default
+        - janus-gateway.default
+        - postgrest.default
+        - certbot.default
+        - ita.default
+        - youtube-dl-api-server.default
+        - polycosm-lambdas.default
+        - hubs.default
+        - spoke.default
+        - hubs-admin.default
+        - hubs-discord-bot.default
+        - hubs-slack-bot.default
+        - hubs-matrix-bot.default
       Org: !Ref "AWS::StackName"
 
-  BioJanusServiceKey:
-    Type: Custom::BioJanusServiceKey
+  BioUserKey:
+    Type: Custom::BioUserKey
     Properties:
-      ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
+      ServiceToken: !GetAtt GenerateBioUserKeyFunction.Arn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
-      ServiceName: "janus-gateway.default"
-      Org: !Ref "AWS::StackName"
-
-  BioPostgrestServiceKey:
-    Type: Custom::BioPostgrestServiceKey
-    Properties:
-      ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
-      BucketName: !Ref BoxKeysBucket
-      BucketRegion: !Ref "AWS::Region"
-      ServiceName: "postgrest.default"
-      Org: !Ref "AWS::StackName"
-
-  BioYTDLServiceKey:
-    Type: Custom::BioYTDLServiceKey
-    Properties:
-      ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
-      BucketName: !Ref BoxKeysBucket
-      BucketRegion: !Ref "AWS::Region"
-      ServiceName: "youtube-dl-api-server.default"
-      Org: !Ref "AWS::StackName"
+      UserName: polycosm-config-user
 
 # Speelycaptor
   SpeelycaptorInitLogGroup:
@@ -3482,10 +3492,8 @@ Resources:
       - JWTKeys
       - VapidKeys
       - BioRingKey
-      - BioReticulumServiceKey
-      - BioJanusServiceKey
-      - BioYTDLServiceKey
-      - BioPostgrestServiceKey
+      - BioServiceKeys
+      - BioUserKey
 
   StreamLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
@@ -3551,10 +3559,8 @@ Resources:
       - JWTKeys
       - VapidKeys
       - BioRingKey
-      - BioReticulumServiceKey
-      - BioJanusServiceKey
-      - BioYTDLServiceKey
-      - BioPostgrestServiceKey
+      - BioServiceKeys
+      - BioUserKey
 
   StorageEFS:
     Type: Custom::EFS
