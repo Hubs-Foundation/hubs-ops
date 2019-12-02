@@ -6,6 +6,7 @@ pkg_upstream_url='https://certbot.eff.org'
 pkg_description='The Certbot LetsEncrypt client.'
 pkg_deps=(
   'core/bash'
+  'core/iptables'
   'core/findutils'
   'core/python'
 )
@@ -13,6 +14,7 @@ pkg_plugins=(
   'dns-route53'
 )
 pkg_bin_dirs=(bin)
+pkg_svc_user="root"
 
 pkg_version() {
   pip --disable-pip-version-check search "$pkg_name" \
