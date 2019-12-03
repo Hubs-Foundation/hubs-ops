@@ -26,6 +26,20 @@ end_ip_filtering() {
 {{/if}}
 }
 
+set_perms() {
+{{#if cfg.general.cert_reader_group }}
+  chown -R root:hab {{pkg.svc_data_path}}/live
+  chmod g+rx {{pkg.svc_data_path}}/live
+  chmod g+rx {{pkg.svc_data_path}}/live/*
+  chmod g+rx {{pkg.svc_data_path}}/archive
+  chmod g+rx {{pkg.svc_data_path}}/archive/*
+  chmod -R g+r {{pkg.svc_data_path}}/live
+  chmod -R g+r {{pkg.svc_data_path}}/archive
+{{else}}
+  :
+{{/if}}
+}
+
 get_certificates() {
   # shellcheck disable=SC2154
   echo "$(date) Getting any needed LetsEncrypt certificates for '{{cfg.general.domain}}'"
@@ -54,6 +68,7 @@ get_certificates() {
       --noninteractive
   fi
 
+  set_perms
   return $?
 }
 
@@ -64,6 +79,7 @@ renew_certificates() {
     --{{cfg.general.plugin}} \
     --config='{{pkg.svc_config_path}}/certbot.renew.ini'
   end_ip_filtering
+  set_perms
   return $?
 }
 
