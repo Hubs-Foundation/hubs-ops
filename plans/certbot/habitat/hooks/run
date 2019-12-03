@@ -13,19 +13,23 @@ service_group() {
 begin_ip_filtering() {
 {{#if cfg.general.standalone_port }}
   iptables -t nat -I PREROUTING 1 -p tcp --dport 80 -j REDIRECT --to-port {{ cfg.general.standalone_port }}
+{{else}}
+  :
 {{/if}}
 }
 
 end_ip_filtering() {
 {{#if cfg.general.standalone_port }}
   iptables -t nat -D PREROUTING -p tcp --dport 80 -j REDIRECT --to-port {{ cfg.general.standalone_port }}
+{{else}}
+  :
 {{/if}}
 }
 
 get_certificates() {
   # shellcheck disable=SC2154
   echo "$(date) Getting any needed LetsEncrypt certificates for '{{cfg.general.domain}}'"
-  begin_ip_filtering();
+  begin_ip_filtering
   certbot certonly \
     --{{cfg.general.plugin}} \
 {{#if cfg.general.standalone_port }}
@@ -34,17 +38,17 @@ get_certificates() {
     --standalone-supported-challenges http-01 \
     --config='{{pkg.svc_config_path}}/certbot.ini' \
     --noninteractive
-  end_ip_filtering();
+  end_ip_filtering
   return $?
 }
 
 renew_certificates() {
   echo "$(date) Renewing LetsEncrypt certificates if neccessary"
-  begin_ip_filtering();
+  begin_ip_filtering
   certbot renew \
     --{{cfg.general.plugin}} \
     --config='{{pkg.svc_config_path}}/certbot.ini'
-  end_ip_filtering();
+  end_ip_filtering
   return $?
 }
 
