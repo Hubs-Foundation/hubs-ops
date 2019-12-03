@@ -37,13 +37,11 @@ get_certificates() {
       certbot certonly \
         --{{cfg.general.plugin}} \
         --http-01-port {{ cfg.general.standalone_port }} \
-        --standalone-supported-challenges http-01 \
         --config='{{pkg.svc_config_path}}/certbot.ini' \
         --noninteractive
     {{else}}
       certbot certonly \
         --{{cfg.general.plugin}} \
-        --standalone-supported-challenges http-01 \
         --config='{{pkg.svc_config_path}}/certbot.ini' \
         --noninteractive
     {{/if}}
