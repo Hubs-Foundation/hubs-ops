@@ -29,16 +29,33 @@ end_ip_filtering() {
 get_certificates() {
   # shellcheck disable=SC2154
   echo "$(date) Getting any needed LetsEncrypt certificates for '{{cfg.general.domain}}'"
-  begin_ip_filtering
-  certbot certonly \
-    --{{cfg.general.plugin}} \
-{{#if cfg.general.standalone_port }}
-    --http-01-port {{ cfg.general.standalone_port }} \
-{{/if}}
-    --standalone-supported-challenges http-01 \
-    --config='{{pkg.svc_config_path}}/certbot.ini' \
-    --noninteractive
-  end_ip_filtering
+
+  if [[ "{{cfg.general.plugin}}" == "standalone" ]] ; then
+    begin_ip_filtering
+
+    {{#if cfg.general.standalone_port }}
+      certbot certonly \
+        --{{cfg.general.plugin}} \
+        --http-01-port {{ cfg.general.standalone_port }} \
+        --standalone-supported-challenges http-01 \
+        --config='{{pkg.svc_config_path}}/certbot.ini' \
+        --noninteractive
+    {{else}}
+      certbot certonly \
+        --{{cfg.general.plugin}} \
+        --standalone-supported-challenges http-01 \
+        --config='{{pkg.svc_config_path}}/certbot.ini' \
+        --noninteractive
+    {{/if}}
+
+    end_ip_filtering
+  else
+    certbot certonly \
+      --{{cfg.general.plugin}} \
+      --config='{{pkg.svc_config_path}}/certbot.ini' \
+      --noninteractive
+  fi
+
   return $?
 }
 
@@ -47,7 +64,7 @@ renew_certificates() {
   begin_ip_filtering
   certbot renew \
     --{{cfg.general.plugin}} \
-    --config='{{pkg.svc_config_path}}/certbot.ini'
+    --config='{{pkg.svc_config_path}}/certbot.renew.ini'
   end_ip_filtering
   return $?
 }
