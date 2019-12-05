@@ -32,7 +32,7 @@ set_perms() {
     do
       chown -R root:{{ cfg.general.cert_reader_group }} {{ pkg.svc_data_path }}/$dir
       find {{ pkg.svc_data_path }}/$dir -type d -exec chmod 750 {} \;
-      find {{ pkg.svc_data_path }}/$dir -type d -exec chmod 750 {} \;
+      find {{ pkg.svc_data_path }}/$dir -type f -exec chmod 640 {} \;
     done
 {{else}}
   :
