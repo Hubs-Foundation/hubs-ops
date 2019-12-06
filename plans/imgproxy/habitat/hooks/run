@@ -27,4 +27,4 @@ export IMGPROXY_CACHE_ROOT={{ cfg.misc.cache_root }}
 export IMGPROXY_CACHE_ROOT={{ pkg.svc_var_path }}
 {{ /if }}
 
-exec farspark
+exec imgproxy
