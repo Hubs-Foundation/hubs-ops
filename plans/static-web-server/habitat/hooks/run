@@ -1,0 +1,6 @@
+#!/bin/bash
+
+exec 2>&1
+
+cd {{ pkg.svc_var_path }}
+python -m http.server {{ cfg.general.port }}
