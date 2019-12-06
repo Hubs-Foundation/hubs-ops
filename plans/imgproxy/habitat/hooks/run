@@ -15,16 +15,5 @@ export IMGPROXY_GZIP_COMPRESSION={{ cfg.compression.gzip_compression }}
 export IMGPROXY_SECRET={{ cfg.security.secret }}
 export IMGPROXY_ALLOW_ORIGIN={{ cfg.security.allow_origin }}
 export IMGPROXY_BASE_URL={{ cfg.misc.base_url }}
-export IMGPROXY_CACHE_SIZE={{ cfg.misc.cache_size }}
-
-{{ #if cfg.misc.server_url }}
-export IMGPROXY_SERVER_URL={{ cfg.misc.server_url }}
-{{ /if }}
-
-{{ #if cfg.misc.cache_root }}
-export IMGPROXY_CACHE_ROOT={{ cfg.misc.cache_root }}
-{{ else }}
-export IMGPROXY_CACHE_ROOT={{ pkg.svc_var_path }}
-{{ /if }}
 
 exec imgproxy
