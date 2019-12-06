@@ -1,4 +1,6 @@
 pkg_name=libgsf
+pkg_description="libgsf is a simple i/o library that can read and write common file types and handle structured formats that provide file-system-in-a-file semantics"
+pkg_upstream_url="https://github.com/GNOME/libgsf"
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 pkg_version="1.14.41"
@@ -24,20 +26,13 @@ pkg_build_deps=(
   core/cpanminus
   core/local-lib
 )
-pkg_deps=(core/glibc core/perl core/zlib core/libxml2 core/intltool core/gettext mozillareality/expat)
 
-pkg_description="libgsf is a simple i/o library that can read and write common file types and handle structured formats that provide file-system-in-a-file semantics"
-pkg_upstream_url="https://github.com/GNOME/libgsf"
+pkg_deps=(core/glib core/pcre core/glibc core/perl core/zlib core/libxml2 core/intltool core/gettext core/expat)
 
-do_setup_environment() {
-  push_runtime_env PERL5LIB "${pkg_prefix}/lib/perl5/x86_64-linux-thread-multi"
-}
+do_prepare() {
+  do_default_prepare
 
-do_build() {
-  mkdir -p "${pkg_prefix}/cpan"
-  source <(perl -I"$(pkg_path_for core/local-lib)/lib/perl5" -Mlocal::lib="$(pkg_path_for core/local-lib)")
-  source <(perl -Mlocal::lib="$pkg_prefix/cpan")
-  cpan "XML::Parser" --build-args="EXPATLIBPATH=$(pkg_path_for mozillareality/expat)/lib EXPATINCPATH=$(pkg_path_for mozillareality/expat)/include" --local-lib "$pkg_prefix/cpan"
-  do_default_build
+  env LD_LIBRARY_PATH="$(pkg_path_for core/expat)/lib:${LD_LIBRARY_PATH}" \
+    cpanm XML::Parser --configure-args="EXPATLIBPATH=$(pkg_path_for core/expat)/lib export EXPATINCPATH=$(pkg_path_for core/expat)/include"
 }
 
