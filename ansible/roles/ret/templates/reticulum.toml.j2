@@ -43,12 +43,14 @@ password = "{{ ret_db_password }}"
 hostname = "{{ ret_db_hostname }}"
 database = "ret_production"
 pool_size = 16
+ssl = {{ ret_db_ssl }}
 
 [session_lock_db]
 username = "postgres"
 password = "{{ ret_db_password }}"
 hostname = "{{ ret_db_hostname }}"
 database = "ret_production"
+ssl = {{ ret_db_ssl }}
 
 [aws]
 {% if alb_target_group_arn is defined %}
