@@ -2,7 +2,7 @@ pkg_name=janus-gateway
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 
-pkg_version="0.4.5"
+pkg_version="0.7.6"
 pkg_license=('GPLv3')
 pkg_description="Janus is an open source, general purpose, WebRTC gateway"
 pkg_upstream_url="https://janus.conf.meetecho.com/"
@@ -28,13 +28,13 @@ pkg_build_deps=(
 # versions are pinned for convenience building with Habitat, not because we give a crap about
 # having these versions in particular -- latest versions of everything should be sufficient
 pkg_deps=(
-    core/gcc/7.3.0/20180608051919 # reqd for libasan
     core/glib/2.50.3/20180718153537
     core/openssl/1.0.2n/20180608102213
     core/p11-kit/0.23.10/20180608191918
     core/sqlite/3130000/20180608141313
     core/util-linux/2.31.1/20180608101132
 
+    mozillareality/libconfig/1.7.2/20191211010048
     mozillareality/jansson/2.10/20170922013102
     mozillareality/libmicrohttpd/0.9.55/20170923183119
     mozillareality/libnice/0.1.15/20180914001451
@@ -72,8 +72,8 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get meetecho/janus-gateway v0.4.5
-  git-get mozilla/janus-plugin-sfu 97be0ad45747d5c04f2e10a5b3e74cc997445d89
+  git-get meetecho/janus-gateway v0.7.6
+  git-get mozilla/janus-plugin-sfu 14a33464726166fa0d3a20bd452ad05d2f7c53a6
 
   popd
 }
