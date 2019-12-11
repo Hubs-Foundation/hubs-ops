@@ -4085,7 +4085,7 @@ Outputs:
     Value: s3
 
   NearsparkHost:
-    Description: Host of the nearspark service endpoint [hubs/general/thumbnail_server,spoke/general/thumbnail_server]
+    Description: Host of the nearspark service endpoint [hubs/general/thumbnail_server,spoke/general/thumbnail_server,reticulum/phx/thumbnail_url_host]
     Value: !Sub '${NearsparkDNS}'
 
   SpeelycaptorEndpoint:
