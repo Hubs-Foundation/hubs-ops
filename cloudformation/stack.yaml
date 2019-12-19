@@ -391,21 +391,15 @@ Mappings:
       PlacementForCluster: spread
     t3.2xlarge:
       PlacementForCluster: spread
-    c5.large:
+    c4.large:
       PlacementForCluster: cluster
-    c5.xlarge:
+    c4.xlarge:
       PlacementForCluster: cluster
-    c5.2xlarge:
+    c4.2xlarge:
       PlacementForCluster: cluster
-    c5.4xlarge:
+    c4.4xlarge:
       PlacementForCluster: cluster
-    c5.9xlarge:
-      PlacementForCluster: cluster
-    c5.12xlarge:
-      PlacementForCluster: cluster
-    c5.18xlarge:
-      PlacementForCluster: cluster
-    c5.24xlarge:
+    c4.8xlarge:
       PlacementForCluster: cluster
 
 Conditions:
