@@ -71,6 +71,8 @@ Metadata:
           - AppPlacementGroupStrategy
           - DbPreferredBackupWindow
           - DbPreferredMaintenanceWindow
+          - InboundCidr
+          - InboundSSHCidr
     ParameterLabels:
       DomainName:
         default: Domain Name
@@ -138,6 +140,10 @@ Metadata:
         default: "Account Monthly Database Budget (US dollars, no $ and no cents)"
       MaxStorage:
         default: "Storage Limit (in GB)"
+      InboundCidr:
+        default: "Inbound Site Access CIDR"
+      InboundSSHCidr:
+        default: "Inbound SSH CIDR"
 Parameters:
   DomainName:
     Type: String
@@ -189,7 +195,7 @@ Parameters:
   AppInstanceType:
     Type: String
     Description: The EC2 instance type for your app server(s). Choose a "t" instance type if you expect bursty use of the service, and the "c" types if you expect steady usage.
-    Default: t3.micro
+    Default: c4.large
     AllowedValues:
       - t3.micro
       - t3.small
@@ -197,14 +203,11 @@ Parameters:
       - t3.large
       - t3.xlarge
       - t3.2xlarge
-      - c5.large
-      - c5.xlarge
-      - c5.2xlarge
-      - c5.4xlarge
-      - c5.9xlarge
-      - c5.12xlarge
-      - c5.18xlarge
-      - c5.24xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
   StreamInstanceCount:
     Type: Number
     Description: The number of dedicated voice/video streaming server(s) you'd like to run. These servers are optional - enter a zero here if you do not want to run any streaming servers. Adding streaming servers will take network and CPU load off of your app servers. These servers will transmit voice and streaming video data between users.
@@ -213,7 +216,7 @@ Parameters:
   StreamInstanceType:
     Type: String
     Description: The EC2 instance type for your streaming server(s), if you've added any. This field will not be used if you entered zero for the number of streaming servers. Choose a "t" instance type if you expect bursty use of the service, and the "c" types if you expect steady usage.
-    Default: t3.micro
+    Default: c4.large
     AllowedValues:
       - t3.micro
       - t3.small
@@ -221,14 +224,11 @@ Parameters:
       - t3.large
       - t3.xlarge
       - t3.2xlarge
-      - c5.large
-      - c5.xlarge
-      - c5.2xlarge
-      - c5.4xlarge
-      - c5.9xlarge
-      - c5.12xlarge
-      - c5.18xlarge
-      - c5.24xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
   KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
     Description: "SSH Keypair for server SSH access. If there no keypairs in this list, you'll need to add a SSH keypair via the EC2 console. See: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#having-ec2-create-your-key-pair."
@@ -330,6 +330,14 @@ Parameters:
     MinValue: 5
     MaxValue: 1048576
     Default: 100
+  InboundCidr:
+    Type: String
+    Description: IP CDIR which will be granted HTTPS and WebRTC access to your site. Set to 0.0.0.0/0 to allow anyone on the Internet to access your site.
+    Default: 0.0.0.0/0
+  InboundSSHCidr:
+    Type: String
+    Description: IP CDIR which will be granted SSH port access to your servers. Connecting users will still need valid SSH keys to access your server.
+    Default: 0.0.0.0/0
 
 Mappings:
   Regions:
@@ -2666,11 +2674,11 @@ Resources:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref InboundCidr
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref InboundCidr
 
   BioRingSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -2725,23 +2733,23 @@ Resources:
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, RetExternal, Port]
           ToPort: !FindInMap [ServicesMeta, RetExternal, Port]
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref InboundCidr
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref InboundCidr
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref InboundCidr
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref InboundCidr
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
           ToPort: !FindInMap [ServicesMeta, Ssh, Port]
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref InboundSSHCidr
       SecurityGroupEgress:
         # Outbound HTTP
         - IpProtocol: tcp
@@ -3337,19 +3345,19 @@ Resources:
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref InboundCidr
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref InboundCidr
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref InboundCidr
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
           ToPort: !FindInMap [ServicesMeta, Ssh, Port]
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref InboundSSHCidr
       SecurityGroupEgress:
         # Outbound HTTP
         - IpProtocol: tcp
