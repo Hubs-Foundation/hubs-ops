@@ -3198,7 +3198,7 @@ Resources:
           TargetOriginId: !If [ PerformOfflineRedirect, !Sub "${AWS::StackName}-redirector", !Sub "${AWS::StackName}-app"]
           ForwardedValues:
             QueryString: !If [ PerformOfflineRedirect, false, true ]
-            Headers: !If [ PerformOfflineRedirect, [], ["Origin", "Content-Type", "Range", "Host", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]]
+            Headers: !If [ PerformOfflineRedirect, [], ["Origin", "Content-Type", "Range", "Host", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers", "Accept"]]
             Cookies:
               Forward: none
           ViewerProtocolPolicy: redirect-to-https
@@ -3262,7 +3262,7 @@ Resources:
             TargetOriginId: !Sub "${AWS::StackName}-app"
             ForwardedValues:
               QueryString: true
-              Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+              Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers", "Accept"]
               Cookies:
                 Forward: none
             ViewerProtocolPolicy: https-only
@@ -3285,7 +3285,7 @@ Resources:
             TargetOriginId: !Sub "${AWS::StackName}-app"
             ForwardedValues:
               QueryString: true
-              Headers: ["Origin", "Content-Type", "Range", "Host", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+              Headers: ["Origin", "Content-Type", "Range", "Host", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers", "Accept"]
               Cookies:
                 Forward: none
             ViewerProtocolPolicy: https-only
@@ -3304,7 +3304,7 @@ Resources:
           TargetOriginId: !Sub "${AWS::StackName}-app-assets"
           ForwardedValues:
             QueryString: true
-            Headers: ["Origin", "Content-Type", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+            Headers: ["Origin", "Content-Type", "Access-Control-Request-Method", "Access-Control-Request-Headers", "Accept"]
             Cookies:
               Forward: none
           ViewerProtocolPolicy: https-only
