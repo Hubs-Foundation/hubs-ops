@@ -29,7 +29,6 @@ Metadata:
           - StreamInstanceCount
           - AppInstanceType
           - StreamInstanceType
-          - MaintenenceWindow
       - Label:
           default: Cost Management
         Parameters:
@@ -66,7 +65,6 @@ Metadata:
         Parameters:
           - LoadBalancingMethod
           - NewCMKForDiskEncryption
-          - ChannelType
           - SubnetAZs
           - ClassB
           - AppPlacementGroupStrategy
@@ -125,10 +123,6 @@ Metadata:
         default: "Restore From Vault Name"
       RestoreRecoveryPointArn:
         default: "Restore From Recovery Point ARN"
-      MaintenenceWindow:
-        default: "Scheduled maintenence window"
-      ChannelType:
-        default : "Package release channel"
       LoadBalancingMethod:
         default : "Load Balancing Method"
       AutoPauseDb:
@@ -306,16 +300,6 @@ Parameters:
       - Use zone a and c
       - Use zone b and d
       - Use zone c and d
-  MaintenenceWindow:
-    Type: String
-    Description: Server maintenence window. Your server will be kept up-to-date with new features and fixes. Server upgrades will happen approximately once a month, and will result in a brief period of downtime, usually 30 seconds or so. We offer two maintenence windows to perform these updates.
-    Default: "10:00-11:00 GMT (02:00-03:00 PT)"
-    AllowedValues: ["10:00-11:00 GMT (02:00-03:00 PT)", "22:00-23:00 GMT (14:00-15:00 PT)"]
-  ChannelType:
-    Type: String
-    Description: Software release to run on your servers. The 'unstable' channel will receive updates before 'stable', but may break your stack.
-    Default: "Stable"
-    AllowedValues: ["Stable", "Unstable"]
   LoadBalancingMethod:
     Type: String
     Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer, which will incur additional costs. If you are using a domain not on Route 53, be sure to note the "AddressForRootDomain" in the Outputs tab after the stack update to set your DNS to point to the ALB.
@@ -436,8 +420,6 @@ Conditions:
   SubnetChoiceB: !Equals [!Ref SubnetAZs, "Use zone b and c"]
   SubnetChoiceC: !Equals [!Ref SubnetAZs, "Use zone a and c"]
   SubnetChoiceD: !Equals [!Ref SubnetAZs, "Use zone b and d"]
-  IsStableChannel: !Equals [!Ref ChannelType, "Stable"]
-  IsWindowA: !Equals [!Ref MaintenenceWindow, "10:00-11:00 GMT (02:00-03:00 PT)"]
   IsOnline: !Equals [!Ref StackOffline, "Online"]
   IsOffline: !Not [Condition: IsOnline]
   HasOfflineRedirectUrl: !Not [!Equals [!Ref StackOfflineRedirectUrl, ""]]
@@ -3506,12 +3488,6 @@ Resources:
       - Key: polycosm-type
         Value: "app"
         PropagateAtLaunch: true
-      - Key: polycosm-channel
-        Value: !If [IsStableChannel, "stable", "unstable"]
-        PropagateAtLaunch: true
-      - Key: polycosm-window
-        Value: !If [ IsWindowA, "a", "b" ]
-        PropagateAtLaunch: true
       - Key: bio-ring
         Value: !Sub "${AWS::StackName}"
         PropagateAtLaunch: true
@@ -3572,12 +3548,6 @@ Resources:
         PropagateAtLaunch: true
       - Key: polycosm-type
         Value: stream
-        PropagateAtLaunch: true
-      - Key: polycosm-channel
-        Value: !If [IsStableChannel, "stable", "unstable"]
-        PropagateAtLaunch: true
-      - Key: polycosm-window
-        Value: !If [ IsWindowA, "a", "b" ]
         PropagateAtLaunch: true
       - Key: bio-ring
         Value: !Sub "${AWS::StackName}"
@@ -4127,10 +4097,6 @@ Outputs:
   AppAssetsDNS:
     Description: Storage URL Host [reticulum/uploads/host]
     Value: !Sub "https://${AppAssetsDNS}"
-
-  ReticulumCSP:
-    Description: Default Reticulum Content Security Policy [reticulum/security/content_security_policy]
-    Value: !Sub "default-src 'none'; manifest-src 'self'; script-src https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com 'self' 'sha256-hsbRcgUBASABDq7qVGVTpbnWq/ns7B+ToTctZFJXYi8=' 'sha256-MIpWPgYj31kCgSUFc0UwHGQrV87W6N5ozotqfxxQG0w=' 'sha256-/S6PM16MxkmUT7zJN2lkEKFgvXR7yL4Z8PCrRrFu4Q8=' https://www.google-analytics.com https://${AppAssetsDNS} https://aframe.io https://www.youtube.com https://s.ytimg.com 'unsafe-eval'; prefetch-src 'self'https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AppAssetsDNS}; child-src 'self' blob:; worker-src https://${AppAssetsDNS} 'self' blob:; font-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdn.aframe.io https://${AppAssetsDNS} https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${CorsProxyDNS}; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net https://${AppAssetsDNS} https://${CorsProxyDNS} https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com 'unsafe-inline'; connect-src 'self' https://${CorsProxyDNS} https://cors-proxy.${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${ShortlinkZoneInfo.Name} https://dpdb.webvr.rocks https://${AppAssetsDNS} https://${CorsProxyDNS} https://${NearsparkDNS} wss://*.${InternalZoneInfo.Name} wss://*.${InternalZoneInfo.Name}:80 https://cdn.aframe.io https://www.youtube.com https://api.github.com data: blob:; img-src 'self' https://www.google-analytics.com https://${AppAssetsDNS} https://${CorsProxyDNS} https://cors-proxy.${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${NearsparkDNS} https://cdn.aframe.io https://www.youtube.com https://user-images.githubusercontent.com https://cdn.jsdelivr.net data: blob:; media-src 'self' https://${CorsProxyDNS} https://cors-proxy.${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AWS::StackName}-${AWS::AccountId}-hubs-worker.com https://${AppAssetsDNS} https://${NearsparkDNS} https://www.youtube.com *.googlevideo.com data: blob:; frame-src https://www.youtube.com https://docs.google.com 'self'; base-uri 'none'; form-action 'self';"
 
   SmtpSendAccessKey:
     Description: SMTP send access key for email zone [reticulum/email/username]
