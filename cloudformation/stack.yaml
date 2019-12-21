@@ -4129,7 +4129,7 @@ Outputs:
     Value: !Ref BoxKeysBucket
 
   BucketRegion:
-    Description: Bucket Region [hubs/deploy/region,spoke/deploy/region,polycosm-lambdas/aws/region]
+    Description: Bucket Region [hubs/deploy/region,spoke/deploy/region]
     Value: !Ref "AWS::Region"
 
   ShortlinkDomainName:
@@ -4149,12 +4149,8 @@ Outputs:
     Value: dns-route53
 
   StackName:
-    Description: Stack name [reticulum/ret/pool,polycosm-lambdas/aws/stack_name]
+    Description: Stack name [reticulum/ret/pool]
     Value: !Ref "AWS::StackName"
-
-  LambdaBucketName:
-    Description: Lambdas Bucket [polycosm-lambdas/aws/lambda_bucket]
-    Value: !Ref LambdaBucket
 
   MaxStorage:
     Description: Max storage in GB [reticulum/uploads/quota_gb]
