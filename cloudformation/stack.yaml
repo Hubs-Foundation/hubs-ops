@@ -1999,13 +1999,10 @@ Resources:
         - speelycaptor.default
         - photomnemonic.default
         - youtube-dl-api-server.default
+        - imgproxy.default
         - polycosm-lambdas.default
         - hubs.default
         - spoke.default
-        - hubs-admin.default
-        - hubs-discord-bot.default
-        - hubs-slack-bot.default
-        - hubs-matrix-bot.default
       Org: !Ref "AWS::StackName"
 
   BioUserKey:
