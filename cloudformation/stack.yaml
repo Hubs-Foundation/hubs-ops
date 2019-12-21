@@ -1994,13 +1994,10 @@ Resources:
         - postgrest.default
         - certbot.default
         - ita.default
-        - nearspark.default
-        - farspark.default
         - speelycaptor.default
         - photomnemonic.default
         - youtube-dl-api-server.default
         - imgproxy.default
-        - polycosm-lambdas.default
         - hubs.default
         - spoke.default
       Org: !Ref "AWS::StackName"
