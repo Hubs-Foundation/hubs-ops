@@ -43,5 +43,5 @@ output "polycosm_sam_bucket_id" {
 }
 
 output "polycosm_sam_bucket_region" {
-  value ="${var.shared["region"]}"
+  value ="us-east-1"
 }
