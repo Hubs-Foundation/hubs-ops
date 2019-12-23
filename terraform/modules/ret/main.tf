@@ -1086,3 +1086,27 @@ resource "aws_route53_record" "polycosm-assets-dns" {
   }
 }
 
+resource "aws_s3_bucket" "polycosm-sam-bucket" {
+  bucket = "polycosm-sam-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+}
+
+resource "aws_s3_bucket_policy" "sam-bucket-policy" {
+  bucket = "${aws_s3_bucket.polycosm-sam-bucket.id}"
+
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "serverlessrepo.amazonaws.com"
+      },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::${aws_s3_bucket.polycosm-sam-bucket.id}/*"
+    }
+  ]
+}
+POLICY
+}
