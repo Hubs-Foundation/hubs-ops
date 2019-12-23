@@ -178,6 +178,7 @@ Parameters:
   LetsEncryptEmailAddress:
     Type: String
     Description: Your servers will use Let's Encrypt to automatically manage SSL certificates. To receive urgent email notifications regarding your certificates from Let's Encrypt, specify a contact email here. This field is optional. By deploying this stack you agree to the LetsEncrypt TOS. (https://letsencrypt.org/repository/)
+    Default: None
   UnmanagedDomainCertArn:
     Type: String
     Description: "You can skip this if your domain is on Route 53 and you chose 'Yes' above to 'Is your domain set up on Route 53?'. Otherwise, if you chose 'No' and you are using a domain name managed by another provider like GoDaddy or Namecheap you will need to create an SSL certificate in the same region as your stack in AWS Certificate Manager before completing this form. Instructions can be found at https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html. *Note* - make sure you create your SSL certificate in the AWS region you'd like to use for your hub's stack. (The region can be found in the top right corner of the AWS console.) Once you've created the certificate, paste the ARN for the certificate here (eg arn:aws:acm:<region>:<account>:certificate/<id>). You can find the ARN by clicking on the certificate in the AWS Certificate Manager console."
@@ -411,6 +412,7 @@ Mappings:
 Conditions:
   HasManagedDomain: !Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]
   HasUnmangedDomain: !Not [Condition: HasManagedDomain]
+  HasLetsEncryptEmail: !Not [!Equals [!Ref LetsEncryptEmailAddress, "None"]]
   HasStreamingServers: !And [!Equals [!Ref StackOffline, "Online"], !Not [!Equals [!Ref StreamInstanceCount, 0]]]
   AppIsNoPlacement: !Equals [!Ref AppPlacementGroupStrategy, none]
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
@@ -4142,7 +4144,7 @@ Outputs:
 
   LetsEncryptEmailAddress:
     Description: Let's Encrypt Email Address [certbot/general/admin_email]
-    Value: !Ref LetsEncryptEmailAddress
+    Value: !If [HasLetsEncryptEmail, !Ref LetsEncryptEmailAddress, ""]
 
   CertBotPlugin:
     Description: Certbot plugin [certbot/general/plugin]
