@@ -37,3 +37,11 @@ output "polycosm_assets_bucket_id" {
 output "polycosm_assets_bucket_region" {
   value ="${var.shared["region"]}"
 }
+
+output "polycosm_sam_bucket_id" {
+  value ="${aws_s3_bucket.polycosm-sam-bucket.id}"
+}
+
+output "polycosm_sam_bucket_region" {
+  value ="${var.shared["region"]}"
+}
