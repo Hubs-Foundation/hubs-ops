@@ -345,26 +345,32 @@ Mappings:
       Abbreviation: USE1
       NearsparkApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/keymaster
+      SESDomainApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/aws-cfn-ses-domain
     us-west-1:
       Abbreviation: USW1
       NearsparkApplicationArn: arn:aws:serverlessrepo:us-west-1:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:us-west-1:558986605633:applications/keymaster
+      SESDomainApplicationArn: arn:aws:serverlessrepo:us-west-1:558986605633:applications/aws-cfn-ses-domain
     us-west-2:
       Abbreviation: USW2
       NearsparkApplicationArn: arn:aws:serverlessrepo:us-west-2:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:us-west-2:558986605633:applications/keymaster
+      SESDomainApplicationArn: arn:aws:serverlessrepo:us-west-2:558986605633:applications/aws-cfn-ses-domain
     us-east-2:
       Abbreviation: USE2
       NearsparkApplicationArn: arn:aws:serverlessrepo:us-east-2:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:us-east-2:558986605633:applications/keymaster
+      SESDomainApplicationArn: arn:aws:serverlessrepo:us-east-2:558986605633:applications/aws-cfn-ses-domain
     ap-northeast-1:
       Abbreviation: APN1
       NearsparkApplicationArn: arn:aws:serverlessrepo:ap-northeast-1:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:ap-northeast-1:558986605633:applications/keymaster
+      SESDomainApplicationArn: arn:aws:serverlessrepo:ap-northeast-1:558986605633:applications/aws-cfn-ses-domain
     eu-west-1:
       Abbreviation: EU
       NearsparkApplicationArn: arn:aws:serverlessrepo:eu-west-1:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:eu-west-1:558986605633:applications/keymaster
+      SESDomainApplicationArn: arn:aws:serverlessrepo:eu-west-1:558986605633:applications/aws-cfn-ses-domain
 
   ServicesMeta:
     RetExternal:
@@ -677,17 +683,6 @@ Resources:
       Prefix: ""
       Objects:
         - lambdas/photomnemonic/photomnemonic-0.1.0.zip
-  CopySesLambda:
-    Type: Custom::CopySesLambda
-    UpdateReplacePolicy: Retain
-    DependsOn: LambdaBucket
-    Properties:
-      ServiceToken: !GetAtt CopyFileFunction.Arn
-      DestBucket: !Ref LambdaBucket
-      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
-      Prefix: ""
-      Objects:
-        - lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.4.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -1174,26 +1169,10 @@ Resources:
       HostedZoneName: !Sub '${EmailZoneInfo.Name}.'
       RecordSets: !GetAtt SESDomain.Route53RecordSets
 
-  SESDomainFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-aws-cfn-ses-domain"
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.4.zip
-      Handler: index.lambda_handler
-      Role: !GetAtt SESDomainRole.Arn
-      Runtime: python3.6
-      Description: Sets up SES domain for sending email
-      Timeout: 30
-      MemorySize: 128
-    DependsOn:
-      - CopySesLambda
-
   SESDomain:
     Type: Custom::SES_Domain
     Properties:
-      ServiceToken: !GetAtt SESDomainFunction.Arn
+      ServiceToken: !GetAtt SESDomainApplication.Outputs.SESDomainFunctionArn
       Domain: !GetAtt EmailZoneInfo.Name
       EnableReceive: false
       EnableSend: true
@@ -1861,14 +1840,6 @@ Resources:
       UserName: polycosm-config-user
 
 # Speelycaptor
-  SpeelycaptorInitLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-speelycaptor-initialize"
-  SpeelycaptorConvertLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-speelycaptor-convert"
   SpeelycaptorScratchBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -1945,7 +1916,6 @@ Resources:
           scratchBucketRegion: !Ref "AWS::Region"
           scratchBucketId: !Ref SpeelycaptorScratchBucket
     DependsOn:
-      - SpeelycaptorInitLogGroup
       - CopySpeelycaptorLambda
   SpeelycaptorConvertLambdaFunction:
     Type: AWS::Lambda::Function
@@ -1964,7 +1934,6 @@ Resources:
           scratchBucketRegion: !Ref "AWS::Region"
           scratchBucketId: !Ref SpeelycaptorScratchBucket
     DependsOn:
-      - SpeelycaptorConvertLogGroup
       - CopySpeelycaptorLambda
   SpeelycaptorApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
@@ -2050,10 +2019,6 @@ Resources:
           - sts:AssumeRole
           Sid: ""
       Path: "/"
-  PhotomnemonicScreenshotLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-photomnemonic-screenshot"
   PhotomnemonicRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -2092,7 +2057,6 @@ Resources:
       Timeout: 30
     DependsOn:
       - CopyPhotomnemonicLambda
-      - PhotomnemonicScreenshotLogGroup
   PhotomnemonicApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -2152,10 +2116,6 @@ Resources:
           - sts:AssumeRole
           Sid: ""
       Path: "/"
-  NearsparkThumbnailLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-nearspark-thumbnail"
   NearsparkRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -2180,6 +2140,14 @@ Resources:
               - logs:CreateLogStream
               - logs:PutLogEvents
             Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
+  SESDomainApplication:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", SESDomainApplication]
+        SemanticVersion: 0.4.0
+      Parameters:
+        SESDomainRoleArn: !GetAtt SESDomainRoleArn
   KeymasterApplication:
     Type: AWS::Serverless::Application
     Properties:
@@ -2196,8 +2164,6 @@ Resources:
         SemanticVersion: 0.1.0
       Parameters:
         NearsparkRoleArn: !GetAtt NearsparkRole.Arn
-    DependsOn:
-      - NearsparkThumbnailLogGroup
   NearsparkApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
