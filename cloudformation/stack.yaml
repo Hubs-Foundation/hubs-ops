@@ -1,6 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
   Hubs Cloud: Private Social VR in your web browser. Your own self-hosted hub powered by Hubs by Mozilla. Full documentation: https://github.com/mozilla/hubs-cloud
+Transform: "AWS::Serverless-2016-10-31"
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -277,7 +278,7 @@ Parameters:
   RestoreStackRegion:
     Type: String
     Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the region of the stack being restored from. WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
-    AllowedValues: ["", "us-east-1", "us-west-2", "us-east-2", "ap-northeast-1", "eu-west-1"]
+    AllowedValues: ["", "us-east-1", "us-west-1", "us-west-2", "us-east-2", "ap-northeast-1", "eu-west-1"]
   RestoreBackupVaultName:
     Type: String
     Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx) WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
@@ -342,15 +343,28 @@ Mappings:
   Regions:
     us-east-1:
       Abbreviation: USE1
+      NearsparkApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/nearspark
+      KeymasterApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/keymaster
+    us-west-1:
+      Abbreviation: USW1
+      NearsparkApplicationArn: arn:aws:serverlessrepo:us-west-1:558986605633:applications/nearspark
+      KeymasterApplicationArn: arn:aws:serverlessrepo:us-west-1:558986605633:applications/keymaster
     us-west-2:
       Abbreviation: USW2
+      NearsparkApplicationArn: arn:aws:serverlessrepo:us-west-2:558986605633:applications/nearspark
+      KeymasterApplicationArn: arn:aws:serverlessrepo:us-west-2:558986605633:applications/keymaster
     us-east-2:
-      ImageId: ami-0ba1d18b92224066a
       Abbreviation: USE2
+      NearsparkApplicationArn: arn:aws:serverlessrepo:us-east-2:558986605633:applications/nearspark
+      KeymasterApplicationArn: arn:aws:serverlessrepo:us-east-2:558986605633:applications/keymaster
     ap-northeast-1:
       Abbreviation: APN1
+      NearsparkApplicationArn: arn:aws:serverlessrepo:ap-northeast-1:558986605633:applications/nearspark
+      KeymasterApplicationArn: arn:aws:serverlessrepo:ap-northeast-1:558986605633:applications/keymaster
     eu-west-1:
       Abbreviation: EU
+      NearsparkApplicationArn: arn:aws:serverlessrepo:eu-west-1:558986605633:applications/nearspark
+      KeymasterApplicationArn: arn:aws:serverlessrepo:eu-west-1:558986605633:applications/keymaster
 
   ServicesMeta:
     RetExternal:
@@ -652,17 +666,6 @@ Resources:
       Prefix: ""
       Objects:
         - lambdas/speelycaptor/speelycaptor-0.1.2.zip
-  CopyNearsparkLambda:
-    Type: Custom::CopyNearsparkLambda
-    UpdateReplacePolicy: Retain
-    DependsOn: LambdaBucket
-    Properties:
-      ServiceToken: !GetAtt CopyFileFunction.Arn
-      DestBucket: !Ref LambdaBucket
-      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
-      Prefix: ""
-      Objects:
-        - lambdas/nearspark/nearspark-0.1.0.zip
   CopyPhotomnemonicLambda:
     Type: Custom::CopyPhotomnemonicLambda
     UpdateReplacePolicy: Retain
@@ -685,17 +688,6 @@ Resources:
       Prefix: ""
       Objects:
         - lambdas/aws-cfn-ses-domain/aws-cfn-ses-domain-0.4.zip
-  CopyKeymasterLambda:
-    Type: Custom::CopyKeymasterLambda
-    UpdateReplacePolicy: Retain
-    DependsOn: LambdaBucket
-    Properties:
-      ServiceToken: !GetAtt CopyFileFunction.Arn
-      DestBucket: !Ref LambdaBucket
-      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
-      Prefix: ""
-      Objects:
-        - lambdas/keymaster/keymaster-0.1.12.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -1296,155 +1288,11 @@ Resources:
                Resource:
                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ita/${AWS::StackName}/*"
 
-  GenerateBioRingKeyFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-generate-bio-ring-key"
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
-      Handler: index.generate_ring_key
-      Role: !GetAtt KeymasterRole.Arn
-      Runtime: nodejs10.x
-      Description: Generates bio ring key
-      Timeout: 30
-      MemorySize: 128
-    DependsOn:
-      - CopyKeymasterLambda
-
-  GenerateBioServiceKeyFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-generate-bio-service-key"
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
-      Handler: index.generate_service_key
-      Role: !GetAtt KeymasterRole.Arn
-      Runtime: nodejs10.x
-      Description: Generates bio service key
-      Timeout: 30
-      MemorySize: 128
-    DependsOn:
-      - CopyKeymasterLambda
-
-  GenerateBioUserKeyFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-generate-bio-user-key"
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
-      Handler: index.generate_user_key
-      Role: !GetAtt KeymasterRole.Arn
-      Runtime: nodejs10.x
-      Description: Generates bio user key
-      Timeout: 30
-      MemorySize: 128
-    DependsOn:
-      - CopyKeymasterLambda
-
-  GenerateTOTPFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-generate-totp"
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
-      Handler: index.generate_totp
-      Role: !GetAtt KeymasterRole.Arn
-      Runtime: nodejs10.x
-      Description: Generates ssh TOTP
-      Timeout: 30
-      MemorySize: 128
-    DependsOn:
-      - CopyKeymasterLambda
-
-  GenerateJWTKeys:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-generate-jwt-keys"
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
-      Handler: index.generate_jwt_keys
-      Role: !GetAtt KeymasterRole.Arn
-      Runtime: nodejs10.x
-      Description: Generates JWT keys
-      Timeout: 30
-      MemorySize: 128
-    DependsOn:
-      - CopyKeymasterLambda
-
-  GenerateSecret:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-generate-secret"
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
-      Handler: index.generate_secret
-      Role: !GetAtt KeymasterRole.Arn
-      Runtime: nodejs10.x
-      Description: Generate Secret Into Parameter Store
-      Timeout: 30
-      MemorySize: 128
-    DependsOn:
-      - CopyKeymasterLambda
-
-  ReadSecret:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-read-secret"
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
-      Handler: index.read_secret
-      Role: !GetAtt KeymasterRole.Arn
-      Runtime: nodejs10.x
-      Description: Reads existing AWS secrets
-      Timeout: 30
-      MemorySize: 128
-    DependsOn:
-      - CopyKeymasterLambda
-
-  GenerateVapidKeys:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-generate-vapid-keys"
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
-      Handler: index.generate_vapid_keys
-      Role: !GetAtt KeymasterRole.Arn
-      Runtime: nodejs10.x
-      Description: Generates Vapid keys
-      Timeout: 30
-      MemorySize: 128
-    DependsOn:
-      - CopyKeymasterLambda
-
-  DeleteParameters:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-delete-parameters"
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/keymaster/keymaster-0.1.12.zip
-      Handler: index.delete_parameters
-      Role: !GetAtt KeymasterRole.Arn
-      Runtime: nodejs10.x
-      Description: Deletes SSM parameters
-      Timeout: 30
-      MemorySize: 128
-    DependsOn:
-      - CopyKeymasterLambda
-
   # Removes all /ita/<stack> SSM parameters on stack delete
   DeleteItaParameters:
     Type: Custom::DeleteParameters
     Properties:
-      ServiceToken: !GetAtt DeleteParameters.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.DeleteParametersFunctionArn
       Region: !Sub "${AWS::Region}"
       Prefix: !Sub "/ita/${AWS::StackName}/"
 
@@ -1954,7 +1802,7 @@ Resources:
   SshTOTP:
     Type: Custom::SshTOTP
     Properties:
-      ServiceToken: !GetAtt GenerateTOTPFunction.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateTOTPFunctionArn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
@@ -1963,7 +1811,7 @@ Resources:
   JWTKeys:
     Type: Custom::JWTKeys
     Properties:
-      ServiceToken: !GetAtt GenerateJWTKeys.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateJWTKeysFunctionArn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
 
@@ -1971,7 +1819,7 @@ Resources:
   VapidKeys:
     Type: Custom::VapidKeys
     Properties:
-      ServiceToken: !GetAtt GenerateVapidKeys.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateVapidKeysFunctionArn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
 
@@ -1979,7 +1827,7 @@ Resources:
   BioRingKey:
     Type: Custom::BioRingKey
     Properties:
-      ServiceToken: !GetAtt GenerateBioRingKeyFunction.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateBioRingKeyFunctionArn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
       KeyName: !Ref "AWS::StackName"
@@ -1987,7 +1835,7 @@ Resources:
   BioServiceKeys:
     Type: Custom::BioServiceKeys
     Properties:
-      ServiceToken: !GetAtt GenerateBioServiceKeyFunction.Arn
+      ServiceToken: !GetAtt KeymasterApplication.GenerateBioServiceKeyFunctionArn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
       ServiceNames:
@@ -2007,7 +1855,7 @@ Resources:
   BioUserKey:
     Type: Custom::BioUserKey
     Properties:
-      ServiceToken: !GetAtt GenerateBioUserKeyFunction.Arn
+      ServiceToken: !GetAtt KeymasterApplication.GenerateBioUserKeyFunctionArn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
       UserName: polycosm-config-user
@@ -2332,21 +2180,23 @@ Resources:
               - logs:CreateLogStream
               - logs:PutLogEvents
             Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
-  NearsparkThumbnailLambdaFunction:
-    Type: AWS::Lambda::Function
+  KeymasterApplication:
+    Type: AWS::Serverless::Application
     Properties:
-      Description: Generates resized thumbnails
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/nearspark/nearspark-0.1.0.zip
-      FunctionName: !Sub "${AWS::StackName}-nearspark-thumbnail"
-      Handler: index.handler
-      MemorySize: 512
-      Role: !GetAtt NearsparkRole.Arn
-      Runtime: nodejs10.x
-      Timeout: 600
+      Location:
+        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", KeymasterApplicationArn]
+        SemanticVersion: 0.1.0
+      Parameters:
+        KeymasterRoleArn: !GetAtt KeymasterRole.Arn
+  NearsparkApplication:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", NearsparkApplicationArn]
+        SemanticVersion: 0.1.0
+      Parameters:
+        NearsparkRoleArn: !GetAtt NearsparkRole.Arn
     DependsOn:
-      - CopyNearsparkLambda
       - NearsparkThumbnailLogGroup
   NearsparkApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
@@ -2412,7 +2262,7 @@ Resources:
                 type: aws_proxy
                 contentHandling: CONVERT_TO_BINARY
                 uri:
-                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NearsparkThumbnailLambdaFunction.Arn}/invocations
+                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NearsparkApplication.Outputs.NearsparkThumbnailFunctionArn}/invocations
   NearsparkApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
     Properties:
@@ -2424,7 +2274,7 @@ Resources:
   NearsparkThumbnailLambdaPermissionApiGateway:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !GetAtt NearsparkThumbnailLambdaFunction.Arn
+      FunctionName: !GetAtt NearsparkApplication.Outputs.NearsparkThumbnailFunctionArn
       Action: lambda:InvokeFunction
       Principal: !Sub 'apigateway.${AWS::URLSuffix}'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${NearsparkApiGatewayRestApi}/*/*'
@@ -2999,14 +2849,6 @@ Resources:
               - lambda:ListFunctions
               - lambda:ListTags
             Resource: "*"
-          - Effect: Allow
-            Action:
-              - lambda:UpdateFunctionCode
-            Resource:
-              - !GetAtt SpeelycaptorInitLambdaFunction.Arn
-              - !GetAtt SpeelycaptorConvertLambdaFunction.Arn
-              - !GetAtt NearsparkThumbnailLambdaFunction.Arn
-              - !GetAtt PhotomnemonicScreenshotLambdaFunction.Arn
 
   AppALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -3737,7 +3579,7 @@ Resources:
     Type: Custom::ReadSecret
     Condition: IsRestore
     Properties:
-      ServiceToken: !GetAtt ReadSecret.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.ReadSecretFunctionArn
       SecretArn: !Ref RestoreAppDbSecretArn
 
   AppDbSecret:
@@ -3784,7 +3626,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       Description: 'PostgREST admin db password'
-      ServiceToken: !GetAtt GenerateSecret.Arn
+      ServiceToken: !GetAtt KeymasterApplication.GenerateSecretFunctionArn
       Name: postgrest-db-secret
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
@@ -3852,7 +3694,7 @@ Resources:
     DependsOn: AppPostgrestDbSecret
     Properties:
       Description: 'Janus and Reticulum Admin Secret'
-      ServiceToken: !GetAtt GenerateSecret.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
       Name: janus-and-reticulum-admin
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
@@ -3863,7 +3705,7 @@ Resources:
     DependsOn: JanusAndReticulumAdminSecret
     Properties:
       Description: 'Phoenix secret base key'
-      ServiceToken: !GetAtt GenerateSecret.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
       Name: phoenix-key
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
@@ -3875,7 +3717,7 @@ Resources:
     DependsOn: PhoenixKeySecret
     Properties:
       Description: 'Reticulum guardian secret key'
-      ServiceToken: !GetAtt GenerateSecret.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
       Name: guardian-secret-key
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
@@ -3885,7 +3727,7 @@ Resources:
     DependsOn: GuardianSecretKeySecret
     Properties:
       Description: 'Reticulum OAuth Token'
-      ServiceToken: !GetAtt GenerateSecret.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
       Name: reticulum-oauth-token
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
@@ -3895,7 +3737,7 @@ Resources:
     DependsOn: ReticulumOAuthTokenSecret
     Properties:
       Description: 'Reticulum cookie'
-      ServiceToken: !GetAtt GenerateSecret.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
       Name: reticulum-cookie
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
@@ -3905,7 +3747,7 @@ Resources:
     DependsOn: ReticulumCookieSecret
     Properties:
       Description: 'Reticulum bot access key'
-      ServiceToken: !GetAtt GenerateSecret.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
       Name: reticulum-bot-access-key
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
@@ -3915,7 +3757,7 @@ Resources:
     DependsOn: ReticulumBotAccessKeySecret
     Properties:
       Description: 'Send email password'
-      ServiceToken: !GetAtt GenerateSecret.Arn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
       Name: send-email-password
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
