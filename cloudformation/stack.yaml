@@ -1806,7 +1806,7 @@ Resources:
   BioRingKey:
     Type: Custom::BioRingKey
     Properties:
-      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateBioRingKeyFunctionArn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateRingKeyFunctionArn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
       KeyName: !Ref "AWS::StackName"
@@ -1814,7 +1814,7 @@ Resources:
   BioServiceKeys:
     Type: Custom::BioServiceKeys
     Properties:
-      ServiceToken: !GetAtt KeymasterApplication.GenerateBioServiceKeyFunctionArn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateServiceKeyFunctionArn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
       ServiceNames:
@@ -1834,7 +1834,7 @@ Resources:
   BioUserKey:
     Type: Custom::BioUserKey
     Properties:
-      ServiceToken: !GetAtt KeymasterApplication.GenerateBioUserKeyFunctionArn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateUserKeyFunctionArn
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
       UserName: polycosm-config-user
@@ -2144,16 +2144,16 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location:
-        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", SESDomainApplication]
+        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", SESDomainApplicationArn]
         SemanticVersion: 0.4.0
       Parameters:
-        SESDomainRoleArn: !GetAtt SESDomainRoleArn
+        SESDomainRoleArn: !GetAtt SESDomainRole.Arn
   KeymasterApplication:
     Type: AWS::Serverless::Application
     Properties:
       Location:
         ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", KeymasterApplicationArn]
-        SemanticVersion: 0.1.0
+        SemanticVersion: 0.1.12
       Parameters:
         KeymasterRoleArn: !GetAtt KeymasterRole.Arn
   NearsparkApplication:
