@@ -47,24 +47,52 @@ get_certificates() {
     begin_ip_filtering
 
     {{#if cfg.general.standalone_port }}
-      certbot certonly \
-        --{{cfg.general.plugin}} \
-        --http-01-port {{ cfg.general.standalone_port }} \
-        --config='{{pkg.svc_config_path}}/certbot.ini' \
-        --noninteractive
+      {{#if cfg.general.admin_email }}
+        certbot certonly \
+          --{{cfg.general.plugin}} \
+          --http-01-port {{ cfg.general.standalone_port }} \
+          --config='{{pkg.svc_config_path}}/certbot.ini' \
+          --noninteractive
+      {{else}}
+        certbot certonly \
+          --{{cfg.general.plugin}} \
+          --http-01-port {{ cfg.general.standalone_port }} \
+          --config='{{pkg.svc_config_path}}/certbot.ini' \
+          --noninteractive \
+          --register-unsafely-without-email \
+          --agree-tos
+      {{/if}}
     {{else}}
-      certbot certonly \
-        --{{cfg.general.plugin}} \
-        --config='{{pkg.svc_config_path}}/certbot.ini' \
-        --noninteractive
+      {{#if cfg.general.admin_email }}
+        certbot certonly \
+          --{{cfg.general.plugin}} \
+          --config='{{pkg.svc_config_path}}/certbot.ini' \
+          --noninteractive
+      {{else}}
+        certbot certonly \
+          --{{cfg.general.plugin}} \
+          --config='{{pkg.svc_config_path}}/certbot.ini' \
+          --noninteractive \
+          --register-unsafely-without-email \
+          --agree-tos
+      {{/if}}
     {{/if}}
 
     end_ip_filtering
   else
-    certbot certonly \
-      --{{cfg.general.plugin}} \
-      --config='{{pkg.svc_config_path}}/certbot.ini' \
-      --noninteractive
+    {{#if cfg.general.admin_email }}
+      certbot certonly \
+        --{{cfg.general.plugin}} \
+        --config='{{pkg.svc_config_path}}/certbot.ini' \
+        --noninteractive 
+    {{else}}
+      certbot certonly \
+        --{{cfg.general.plugin}} \
+        --config='{{pkg.svc_config_path}}/certbot.ini' \
+        --noninteractive \
+        --register-unsafely-without-email \
+        --agree-tos
+    {{/if}}
   fi
 
   set_perms
@@ -74,9 +102,17 @@ get_certificates() {
 renew_certificates() {
   echo "$(date) Renewing LetsEncrypt certificates if neccessary"
   begin_ip_filtering
+  {{#if cfg.general.admin_email }}
   certbot renew \
     --{{cfg.general.plugin}} \
     --config='{{pkg.svc_config_path}}/certbot.renew.ini'
+  {{else}}
+  certbot renew \
+    --{{cfg.general.plugin}} \
+    --config='{{pkg.svc_config_path}}/certbot.renew.ini' \
+    --register-unsafely-without-email \
+    --agree-tos
+  {{/if}}
   end_ip_filtering
   set_perms
   return $?
@@ -94,10 +130,6 @@ if [[ "{{ cfg.general.domain }}" == "" ]] ; then
   echo "No domain configured for certbot."
   sleep 99999999999
 fi
-
-{{#if !cfg.general.admin_email }}
-  certbot register --register-unsafely-without-email --agree-tos
-{{/if}}
 
 get_certificates
 
