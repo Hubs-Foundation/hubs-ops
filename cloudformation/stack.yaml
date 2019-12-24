@@ -3592,7 +3592,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       Description: 'PostgREST admin db password'
-      ServiceToken: !GetAtt KeymasterApplication.GenerateSecretFunctionArn
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
       Name: postgrest-db-secret
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
