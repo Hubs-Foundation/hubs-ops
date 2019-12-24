@@ -95,6 +95,10 @@ if [[ "{{ cfg.general.domain }}" == "" ]] ; then
   sleep 99999999999
 fi
 
+{{#if !cfg.general.admin_email }}
+  certbot register --register-unsafely-without-email --agree-tos
+{{/if}}
+
 get_certificates
 
 while true
