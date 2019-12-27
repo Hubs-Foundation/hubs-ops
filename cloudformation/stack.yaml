@@ -346,31 +346,43 @@ Mappings:
       NearsparkApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/keymaster
       SESDomainApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/aws-cfn-ses-domain
+      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
+      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
     us-west-1:
       Abbreviation: USW1
       NearsparkApplicationArn: arn:aws:serverlessrepo:us-west-1:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:us-west-1:558986605633:applications/keymaster
       SESDomainApplicationArn: arn:aws:serverlessrepo:us-west-1:558986605633:applications/aws-cfn-ses-domain
+      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
+      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
     us-west-2:
       Abbreviation: USW2
       NearsparkApplicationArn: arn:aws:serverlessrepo:us-west-2:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:us-west-2:558986605633:applications/keymaster
       SESDomainApplicationArn: arn:aws:serverlessrepo:us-west-2:558986605633:applications/aws-cfn-ses-domain
+      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
+      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
     us-east-2:
       Abbreviation: USE2
       NearsparkApplicationArn: arn:aws:serverlessrepo:us-east-2:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:us-east-2:558986605633:applications/keymaster
       SESDomainApplicationArn: arn:aws:serverlessrepo:us-east-2:558986605633:applications/aws-cfn-ses-domain
+      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
+      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
     ap-northeast-1:
       Abbreviation: APN1
       NearsparkApplicationArn: arn:aws:serverlessrepo:ap-northeast-1:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:ap-northeast-1:558986605633:applications/keymaster
       SESDomainApplicationArn: arn:aws:serverlessrepo:ap-northeast-1:558986605633:applications/aws-cfn-ses-domain
+      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
+      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
     eu-west-1:
       Abbreviation: EU
       NearsparkApplicationArn: arn:aws:serverlessrepo:eu-west-1:558986605633:applications/nearspark
       KeymasterApplicationArn: arn:aws:serverlessrepo:eu-west-1:558986605633:applications/keymaster
       SESDomainApplicationArn: arn:aws:serverlessrepo:eu-west-1:558986605633:applications/aws-cfn-ses-domain
+      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
+      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
 
   ServicesMeta:
     RetExternal:
@@ -660,29 +672,6 @@ Resources:
       RuleAction: allow
       Egress: true
       CidrBlock: '0.0.0.0/0'
-# Lambda Copy
-  CopySpeelycaptorLambda:
-    Type: Custom::CopySpeelycaptorLambda
-    UpdateReplacePolicy: Retain
-    DependsOn: LambdaBucket
-    Properties:
-      ServiceToken: !GetAtt CopyFileFunction.Arn
-      DestBucket: !Ref LambdaBucket
-      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
-      Prefix: ""
-      Objects:
-        - lambdas/speelycaptor/speelycaptor-0.1.2.zip
-  CopyPhotomnemonicLambda:
-    Type: Custom::CopyPhotomnemonicLambda
-    UpdateReplacePolicy: Retain
-    DependsOn: LambdaBucket
-    Properties:
-      ServiceToken: !GetAtt CopyFileFunction.Arn
-      DestBucket: !Ref LambdaBucket
-      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
-      Prefix: ""
-      Objects:
-        - lambdas/photomnemonic/photomnemonic-0.1.0.zip
 
 ## route53dependency
   Route53DependencyLambda:
@@ -1300,7 +1289,6 @@ Resources:
                  - s3:DeleteObject
                Resource:
                  - !Sub '${AssetsBucket.Arn}/*'
-                 - !Sub '${LambdaBucket.Arn}/*'
                  - !Sub '${LinkRedirectorBucket.Arn}/*'
                  - !Sub '${SpeelycaptorScratchBucket.Arn}/*'
                  - !Sub '${BoxKeysBucket.Arn}/*'
@@ -1309,7 +1297,6 @@ Resources:
                  - s3:ListBucket
                Resource:
                  - !Sub '${AssetsBucket.Arn}'
-                 - !Sub '${LambdaBucket.Arn}'
                  - !Sub '${LinkRedirectorBucket.Arn}'
                  - !Sub '${BoxKeysBucket.Arn}'
                  - !Sub '${SpeelycaptorScratchBucket.Arn}'
@@ -1476,7 +1463,6 @@ Resources:
                  - s3:DeleteObject
                Resource:
                  - !Sub '${AssetsBucket.Arn}/*'
-                 - !Sub '${LambdaBucket.Arn}/*'
                  - !Sub '${LinkRedirectorBucket.Arn}/*'
 
   CopyFileFunction:
@@ -1746,11 +1732,6 @@ Resources:
         ZipFile: !Sub |
           const https=require("https"),url=require("url"),AWS=require("aws-sdk"),promisify=e=>t=>new Promise((s,o)=>e(t,(e,t)=>{e?(console.log(e),o(e)):s(t)}));function getReason(e){return e?e.message:""}async function sendResponse(e,t,s,o,r,i){const n={StackId:t.StackId,RequestId:t.RequestId,LogicalResourceId:t.LogicalResourceId,PhysicalResourceId:e,Status:o,Reason:getReason(i)+" See details in CloudWatch Log: "+s.logStreamName,Data:r},a=JSON.stringify(n),c=url.parse(t.ResponseURL),u={hostname:c.hostname,port:443,path:c.path,method:"PUT",headers:{"content-type":"","content-length":a.length}};await new Promise((e,t)=>{const o=https.request(u,()=>{s.done(null,r),e()});o.on("error",e=>{console.log("sendResponse Error:\n",e),s.done(e),t()}),o.write(a),o.end()})}exports.handler=async function(e,t){const s=new AWS.EFS;if("Create"==e.RequestType||"Update"==e.RequestType){const o=e.ResourceProperties.PerformanceMode||"generalPurpose",r=e.ResourceProperties.ThroughputMode||"bursting",i=e.RequestId;let n=null;"provisioned"===r&&(n=e.ResourceProperties.ProvisionedThroughputInMibps);const a=e.ResourceProperties.Encrypted||!1,c=e.ResourceProperties.FileSystemTags||[],u=e.ResourceProperties.KmsKeyId||null;let d;if("Create"===e.RequestType){const l=e.ResourceProperties.RestoreBackupVaultName,p=e.ResourceProperties.RestoreRecoveryPointArn,y=e.ResourceProperties.RestoreIamRoleArn;if(p&&l){const R=new AWS.Backup,m=(await promisify(R.getRecoveryPointRestoreMetadata.bind(R))({BackupVaultName:l,RecoveryPointArn:p})).RestoreMetadata,S=(await promisify(R.startRestoreJob.bind(R))({RecoveryPointArn:p,Metadata:{"file-system-id":m["file-system-id"],PerformanceMode:o,CreationToken:i,Encrypted:a?"true":"false",KmsKeyId:u,newFileSystem:"true"},ResourceType:"EFS",IdempotencyToken:i,IamRoleArn:y})).RestoreJobId,I=await new Promise(async(s,o)=>{let r;const i=async()=>{const i=await promisify(R.describeRestoreJob.bind(R))({RestoreJobId:S});return("COMPLETED"===i.Status||"FAILED"===i.Status)&&(r&&clearInterval(r),"COMPLETED"===i.Status?s(i.CreatedResourceArn):(await sendResponse(null,e,t,"FAILED",{},"Restore job failed."),o()),!0)};await i()||(r=setInterval(i,1e4))});d=I.split("/")[1],await promisify(s.createTags.bind(s))({FileSystemId:d,Tags:c}),"bursting"!==r&&await promisify(s.updateFileSystem.bind(s))({FileSystemId:d,ThroughputMode:r,ProvisionedThroughputInMibps:n})}else d=(await promisify(s.createFileSystem.bind(s))({PerformanceMode:o,CreationToken:i,ThroughputMode:r,Encrypted:a,Tags:c,KmsKeyId:u,ProvisionedThroughputInMibps:n})).FileSystemId}else d=e.PhysicalResourceId,await promisify(s.updateFileSystem.bind(s))({FileSystemId:d,ThroughputMode:r,ProvisionedThroughputInMibps:n});await new Promise(async e=>{let t;const o=async()=>{return"available"===(await promisify(s.describeFileSystems.bind(s))({FileSystemId:d})).FileSystems[0].LifeCycleState&&(t&&clearInterval(t),e(),!0)};await o()||(t=setInterval(o,1e4))});const l=e.ResourceProperties.LifecyclePolicies;return l&&await promisify(s.putLifecycleConfiguration.bind(s))({FileSystemId:d,LifecyclePolicies:l}),void await sendResponse(d,e,t,"SUCCESS")}if("Delete"==e.RequestType){const o=e.PhysicalResourceId;return await promisify(s.deleteFileSystem.bind(s))({FileSystemId:o}),void await sendResponse(o,e,t,"SUCCESS")}};
 
-  LambdaBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      AccessControl: Private
-      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-lambdas", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   SendEmailPassword:
     Type: Custom::SendEmailPassword
     Properties:
@@ -1769,7 +1750,6 @@ Resources:
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
       BucketNames: 
-        - !Ref LambdaBucket
         - !Ref BoxKeysBucket
         - !Ref SpeelycaptorScratchBucket
         - !Ref AssetsBucket
@@ -1899,42 +1879,6 @@ Resources:
               - logs:CreateLogStream
               - logs:PutLogEvents
             Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
-  SpeelycaptorInitLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
-      FunctionName: !Sub "${AWS::StackName}-speelycaptor-initialize"
-      Handler: index.init
-      MemorySize: 1024
-      Role: !GetAtt SpeelycaptorRole.Arn
-      Runtime: nodejs10.x
-      Timeout: 300
-      Environment:
-        Variables:
-          scratchBucketRegion: !Ref "AWS::Region"
-          scratchBucketId: !Ref SpeelycaptorScratchBucket
-    DependsOn:
-      - CopySpeelycaptorLambda
-  SpeelycaptorConvertLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/speelycaptor/speelycaptor-0.1.2.zip
-      FunctionName: !Sub "${AWS::StackName}-speelycaptor-convert"
-      Handler: index.convert
-      MemorySize: 3000
-      Role: !GetAtt SpeelycaptorRole.Arn
-      Runtime: nodejs10.x
-      Timeout: 300
-      Environment:
-        Variables:
-          scratchBucketRegion: !Ref "AWS::Region"
-          scratchBucketId: !Ref SpeelycaptorScratchBucket
-    DependsOn:
-      - CopySpeelycaptorLambda
   SpeelycaptorApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -1965,7 +1909,7 @@ Resources:
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY
-        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorInitLambdaFunction.Arn}/invocations'
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorApplication.Outputs.SpeelycaptorInitFunctionArn}/invocations'
       MethodResponses: []
   SpeelycaptorApiGatewayMethodConvertGet:
     Type: AWS::ApiGateway::Method
@@ -1978,7 +1922,7 @@ Resources:
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY
-        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorConvertLambdaFunction.Arn}/invocations'
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SpeelycaptorApplication.Outputs.SpeelycaptorConvertFunctionArn}/invocations'
       MethodResponses: []
   SpeelycaptorApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
@@ -1991,14 +1935,14 @@ Resources:
   SpeelycaptorInitLambdaPermissionApiGateway:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !GetAtt SpeelycaptorInitLambdaFunction.Arn
+      FunctionName: !GetAtt SpeelycaptorApplication.Outputs.SpeelycaptorInitFunctionArn
       Action: lambda:InvokeFunction
       Principal: !Sub 'apigateway.${AWS::URLSuffix}'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${SpeelycaptorApiGatewayRestApi}/*/*'
   SpeelycaptorConvertLambdaPermissionApiGateway:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !GetAtt SpeelycaptorConvertLambdaFunction.Arn
+      FunctionName: !GetAtt SpeelycaptorApplication.Outputs.SpeelycaptorConvertFunctionArn
       Action: lambda:InvokeFunction
       Principal: !Sub 'apigateway.${AWS::URLSuffix}'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${SpeelycaptorApiGatewayRestApi}/*/*'
@@ -2043,20 +1987,6 @@ Resources:
               - logs:CreateLogStream
               - logs:PutLogEvents
             Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
-  PhotomnemonicScreenshotLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: lambdas/photomnemonic/photomnemonic-0.1.0.zip
-      FunctionName: !Sub "${AWS::StackName}-photomnemonic-screenshot"
-      Handler: index.handler
-      MemorySize: 1024
-      Role: !GetAtt PhotomnemonicRole.Arn
-      Runtime: nodejs10.x
-      Timeout: 30
-    DependsOn:
-      - CopyPhotomnemonicLambda
   PhotomnemonicApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -2084,7 +2014,7 @@ Resources:
                 type: aws_proxy
                 contentHandling: CONVERT_TO_BINARY
                 uri:
-                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PhotomnemonicScreenshotLambdaFunction.Arn}/invocations
+                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PhotomnemonicApplication.Outputs.PhotomnemonicScreenshotFunctionArn}/invocations
   PhotomnemonicApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
     Properties:
@@ -2095,7 +2025,7 @@ Resources:
   PhotomnemonicScreenshotLambdaPermissionApiGateway:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !GetAtt PhotomnemonicScreenshotLambdaFunction.Arn
+      FunctionName: !GetAtt PhotomnemonicApplication.Outputs.PhotomnemonicScreenshotFunctionArn
       Action: lambda:InvokeFunction
       Principal: !Sub 'apigateway.${AWS::URLSuffix}'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotomnemonicApiGatewayRestApi}/*/*'
@@ -2164,6 +2094,22 @@ Resources:
         SemanticVersion: 0.1.0
       Parameters:
         NearsparkRoleArn: !GetAtt NearsparkRole.Arn
+  SpeelycaptorApplication:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", SpeelycaptorApplicationArn]
+        SemanticVersion: 0.4.0
+      Parameters:
+        SpeelycaptorRoleArn: !GetAtt SpeelycaptorRole.Arn
+  PhotomnemonicApplication:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", PhotomnemonicApplicationArn]
+        SemanticVersion: 0.4.0
+      Parameters:
+        PhotomnemonicRoleArn: !GetAtt PhotomnemonicRole.Arn
   NearsparkApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -2778,13 +2724,6 @@ Resources:
             Resource:
               - !Sub '${AssetsBucket.Arn}/hubs/*'
               - !Sub '${AssetsBucket.Arn}/spoke/*'
-          - Effect: Allow
-            Action:
-              - s3:GetObject
-              - s3:PutObject
-              - s3:PutObjectAcl
-            Resource:
-              - !Sub '${LambdaBucket.Arn}/*'
           - Effect: Allow
             Action:
               - s3:ListBucket
