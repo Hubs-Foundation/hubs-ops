@@ -1087,11 +1087,13 @@ resource "aws_route53_record" "polycosm-assets-dns" {
 }
 
 resource "aws_s3_bucket" "polycosm-sam-bucket" {
-  bucket = "polycosm-samapps-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  provider = "aws.east"
+  bucket = "polycosm-sam-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
   acl = "public-read"
 }
 
 resource "aws_s3_bucket_policy" "sam-bucket-policy" {
+  provider = "aws.east"
   bucket = "${aws_s3_bucket.polycosm-sam-bucket.id}"
 
   policy = <<POLICY
