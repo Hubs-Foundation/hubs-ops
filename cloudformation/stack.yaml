@@ -2109,7 +2109,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", PhotomnemonicApplicationArn]
-        SemanticVersion: 0.1.0
+        SemanticVersion: 0.2.0
       Parameters:
         PhotomnemonicRoleArn: !GetAtt PhotomnemonicRole.Arn
   NearsparkApiGatewayRestApi:
