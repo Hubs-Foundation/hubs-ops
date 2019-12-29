@@ -2104,6 +2104,7 @@ Resources:
         SpeelycaptorRoleArn: !GetAtt SpeelycaptorRole.Arn
         SpeelycaptorScratchBucketId: !Ref SpeelycaptorScratchBucket
         SpeelycaptorScratchBucketArn: !GetAtt SpeelycaptorScratchBucket.Arn
+        SpeelycaptorScratchBucketRegion: !Ref "AWS::Region"
   PhotomnemonicApplication:
     Type: AWS::Serverless::Application
     Properties:
