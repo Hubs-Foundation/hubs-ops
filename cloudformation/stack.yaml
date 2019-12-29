@@ -2099,15 +2099,17 @@ Resources:
     Properties:
       Location:
         ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", SpeelycaptorApplicationArn]
-        SemanticVersion: 0.4.0
+        SemanticVersion: 0.1.2
       Parameters:
         SpeelycaptorRoleArn: !GetAtt SpeelycaptorRole.Arn
+        SpeelycaptorScratchBucketId: !Ref SpeelycaptorScratchBucket
+        SpeelycaptorScratchBucketArn: !GetAtt SpeelycaptorScratchBucket.Arn
   PhotomnemonicApplication:
     Type: AWS::Serverless::Application
     Properties:
       Location:
         ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", PhotomnemonicApplicationArn]
-        SemanticVersion: 0.4.0
+        SemanticVersion: 0.1.0
       Parameters:
         PhotomnemonicRoleArn: !GetAtt PhotomnemonicRole.Arn
   NearsparkApiGatewayRestApi:
