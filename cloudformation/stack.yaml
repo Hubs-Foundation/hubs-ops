@@ -1806,6 +1806,7 @@ Resources:
         - speelycaptor.default
         - photomnemonic.default
         - youtube-dl-api-server.default
+        - pgbouncer.default
         - imgproxy.default
         - hubs.default
         - spoke.default
