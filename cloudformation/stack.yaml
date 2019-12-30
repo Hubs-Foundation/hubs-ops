@@ -1798,17 +1798,17 @@ Resources:
       BucketName: !Ref BoxKeysBucket
       BucketRegion: !Ref "AWS::Region"
       ServiceNames:
-        - reticulum.default
-        - janus-gateway.default
-        - postgrest.default
-        - certbot.default
-        - ita.default
-        - speelycaptor.default
-        - photomnemonic.default
-        - youtube-dl-api-server.default
-        - imgproxy.default
-        - hubs.default
-        - spoke.default
+        - !Sub "reticulum.default@${AWS::StackName}"
+        - !Sub "janus-gateway.default@${AWS::StackName}"
+        - !Sub "postgrest.default@${AWS::StackName}"
+        - !Sub "certbot.default@${AWS::StackName}"
+        - !Sub "ita.default@${AWS::StackName}"
+        - !Sub "speelycaptor.default@${AWS::StackName}"
+        - !Sub "photomnemonic.default@${AWS::StackName}"
+        - !Sub "youtube-dl-api-server.default@${AWS::StackName}"
+        - !Sub "imgproxy.default@${AWS::StackName}"
+        - !Sub "hubs.default@${AWS::StackName}"
+        - !Sub "spoke.default@${AWS::StackName}"
       Org: !Ref "AWS::StackName"
 
   BioUserKey:
