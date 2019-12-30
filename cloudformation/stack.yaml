@@ -278,7 +278,7 @@ Parameters:
   RestoreStackRegion:
     Type: String
     Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the region of the stack being restored from. WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
-    AllowedValues: ["", "us-east-1", "us-west-1", "us-west-2", "us-east-2", "ap-northeast-1", "eu-west-1"]
+    AllowedValues: ["", "us-east-1", "us-east-2", "us-west-1", "us-west-2", "ap-northeast-1", "eu-west-1"]
   RestoreBackupVaultName:
     Type: String
     Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx) WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
@@ -343,46 +343,16 @@ Mappings:
   Regions:
     us-east-1:
       Abbreviation: USE1
-      NearsparkApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/nearspark
-      KeymasterApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/keymaster
-      SESDomainApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/aws-cfn-ses-domain
-      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
-      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
     us-west-1:
       Abbreviation: USW1
-      NearsparkApplicationArn: arn:aws:serverlessrepo:us-west-1:558986605633:applications/nearspark
-      KeymasterApplicationArn: arn:aws:serverlessrepo:us-west-1:558986605633:applications/keymaster
-      SESDomainApplicationArn: arn:aws:serverlessrepo:us-west-1:558986605633:applications/aws-cfn-ses-domain
-      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
-      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
     us-west-2:
       Abbreviation: USW2
-      NearsparkApplicationArn: arn:aws:serverlessrepo:us-west-2:558986605633:applications/nearspark
-      KeymasterApplicationArn: arn:aws:serverlessrepo:us-west-2:558986605633:applications/keymaster
-      SESDomainApplicationArn: arn:aws:serverlessrepo:us-west-2:558986605633:applications/aws-cfn-ses-domain
-      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
-      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
     us-east-2:
       Abbreviation: USE2
-      NearsparkApplicationArn: arn:aws:serverlessrepo:us-east-2:558986605633:applications/nearspark
-      KeymasterApplicationArn: arn:aws:serverlessrepo:us-east-2:558986605633:applications/keymaster
-      SESDomainApplicationArn: arn:aws:serverlessrepo:us-east-2:558986605633:applications/aws-cfn-ses-domain
-      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
-      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
     ap-northeast-1:
       Abbreviation: APN1
-      NearsparkApplicationArn: arn:aws:serverlessrepo:ap-northeast-1:558986605633:applications/nearspark
-      KeymasterApplicationArn: arn:aws:serverlessrepo:ap-northeast-1:558986605633:applications/keymaster
-      SESDomainApplicationArn: arn:aws:serverlessrepo:ap-northeast-1:558986605633:applications/aws-cfn-ses-domain
-      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
-      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
     eu-west-1:
       Abbreviation: EU
-      NearsparkApplicationArn: arn:aws:serverlessrepo:eu-west-1:558986605633:applications/nearspark
-      KeymasterApplicationArn: arn:aws:serverlessrepo:eu-west-1:558986605633:applications/keymaster
-      SESDomainApplicationArn: arn:aws:serverlessrepo:eu-west-1:558986605633:applications/aws-cfn-ses-domain
-      SpeelycaptorApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
-      PhotomnemonicApplicationArn: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
 
   ServicesMeta:
     RetExternal:
@@ -2075,7 +2045,7 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location:
-        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", SESDomainApplicationArn]
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/aws-cfn-ses-domain
         SemanticVersion: 0.4.0
       Parameters:
         SESDomainRoleArn: !GetAtt SESDomainRole.Arn
@@ -2083,7 +2053,7 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location:
-        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", KeymasterApplicationArn]
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/keymaster
         SemanticVersion: 0.1.12
       Parameters:
         KeymasterRoleArn: !GetAtt KeymasterRole.Arn
@@ -2091,7 +2061,7 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location:
-        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", NearsparkApplicationArn]
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/nearspark
         SemanticVersion: 0.1.0
       Parameters:
         NearsparkRoleArn: !GetAtt NearsparkRole.Arn
@@ -2099,7 +2069,7 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location:
-        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", SpeelycaptorApplicationArn]
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
         SemanticVersion: 0.1.2
       Parameters:
         SpeelycaptorRoleArn: !GetAtt SpeelycaptorRole.Arn
@@ -2110,7 +2080,7 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location:
-        ApplicationId: !FindInMap [Regions, !Ref "AWS::Region", PhotomnemonicApplicationArn]
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
         SemanticVersion: 0.2.0
       Parameters:
         PhotomnemonicRoleArn: !GetAtt PhotomnemonicRole.Arn
