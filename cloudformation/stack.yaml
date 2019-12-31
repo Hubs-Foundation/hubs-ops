@@ -340,8 +340,8 @@ Parameters:
     Default: "Allow anyone to access my site"
   SpecifyInboundSSHCidr:
     Type: String
-    Description: You can restrict the IP addresses that can access your servers over SSH. SSH access will always require the SSH private key file specified above regardless of IP.
-    AllowedValues: ["Allow anyone with the SSH secret key to access my servers", "I will specify the 'Inbound SSH CDIR' in 'Advanced' below to restrict SSH IP addresses to my servers"]
+    Description: You can restrict the IP addresses that can access your servers over SSH. SSH access will always require the SSH private key file specified above and the 2FA token regardless of IP.
+    AllowedValues: ["Allow anyone with the SSH secret key and 2FA token to access my servers", "I will specify the 'Inbound SSH CDIR' in 'Advanced' below to restrict SSH IP addresses to my servers"]
     AllowedPattern: ".+"
     ConstraintDescription: "You must select if you'd like any IP SSH restrictions."
 
