@@ -2047,7 +2047,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/keymaster
-        SemanticVersion: 0.1.12
+        SemanticVersion: 0.1.13
       Parameters:
         KeymasterRoleArn: !GetAtt KeymasterRole.Arn
   NearsparkApplication:
