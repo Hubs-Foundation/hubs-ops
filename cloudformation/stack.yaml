@@ -25,7 +25,9 @@ Metadata:
       - Label:
           default: Server Configuration
         Parameters:
+          - SpecifyInboundCidr
           - KeyPair
+          - SpecifyInboundSSHCidr
           - AppInstanceCount
           - StreamInstanceCount
           - AppInstanceType
@@ -63,13 +65,13 @@ Metadata:
       - Label:
           default: Advanced - Leave these alone unless you know what you're doing!
         Parameters:
+          - InboundCidrOverride
+          - InboundSSHCidrOverride
           - LoadBalancingMethod
           - NewCMKForDiskEncryption
           - SubnetAZs
           - ClassB
           - AppPlacementGroupStrategy
-          - InboundCidr
-          - InboundSSHCidr
     ParameterLabels:
       DomainName:
         default: Domain Name
@@ -133,10 +135,14 @@ Metadata:
         default: "Account Monthly Database Budget (US dollars, no $ and no cents)"
       MaxStorage:
         default: "Storage Limit (in GB)"
-      InboundCidr:
+      InboundCidrOverride:
         default: "Inbound Site Access CIDR"
-      InboundSSHCidr:
+      InboundSSHCidrOverride:
         default: "Inbound SSH CIDR"
+      SpecifyInboundCidr:
+        default: "Restrict Site Access"
+      SpecifyInboundSSHCidr:
+        default: "Restrict SSH Access"
 Parameters:
   DomainName:
     Type: String
@@ -321,14 +327,23 @@ Parameters:
     MinValue: 5
     MaxValue: 1048576
     Default: 100
-  InboundCidr:
+  InboundCidrOverride:
     Type: String
     Description: IP CDIR which will be granted HTTPS and WebRTC access to your site. Set to 0.0.0.0/0 to allow anyone on the Internet to access your site.
-    Default: 0.0.0.0/0
-  InboundSSHCidr:
+  InboundSSHCidrOverride:
     Type: String
-    Description: IP CDIR which will be granted SSH port access to your servers. Connecting users will still need valid SSH keys to access your server.
-    Default: 0.0.0.0/0
+    Description: IP CDIR which will be granted SSH port access to your servers. Connecting users will still need valid SSH keys to access your server. Set to 0.0.0.0/0 to allow any IP with the SSH key + 2FA token to access your servers via SSH.
+  SpecifyInboundCidr:
+    Type: String
+    Description: You can restrict which IP addresses can access your site. To allow anyone on the Internet to load your site, choose 'Allow anyone to access my site.'
+    AllowedValues: ["Allow anyone to access my site", "I will specify the 'Inbound Site Access CDIR' in 'Advanced' below to restrict IP addresses to my site"]
+    Default: "Allow anyone to access my site"
+  SpecifyInboundSSHCidr:
+    Type: String
+    Description: You can restrict the IP addresses that can access your servers over SSH. SSH access will always require the SSH private key file specified above regardless of IP.
+    AllowedValues: ["Allow anyone with the SSH secret key to access my servers", "I will specify the 'Inbound SSH CDIR' in 'Advanced' below to restrict SSH IP addresses to my servers"]
+    AllowedPattern: ".+"
+    ConstraintDescription: "You must select if you'd like any IP SSH restrictions."
 
 Mappings:
   Regions:
@@ -404,6 +419,8 @@ Mappings:
 
 Conditions:
   HasManagedDomain: !Equals [!Ref IsDomainOnRoute53, "Yes - My domain is set up on Route 53"]
+  HasInboundCidrOverride: !Equals [!Ref SpecifyInboundCidr, "I will specify the 'Inbound Site Access CDIR' in 'Advanced' below to restrict IP addresses to my site"]
+  HasInboundSSHCidrOverride: !Equals [!Ref SpecifyInboundSSHCidr, "I will specify the 'Inbound SSH CDIR' in 'Advanced' below to restrict SSH IP addresses to my servers"]
   HasUnmangedDomain: !Not [Condition: HasManagedDomain]
   HasLetsEncryptEmail: !Not [!Equals [!Ref LetsEncryptEmailAddress, "None"]]
   HasStreamingServers: !And [!Equals [!Ref StackOffline, "Online"], !Not [!Equals [!Ref StreamInstanceCount, 0]]]
@@ -2279,11 +2296,11 @@ Resources:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: !Ref InboundCidr
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
-          CidrIp: !Ref InboundCidr
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
 
   BioRingSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -2338,23 +2355,23 @@ Resources:
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, RetExternal, Port]
           ToPort: !FindInMap [ServicesMeta, RetExternal, Port]
-          CidrIp: !Ref InboundCidr
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
-          CidrIp: !Ref InboundCidr
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
-          CidrIp: !Ref InboundCidr
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
-          CidrIp: !Ref InboundCidr
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
           ToPort: !FindInMap [ServicesMeta, Ssh, Port]
-          CidrIp: !Ref InboundSSHCidr
+          CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
       SecurityGroupEgress:
         # Outbound HTTP
         - IpProtocol: tcp
@@ -2965,19 +2982,19 @@ Resources:
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
-          CidrIp: !Ref InboundCidr
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
-          CidrIp: !Ref InboundCidr
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
-          CidrIp: !Ref InboundCidr
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
           ToPort: !FindInMap [ServicesMeta, Ssh, Port]
-          CidrIp: !Ref InboundSSHCidr
+          CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
       SecurityGroupEgress:
         # Outbound HTTP
         - IpProtocol: tcp
