@@ -1694,6 +1694,7 @@ Resources:
         - imgproxy.default
         - hubs.default
         - spoke.default
+        - polycosm-static-assets.default
       Org: !Ref "AWS::StackName"
 
   BioUserKey:
