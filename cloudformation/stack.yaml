@@ -3697,7 +3697,7 @@ Outputs:
 
   LinkRedirectorBucket:
     Description: Link redirector bucket name [polycosm-static-assets/deploy/redirector_target]
-    Value: !Ref AssetsBucket
+    Value: !Ref LinkRedirectorBucket
 
   HubsBaseAssetsPath:
     Description: Base assets path for hubs CDN assets [hubs/general/base_assets_path]
