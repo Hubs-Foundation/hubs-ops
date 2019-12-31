@@ -345,7 +345,7 @@ resource "aws_s3_bucket" "stack-create-redirector-bucket" {
       routing_rules = <<EOF
     [{
         "Redirect": {
-            "ReplaceKeyPrefixWith": "cloudformation/home?#/stacks/quickcreate?templateUrl=https%3A%2F%2Fhubs-cloud.s3-us-west-1.amazonaws.com%2Fstack.yaml",
+            "ReplaceKeyPrefixWith": "cloudformation/home?#/stacks/quickcreate?templateUrl=https%3A%2F%2Fhubs-cloud.s3-us-west-1.amazonaws.com%2Fstack-beta.yaml",
             "Protocol": "https",
             "HostName": "console.aws.amazon.com"
         }

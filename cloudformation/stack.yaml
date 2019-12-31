@@ -50,7 +50,6 @@ Metadata:
           default: Restore from Backup
         Parameters:
           - RestoreStackName
-          - RestoreStackRegion
           - RestoreDbSnapshotIdentifier
           - RestoreAppDbSecretArn
           - RestoreBackupVaultName
@@ -118,8 +117,6 @@ Metadata:
         default: "Restore From Database Secret ARN"
       RestoreStackName:
         default: "Restore From Stack Name"
-      RestoreStackRegion:
-        default: "Restore From Stack Region"
       RestoreBackupVaultName:
         default: "Restore From Vault Name"
       RestoreRecoveryPointArn:
@@ -275,10 +272,6 @@ Parameters:
   RestoreStackName:
     Type: String
     Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the stack name being restored from. To restore, the secrets stored in Parameter Store must still be available from the stack being restored from. These parameters should still exist even if you deleted the old stack, unless you manually removed them. WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
-  RestoreStackRegion:
-    Type: String
-    Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the region of the stack being restored from. WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
-    AllowedValues: ["", "us-east-1", "us-east-2", "us-west-1", "us-west-2", "ap-northeast-1", "eu-west-1"]
   RestoreBackupVaultName:
     Type: String
     Description: "Leave blank if you are not restoring from a backup. To restore from an existing backup, specify the AWS Backup Vault Name to restore storage from. (eg mystack-daily-backup-xxxxxxx) WARNING: do *not* change or blank out this value after your stack is created, otherwise you will replace your existing database!"
@@ -1213,7 +1206,7 @@ Resources:
                  - ssm:GetParameter
                Resource: !If
                  - IsRestore
-                 - !Sub "arn:aws:ssm:${RestoreStackRegion}:${AWS::AccountId}:parameter/keymaster/${RestoreStackName}/*"
+                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/keymaster/${RestoreStackName}/*"
                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/keymaster/${AWS::StackName}/*"
              - Effect: Allow
                Action:
@@ -3510,7 +3503,7 @@ Resources:
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
       CopyFromStackName: !If [IsRestore, !Ref RestoreStackName, !Ref "AWS::NoValue"]
-      CopyFromStackRegion: !If [IsRestore, !Ref RestoreStackRegion, !Ref "AWS::NoValue"]
+      CopyFromStackRegion: !If [IsRestore, !Ref "AWS::Region", !Ref "AWS::NoValue"]
 
   AppDb:
     Type: AWS::RDS::DBCluster
@@ -3589,7 +3582,7 @@ Resources:
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
       CopyFromStackName: !If [IsRestore, !Ref RestoreStackName, !Ref "AWS::NoValue"]
-      CopyFromStackRegion: !If [IsRestore, !Ref RestoreStackRegion, !Ref "AWS::NoValue"]
+      CopyFromStackRegion: !If [IsRestore, !Ref "AWS::Region", !Ref "AWS::NoValue"]
 
   GuardianSecretKeySecret:
     Type: Custom::GenerateSecret
