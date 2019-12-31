@@ -68,8 +68,6 @@ Metadata:
           - SubnetAZs
           - ClassB
           - AppPlacementGroupStrategy
-          - DbPreferredBackupWindow
-          - DbPreferredMaintenanceWindow
           - InboundCidr
           - InboundSSHCidr
     ParameterLabels:
@@ -1393,100 +1391,6 @@ Resources:
           
               requests.put(event['ResponseURL'], data=json.dumps(response_body))
 
-# CopyFile
-  CopyFileRole:
-   Type: AWS::IAM::Role
-   Properties:
-     RoleName: !Sub "${AWS::StackName}-CopyFile"
-     AssumeRolePolicyDocument:
-       Version: '2012-10-17'
-       Statement:
-         - Effect: Allow
-           Principal:
-             Service: lambda.amazonaws.com
-           Action: sts:AssumeRole
-     ManagedPolicyArns:
-       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-     Path: /
-     Policies:
-       - PolicyName: copy-files
-         PolicyDocument:
-           Version: '2012-10-17'
-           Statement:
-             - Effect: Allow
-               Action:
-                 - s3:ListBucket
-                 - s3:GetObject
-               Resource:
-                 - arn:aws:s3:::polycosm-assets-prod-77ae26402152f4ea
-                 - arn:aws:s3:::polycosm-assets-prod-77ae26402152f4ea/*
-             - Effect: Allow
-               Action:
-                 - s3:PutObject
-                 - s3:DeleteObject
-               Resource:
-                 - !Sub '${AssetsBucket.Arn}/*'
-                 - !Sub '${LinkRedirectorBucket.Arn}/*'
-
-  CopyFileFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${AWS::StackName}-copy-file"
-      Handler: index.handler
-      Runtime: python2.7
-      Role: !GetAtt CopyFileRole.Arn
-      Timeout: 240
-      Code:
-        ZipFile: |
-          import json
-          import logging
-          import threading
-          import boto3
-          import cfnresponse
-          def copy_objects(source_bucket, dest_bucket, prefix, objects):
-              s3 = boto3.client('s3')
-              for o in objects:
-                  key = prefix + o
-                  copy_source = {
-                      'Bucket': source_bucket,
-                      'Key': key
-                  }
-                  print('copy_source: %s' % copy_source)
-                  print('dest_bucket = %s'%dest_bucket)
-                  print('key = %s' %key)
-                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
-                        Key=key)
-          def delete_objects(bucket, prefix, objects):
-              s3 = boto3.client('s3')
-              objects = {'Objects': [{'Key': prefix + o} for o in objects]}
-              s3.delete_objects(Bucket=bucket, Delete=objects)
-          def timeout(event, context):
-              logging.error('Execution is about to time out, sending failure response to CloudFormation')
-              cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)
-          def handler(event, context):
-              # make sure we send a failure to CloudFormation if the function
-              # is going to timeout
-              timer = threading.Timer((context.get_remaining_time_in_millis()
-                        / 1000.00) - 0.5, timeout, args=[event, context])
-              timer.start()
-              print('Received event: %s' % json.dumps(event))
-              status = cfnresponse.SUCCESS
-              try:
-                  source_bucket = event['ResourceProperties']['SourceBucket']
-                  dest_bucket = event['ResourceProperties']['DestBucket']
-                  prefix = event['ResourceProperties']['Prefix']
-                  objects = event['ResourceProperties']['Objects']
-                  if event['RequestType'] == 'Delete':
-                      delete_objects(dest_bucket, prefix, objects)
-                  else:
-                      copy_objects(source_bucket, dest_bucket, prefix, objects)
-              except Exception as e:
-                  logging.error('Exception: %s' % e, exc_info=True)
-                  status = cfnresponse.FAILED
-              finally:
-                  timer.cancel()
-                  cfnresponse.send(event, context, status, {}, None)
-
 # StackTopicHandler
   StackTopicHandlerRole:
    Type: AWS::IAM::Role
@@ -2240,17 +2144,6 @@ Resources:
             Action: 's3:GetObject'
             Resource: !Sub '${AssetsBucket.Arn}/*'
       Bucket: !Ref AssetsBucket
-  CopyPDFJSAssets:
-    Type: Custom::CopyPDFJSAssets
-    UpdateReplacePolicy: Retain
-    DependsOn: AssetsBucket
-    Properties:
-      ServiceToken: !GetAtt CopyFileFunction.Arn
-      DestBucket: !Ref AssetsBucket
-      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
-      Prefix: ""
-      Objects:
-        - assets/js/pdfjs-dist@2.1.266/build/pdf.worker.js
 
   RootRedirectorBucket:
     Type: AWS::S3::Bucket
@@ -2319,18 +2212,7 @@ Resources:
             Action: 's3:GetObject'
             Resource: !Sub '${LinkRedirectorBucket.Arn}/*'
       Bucket: !Ref LinkRedirectorBucket
-  CopyLinkRedirectorIndex:
-    Type: Custom::CopyLinkRedirectorIndex
-    UpdateReplacePolicy: Retain
-    DependsOn: LinkRedirectorBucket
-    Properties:
-      ServiceToken: !GetAtt CopyFileFunction.Arn
-      DestBucket: !Ref LinkRedirectorBucket
-      SourceBucket: polycosm-assets-prod-77ae26402152f4ea
-      Prefix: ""
-      Objects:
-        - link-redirector-index.html
-        - link-redirector-error.html
+
   LinkRedirectorDNS:
     Type: AWS::Route53::RecordSet
     Properties:
@@ -2691,11 +2573,14 @@ Resources:
             Resource:
               - !Sub '${AssetsBucket.Arn}/hubs/*'
               - !Sub '${AssetsBucket.Arn}/spoke/*'
+              - !Sub '${AssetsBucket.Arn}/assets/*'
+              - !Sub '${LinkRedirectorBucket.Arn}/*'
           - Effect: Allow
             Action:
               - s3:ListBucket
             Resource:
               - !Sub '${AssetsBucket.Arn}'
+              - !Sub '${LinkRedirectorBucket.Arn}'
           - Effect: Allow
             Action: cloudformation:DescribeStacks
             Resource: !Ref "AWS::StackId"
@@ -2877,6 +2762,10 @@ Resources:
               HTTPSPort: 443
               OriginProtocolPolicy: http-only
               OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
+          - Id: !Sub "${AWS::StackName}-app-assets"
+            DomainName: !GetAtt AssetsBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ""
         Restrictions:
           GeoRestriction:
             RestrictionType: none
@@ -2893,11 +2782,34 @@ Resources:
           - ErrorCode: 500
             ErrorCachingMinTTL: 0
           - ErrorCode: 502
+            ResponseCode: 502
             ErrorCachingMinTTL: 0
+            ResponsePagePath: !Sub "/assets/pages/unavailable.html"
           - ErrorCode: 503
+            ResponseCode: 503
             ErrorCachingMinTTL: 0
+            ResponsePagePath: !Sub "/assets/pages/unavailable.html"
           - ErrorCode: 504
+            ResponseCode: 504
             ErrorCachingMinTTL: 0
+            ResponsePagePath: !Sub "/assets/pages/unavailable.html"
+        CacheBehaviors:
+          - PathPattern: "/assets/*"
+            Compress: true
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+            TargetOriginId: !Sub "${AWS::StackName}-app-assets"
+            ForwardedValues:
+              QueryString: true
+              Headers: ["Origin", "Content-Type", "Access-Control-Request-Method", "Access-Control-Request-Headers", "Accept"]
+              Cookies:
+                Forward: none
+            ViewerProtocolPolicy: https-only
         DefaultCacheBehavior:
           Compress: true
           AllowedMethods:
@@ -3404,6 +3316,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       Description: DB encryption key
+      EnableKeyRotation: true
       KeyPolicy:
         Version: '2012-10-17'
         Statement:
@@ -3761,7 +3674,11 @@ Outputs:
     Value: !Sub "polycosm_production = host=${AppDb.Endpoint.Address} dbname=polycosm_production user=postgres password={${AppDbSecret}} pool_mode=transaction\npolycosm_locking = host=${AppDb.Endpoint.Address} dbname=polycosm_production user=postgres password={${AppDbSecret}} pool_mode=session"
 
   AssetsBucket:
-    Description: Assets bucket name [hubs/deploy/target,spoke/deploy/target]
+    Description: Assets bucket name [hubs/deploy/target,spoke/deploy/target,polycosm-static-assets/deploy/assets_target]
+    Value: !Ref AssetsBucket
+
+  LinkRedirectorBucket:
+    Description: Link redirector bucket name [polycosm-static-assets/deploy/redirector_target]
     Value: !Ref AssetsBucket
 
   HubsBaseAssetsPath:
@@ -3785,7 +3702,7 @@ Outputs:
     Value: !GetAtt AssetsBucket.RegionalDomainName
 
   ClientDeployType:
-    Description: Client deploy type [hubs/deploy/type,spoke/deploy/type]
+    Description: Client deploy type [hubs/deploy/type,spoke/deploy/type,polycosm-static-assets/deploy/type]
     Value: s3
 
   NearsparkHost:
@@ -3845,7 +3762,7 @@ Outputs:
     Value: !Ref BoxKeysBucket
 
   BucketRegion:
-    Description: Bucket Region [hubs/deploy/region,spoke/deploy/region]
+    Description: Bucket Region [hubs/deploy/region,spoke/deploy/region,polycosm-static-assets/deploy/assets_region,polycosm-static-assets/deploy/redirector_region]
     Value: !Ref "AWS::Region"
 
   ShortlinkDomainName:
