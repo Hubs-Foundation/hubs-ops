@@ -2390,7 +2390,7 @@ Resources:
           ToPort: 587
           CidrIp: 0.0.0.0/0
         # Outbound NTP
-        - IpProtocol: tcp
+        - IpProtocol: udp
           FromPort: 123
           ToPort: 123
           CidrIp: 0.0.0.0/0
@@ -3008,7 +3008,7 @@ Resources:
           ToPort: 443
           CidrIp: 0.0.0.0/0
         # Outbound NTP
-        - IpProtocol: tcp
+        - IpProtocol: udp
           FromPort: 123
           ToPort: 123
           CidrIp: 0.0.0.0/0
