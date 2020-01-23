@@ -302,12 +302,12 @@ Parameters:
   LoadBalancingMethod:
     Type: String
     Description: Method for load balancing requests to app servers. If you only have one or a few app servers, and would like to save on AWS costs, choose DNS Round Robin. If you have several app servers or would like improved load balancing, you can also use an Application Load Balancer, which will incur additional costs. If you are using a domain not on Route 53, be sure to note the "AddressForRootDomain" in the Outputs tab after the stack update to set your DNS to point to the ALB.
-    Default: "DNS Round Robin"
+    Default: "Application Load Balancer"
     AllowedValues: ["DNS Round Robin", "Application Load Balancer"]
   AutoPauseDb:
     Type: String
     Description: Your hub uses the Aurora Serverless database, which can greatly save costs by pausing the database when your hub is not in use. However, when the database is paused, it can take up to 20 seconds for your site to come back up when you visit it. You can turn off database pausing if you'd like to avoid any delay in loading your site. Turning off pausing will incur continuous hourly database costs. Pricing info can be found at https://aws.amazon.com/rds/aurora/serverless/
-    Default: "Yes - Pause database when not in use"
+    Default: "No - Pay for database continuously to prevent loading delays"
     AllowedValues: ["Yes - Pause database when not in use", "No - Pay for database continuously to prevent loading delays"]
   StackOffline:
     Type: String
@@ -326,7 +326,7 @@ Parameters:
     Description: When users upload scenes, avatars, or files, they will use disk storage. You only pay for the storage you use. You can set a maximum storage amount here (in GB) to ensure there are no unexpected charges. Pricing info can be found at https://aws.amazon.com/efs/pricing/
     MinValue: 5
     MaxValue: 1048576
-    Default: 100
+    Default: 1024
   InboundCidrOverride:
     Type: String
     Description: IP CDIR which will be granted HTTPS and WebRTC access to your site. Set to 0.0.0.0/0 to allow anyone on the Internet to access your site.
