@@ -12,6 +12,9 @@ fi
 cfn-flip stack.yaml - | ./prep-stack.js pro "$HUBS_OPS_SECRETS_PATH/packer/polycosm/manifest.aws.json" | cfn-flip -y - stack_injected.yaml
 aws s3 cp --region us-west-1 --acl public-read --cache-control "no-cache" stack_injected.yaml s3://hubs-cloud/stack-pro.yaml 
 
+cfn-flip stack.yaml - | ./prep-stack.js pro-single "$HUBS_OPS_SECRETS_PATH/packer/polycosm/manifest.aws.json" | cfn-flip -y - stack_injected.yaml
+aws s3 cp --region us-west-1 --acl public-read --cache-control "no-cache" stack_injected.yaml s3://hubs-cloud/stack-pro-single.yaml 
+
 cfn-flip stack.yaml - | ./prep-stack.js personal "$HUBS_OPS_SECRETS_PATH/packer/polycosm/manifest.aws.json" | cfn-flip -y - stack_injected.yaml
 aws s3 cp --region us-west-1 --acl public-read --cache-control "no-cache" stack_injected.yaml s3://hubs-cloud/stack-personal.yaml 
 

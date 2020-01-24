@@ -68,6 +68,9 @@ if (mode === "personal") {
 	useMinimalDefaults();
 } else if (mode === "beta") {
 	useMinimalDefaults();
+} else if (mode === "pro") {
+	template.Parameters.AppInstanceCount.Default = 2
+	template.Parameters.StreamInstanceCount.Default = 2
 }
 
 console.log(JSON.stringify(template))
