@@ -2269,7 +2269,7 @@ Resources:
           TargetOriginId: !Sub "${AWS::StackName}-link-redirector"
           ForwardedValues:
             QueryString: false
-            Headers: []
+            Headers: ["Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", "Accept"]
             Cookies:
               Forward: none
           ViewerProtocolPolicy: allow-all
