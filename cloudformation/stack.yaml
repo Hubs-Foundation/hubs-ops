@@ -3474,7 +3474,6 @@ Resources:
         BudgetLimit: 
           Amount: !Ref DatabaseMonthlyBudget
           Unit: USD
-        BudgetName: !Sub "${AWS::StackName}-app-db"
         BudgetType: COST
         TimeUnit: MONTHLY
         CostFilters: 
