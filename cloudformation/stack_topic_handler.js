@@ -70,7 +70,7 @@ async function handleASGMessage(message, context) {
   const asgName = message.AutoScalingGroupName;
   const asgEvent = message.Event;
   const region = "${AWS::Region}";
-  const recordName = "${AWS::StackName}-app.${InternalZoneInfo.Name}.";
+  const recordName = "${LowerStackName.Value}-app.${InternalZoneInfo.Name}.";
   const hostedZoneId = "${InternalZoneInfo.Id}";
   const ttl = 15;
 

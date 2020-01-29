@@ -910,6 +910,99 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
     Type: AWS::IAM::Role
 
+  ToLower:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-to-lower"
+      Description: Convert a string to lower
+      Handler: index.handler
+      Role: !GetAtt ToLowerRole.Arn
+      Runtime: nodejs10.x
+      Timeout: 900
+      Code:
+        ZipFile: |
+          const toLower = {};
+          
+          function btoa(s) {
+            return Buffer.from(s).toString('base64');
+          };
+
+          function getReason(err) {
+            if (err)
+              return err.message;
+            else
+              return '';
+          };
+
+          toLower.handler = function(event, context) {
+            return sendResponse(event, context, "SUCCESS", { Value: event.ResourceProperties.String.toLowerCase() });
+          };
+          
+          function sendResponse(event, context, status, data, err) {
+            var responseBody = {
+              StackId: event.StackId,
+              RequestId: event.RequestId,
+              LogicalResourceId: event.LogicalResourceId,
+              PhysicalResourceId: 'toLower-' + btoa(event.ResourceProperties.String),
+              Status: status,
+              Reason: getReason(err) + " See details in CloudWatch Log: " + context.logStreamName,
+              Data: data
+            };
+          
+            console.log("RESPONSE:\n", responseBody);
+            var json = JSON.stringify(responseBody);
+          
+            var https = require("https");
+            var url = require("url");
+          
+            var parsedUrl = url.parse(event.ResponseURL);
+            var options = {
+              hostname: parsedUrl.hostname,
+              port: 443,
+              path: parsedUrl.path,
+              method: "PUT",
+              headers: {
+                "content-type": "",
+                "content-length": json.length
+              }
+            };
+          
+            var request = https.request(options, function(response) {
+              console.log("STATUS: " + response.statusCode);
+              console.log("HEADERS: " + JSON.stringify(response.headers));
+              context.done(null, data);
+            });
+          
+            request.on("error", function(error) {
+              console.log("sendResponse Error:\n", error);
+              context.done(error);
+            });
+          
+            request.on("end", function() {
+              console.log("end");
+            });
+            request.write(json);
+            request.end();
+          }
+          
+          module.exports = toLower;
+
+  ToLowerRole:
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-ToLowerRole"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+    Type: AWS::IAM::Role
+
 # CustomAcmCertificateLambda
   CustomAcmCertificateLambda:
     Metadata:
@@ -1052,7 +1145,7 @@ Resources:
       DomainValidationOptions:
         - DomainName: !GetAtt ExternalZoneInfo.Name
           HostedZoneId: !GetAtt ExternalZoneInfo.Id
-        - DomainName: !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
+        - DomainName: !Sub '${LowerStackName.Value}-cors-proxy.${InternalZoneInfo.Name}'
           HostedZoneId: !GetAtt InternalZoneInfo.Id
       ValidationMethod: DNS
       Region: us-east-1
@@ -1085,7 +1178,7 @@ Resources:
     Properties: 
       DomainName: !Sub '*.${InternalZoneInfo.Name}'
       SubjectAlternativeNames:
-        - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
+        - !Sub '${LowerStackName.Value}-cors-proxy.${InternalZoneInfo.Name}'
       DomainValidationOptions:
         - DomainName: !GetAtt InternalZoneInfo.Name
           HostedZoneId: !Ref InternalZone
@@ -1520,7 +1613,7 @@ Resources:
       Timeout: 900
       Code:
         ZipFile: !Sub |
-          const AWS=require("aws-sdk"),promisify=e=>t=>new Promise((a,n)=>e(t,(e,t)=>{e?(console.log(e),n(e)):a(t)})),OFFLINE_SETTING="Offline - Temporarily shut off servers";async function handleBudgetAlert(e,t){const a=e.Records[0].Sns.TopicArn,n=new AWS.SNS,s=(await promisify(n.listTagsForResource.bind(n))({ResourceArn:a})).Tags,r=s.find(e=>"stack-name"===e.Key).Value,o=s.find(e=>"stack-region"===e.Key).Value,i=new AWS.CloudFormation({region:o});await new Promise(async e=>{let t;const a=async()=>{const a=await promisify(i.describeStacks.bind(i))({StackName:r});if(a){const n=a.Stacks[0].StackStatus;if(n.endsWith("_COMPLETE")||n.endsWith("_FAILED"))return t&&clearInterval(t),e(),!0}return!1};await a()||(t=setInterval(a,3e4))});const c=(await promisify(i.describeStacks.bind(i))({StackName:r})).Stacks[0].Parameters,d=[];for(const e of c)"StackOffline"===e.ParameterKey?d.push({ParameterKey:e.ParameterKey,ParameterValue:OFFLINE_SETTING}):d.push({ParameterKey:e.ParameterKey,UsePreviousValue:!0});await promisify(i.updateStack.bind(i))({StackName:r,UsePreviousTemplate:!0,Parameters:d,Capabilities:["CAPABILITY_IAM","CAPABILITY_NAMED_IAM"]})}async function handleASGMessage(e,t){const a=e.AutoScalingGroupName,n=e.Event,s="${AWS::StackName}-app.${InternalZoneInfo.Name}.";if("autoscaling:EC2_INSTANCE_LAUNCH"===n||"autoscaling:EC2_INSTANCE_TERMINATE"===n){const e=new AWS.AutoScaling({region:"${AWS::Region}"}),t=new AWS.EC2({region:"${AWS::Region}"}),n=new AWS.Route53,r=await promisify(e.describeAutoScalingGroups.bind(e))({AutoScalingGroupNames:[a],MaxRecords:1}),o=(await promisify(n.listResourceRecordSets.bind(n))({StartRecordName:s,StartRecordType:"A",HostedZoneId:"${InternalZoneInfo.Id}",MaxItems:"100"})).ResourceRecordSets,i=r.AutoScalingGroups[0].Instances.map(e=>e.InstanceId),c=await promisify(t.describeInstances.bind(t))({DryRun:!1,InstanceIds:i}),d=[];for(let e=0;e<c.Reservations.length;e++){const t=c.Reservations[e];for(let e=0;e<t.Instances.length;e++){const a=t.Instances[e].NetworkInterfaces[0].Association.PublicIp;a&&d.indexOf(a)<0&&d.push(a)}}for(let e=0,t=o.length;e<t;e++){const t=o[e];if(t.Name!==s||"A"!==t.Type)continue;const a=t.ResourceRecords.length>0&&t.ResourceRecords[0].Value;if(a&&!d.find(e=>e===a))try{await promisify(n.changeResourceRecordSets.bind(n))({ChangeBatch:{Changes:[{Action:"DELETE",ResourceRecordSet:{MultiValueAnswer:!0,Name:t.Name,Type:t.Type,TTL:t.TTL,SetIdentifier:t.SetIdentifier,ResourceRecords:t.ResourceRecords,HealthCheckId:t.HealthCheckId}}]},HostedZoneId:"${InternalZoneInfo.Id}"})}catch(e){}}let l=(await promisify(n.listHealthChecks.bind(n))({MaxItems:"100"})).HealthChecks;if(d.length>1)for(let e=0,t=d.length;e<t;e++){const t=d[e];if(!l.find(e=>e.HealthCheckConfig.IPAddress===t))try{await promisify(n.createHealthCheck.bind(n))({CallerReference:Math.floor(1e9*Math.random()).toString(),HealthCheckConfig:{EnableSNI:!0,FailureThreshold:2,FullyQualifiedDomainName:s,IPAddress:t,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}l=(await promisify(n.listHealthChecks.bind(n))({})).HealthChecks;for(let e=0,t=d.length;e<t;e++){const t=d[e];if(!o.find(e=>e.Name===s&&e.ResourceRecords&&e.ResourceRecords.length&&e.ResourceRecords[0].Value===t)){const e=l.find(e=>e.HealthCheckConfig.IPAddress===t);try{await promisify(n.changeResourceRecordSets.bind(n))({ChangeBatch:{Changes:[{Action:"UPSERT",ResourceRecordSet:{MultiValueAnswer:!0,Name:s,Type:"A",HealthCheckId:e?e.Id:null,TTL:15,SetIdentifier:t,ResourceRecords:[{Value:t}]}}]},HostedZoneId:"${InternalZoneInfo.Id}"})}catch(e){}}}for(let e=0,t=l.length;e<t;e++){const t=l[e];if(1===d.length||!d.find(e=>t.HealthCheckConfig.IPAddress===e))try{await promisify(n.deleteHealthCheck.bind(n))({HealthCheckId:t.Id})}catch(e){}}}else console.log("Unsupported ASG event: "+a+" "+n),t.done("Unsupported ASG event: "+a+" "+n)}exports.handler=async function(e,t){if(e.Records[0].Sns.Message.indexOf("Budget Name")>=0)return handleBudgetAlert(e,t);return handleASGMessage(JSON.parse(e.Records[0].Sns.Message),t)};
+          const AWS=require("aws-sdk"),promisify=e=>t=>new Promise((a,n)=>e(t,(e,t)=>{e?(console.log(e),n(e)):a(t)})),OFFLINE_SETTING="Offline - Temporarily shut off servers";async function handleBudgetAlert(e,t){const a=e.Records[0].Sns.TopicArn,n=new AWS.SNS,s=(await promisify(n.listTagsForResource.bind(n))({ResourceArn:a})).Tags,r=s.find(e=>"stack-name"===e.Key).Value,o=s.find(e=>"stack-region"===e.Key).Value,i=new AWS.CloudFormation({region:o});await new Promise(async e=>{let t;const a=async()=>{const a=await promisify(i.describeStacks.bind(i))({StackName:r});if(a){const n=a.Stacks[0].StackStatus;if(n.endsWith("_COMPLETE")||n.endsWith("_FAILED"))return t&&clearInterval(t),e(),!0}return!1};await a()||(t=setInterval(a,3e4))});const c=(await promisify(i.describeStacks.bind(i))({StackName:r})).Stacks[0].Parameters,d=[];for(const e of c)"StackOffline"===e.ParameterKey?d.push({ParameterKey:e.ParameterKey,ParameterValue:OFFLINE_SETTING}):d.push({ParameterKey:e.ParameterKey,UsePreviousValue:!0});await promisify(i.updateStack.bind(i))({StackName:r,UsePreviousTemplate:!0,Parameters:d,Capabilities:["CAPABILITY_IAM","CAPABILITY_NAMED_IAM"]})}async function handleASGMessage(e,t){const a=e.AutoScalingGroupName,n=e.Event,s="${LowerStackName.Value}-app.${InternalZoneInfo.Name}.";if("autoscaling:EC2_INSTANCE_LAUNCH"===n||"autoscaling:EC2_INSTANCE_TERMINATE"===n){const e=new AWS.AutoScaling({region:"${AWS::Region}"}),t=new AWS.EC2({region:"${AWS::Region}"}),n=new AWS.Route53,r=await promisify(e.describeAutoScalingGroups.bind(e))({AutoScalingGroupNames:[a],MaxRecords:1}),o=(await promisify(n.listResourceRecordSets.bind(n))({StartRecordName:s,StartRecordType:"A",HostedZoneId:"${InternalZoneInfo.Id}",MaxItems:"100"})).ResourceRecordSets,i=r.AutoScalingGroups[0].Instances.map(e=>e.InstanceId),c=await promisify(t.describeInstances.bind(t))({DryRun:!1,InstanceIds:i}),d=[];for(let e=0;e<c.Reservations.length;e++){const t=c.Reservations[e];for(let e=0;e<t.Instances.length;e++){const a=t.Instances[e].NetworkInterfaces[0].Association.PublicIp;a&&d.indexOf(a)<0&&d.push(a)}}for(let e=0,t=o.length;e<t;e++){const t=o[e];if(t.Name!==s||"A"!==t.Type)continue;const a=t.ResourceRecords.length>0&&t.ResourceRecords[0].Value;if(a&&!d.find(e=>e===a))try{await promisify(n.changeResourceRecordSets.bind(n))({ChangeBatch:{Changes:[{Action:"DELETE",ResourceRecordSet:{MultiValueAnswer:!0,Name:t.Name,Type:t.Type,TTL:t.TTL,SetIdentifier:t.SetIdentifier,ResourceRecords:t.ResourceRecords,HealthCheckId:t.HealthCheckId}}]},HostedZoneId:"${InternalZoneInfo.Id}"})}catch(e){}}let l=(await promisify(n.listHealthChecks.bind(n))({MaxItems:"100"})).HealthChecks;if(d.length>1)for(let e=0,t=d.length;e<t;e++){const t=d[e];if(!l.find(e=>e.HealthCheckConfig.IPAddress===t))try{await promisify(n.createHealthCheck.bind(n))({CallerReference:Math.floor(1e9*Math.random()).toString(),HealthCheckConfig:{EnableSNI:!0,FailureThreshold:2,FullyQualifiedDomainName:s,IPAddress:t,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}l=(await promisify(n.listHealthChecks.bind(n))({})).HealthChecks;for(let e=0,t=d.length;e<t;e++){const t=d[e];if(!o.find(e=>e.Name===s&&e.ResourceRecords&&e.ResourceRecords.length&&e.ResourceRecords[0].Value===t)){const e=l.find(e=>e.HealthCheckConfig.IPAddress===t);try{await promisify(n.changeResourceRecordSets.bind(n))({ChangeBatch:{Changes:[{Action:"UPSERT",ResourceRecordSet:{MultiValueAnswer:!0,Name:s,Type:"A",HealthCheckId:e?e.Id:null,TTL:15,SetIdentifier:t,ResourceRecords:[{Value:t}]}}]},HostedZoneId:"${InternalZoneInfo.Id}"})}catch(e){}}}for(let e=0,t=l.length;e<t;e++){const t=l[e];if(1===d.length||!d.find(e=>t.HealthCheckConfig.IPAddress===e))try{await promisify(n.deleteHealthCheck.bind(n))({HealthCheckId:t.Id})}catch(e){}}}else console.log("Unsupported ASG event: "+a+" "+n),t.done("Unsupported ASG event: "+a+" "+n)}exports.handler=async function(e,t){if(e.Records[0].Sns.Message.indexOf("Budget Name")>=0)return handleBudgetAlert(e,t);return handleASGMessage(JSON.parse(e.Records[0].Sns.Message),t)};
   
   InvokeStackTopicHandlerPermission:
     Type: AWS::Lambda::Permission
@@ -1628,7 +1721,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-box-keys", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-box-keys", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   EmptyBuckets:
     Type: Custom::EmptyBuckets
     Properties:
@@ -1710,7 +1803,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   SpeelycaptorRole:
     Type: AWS::IAM::Role
     Properties:
@@ -2083,7 +2176,7 @@ Resources:
   NearsparkDNS:
     Type: AWS::Route53::RecordSet
     Properties:
-      Name: !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
+      Name: !Sub '${LowerStackName.Value}-nearspark.${InternalZoneInfo.Name}'
       HostedZoneId: !Ref InternalZone
       Type: A
       AliasTarget:
@@ -2108,7 +2201,7 @@ Resources:
         HttpVersion: http2
         PriceClass: PriceClass_All
         Aliases:
-          - !Sub '${AWS::StackName}-nearspark.${InternalZoneInfo.Name}'
+          - !Sub '${LowerStackName.Value}-nearspark.${InternalZoneInfo.Name}'
         DefaultCacheBehavior:
           AllowedMethods:
             - GET
@@ -2134,7 +2227,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: PublicRead
-      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-assets", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-assets", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
@@ -2167,7 +2260,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: PublicRead
-      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-root-redirector", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-root-redirector", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
@@ -2195,7 +2288,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: PublicRead
-      BucketName: !Join ["-", [ !Sub "${AWS::StackName}-link-redirector", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-link-redirector", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
@@ -2646,7 +2739,7 @@ Resources:
     Type: AWS::Route53::RecordSet
     Condition: HasALB
     Properties:
-      Name: !Sub "${AWS::StackName}-app-alb.${InternalZoneInfo.Name}"
+      Name: !Sub "${LowerStackName.Value}-app-alb.${InternalZoneInfo.Name}"
       HostedZoneId: !Ref InternalZone
       Type: A
       AliasTarget:
@@ -2760,6 +2853,12 @@ Resources:
       URL: !Ref StackOfflineRedirectUrl
       ServiceToken: !GetAtt ParseURL.Arn
 
+  LowerStackName:
+    Type: Custom::ToLower
+    Properties:
+      String: !Sub "${AWS::StackName}"
+      ServiceToken: !GetAtt ToLower.Arn
+
   AppCloudfrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -2767,7 +2866,7 @@ Resources:
         Enabled: true
         Origins:
           - Id: !Sub "${AWS::StackName}-app"
-            DomainName: !If [ RequestedALB, !Sub "${AWS::StackName}-app-alb.${InternalZoneInfo.Name}", !Sub "${AWS::StackName}-app.${InternalZoneInfo.Name}"]
+            DomainName: !If [ RequestedALB, !Sub "${LowerStackName.Value}-app-alb.${InternalZoneInfo.Name}", !Sub "${LowerStackName.Value}-app.${InternalZoneInfo.Name}"]
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -2867,7 +2966,7 @@ Resources:
             S3OriginConfig:
               OriginAccessIdentity: ""
           - Id: !Sub "${AWS::StackName}-app"
-            DomainName: !Sub '${AWS::StackName}-app.${InternalZoneInfo.Name}'
+            DomainName: !Sub '${LowerStackName.Value}-app.${InternalZoneInfo.Name}'
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -2878,8 +2977,8 @@ Resources:
             RestrictionType: none
             Locations: []
         Aliases:
-          - !Sub '${AWS::StackName}-assets.${InternalZoneInfo.Name}'
-          - !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
+          - !Sub '${LowerStackName.Value}-assets.${InternalZoneInfo.Name}'
+          - !Sub '${LowerStackName.Value}-cors-proxy.${InternalZoneInfo.Name}'
         HttpVersion: http2
         PriceClass: PriceClass_All
         CustomErrorResponses:
@@ -2965,7 +3064,7 @@ Resources:
   AppAssetsDNS:
     Type: AWS::Route53::RecordSet
     Properties:
-      Name: !Sub "${AWS::StackName}-assets.${InternalZoneInfo.Name}"
+      Name: !Sub "${LowerStackName.Value}-assets.${InternalZoneInfo.Name}"
       HostedZoneId: !Ref InternalZone
       Type: A
       AliasTarget:
@@ -3044,7 +3143,7 @@ Resources:
   CorsProxyDNS:
     Type: AWS::Route53::RecordSet
     Properties:
-      Name: !Sub '${AWS::StackName}-cors-proxy.${InternalZoneInfo.Name}'
+      Name: !Sub '${LowerStackName.Value}-cors-proxy.${InternalZoneInfo.Name}'
       HostedZoneId: !Ref InternalZone
       Type: A
       AliasTarget:
@@ -3373,7 +3472,7 @@ Resources:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
       DBSubnetGroupDescription: app-db
-      DBSubnetGroupName: !Sub "${AWS::StackName}-app-db"
+      DBSubnetGroupName: !Sub "${LowerStackName.Value}-app-db"
       SubnetIds:
         - !Ref SubnetAPrivate
         - !Ref SubnetBPrivate
@@ -3628,7 +3727,7 @@ Outputs:
 
   AppDNS:
     Description: Load balanced app DNS [reticulum/phx/secondary_url_host]
-    Value: !Sub "${AWS::StackName}-app.${InternalZoneInfo.Name}"
+    Value: !Sub "${LowerStackName.Value}-app.${InternalZoneInfo.Name}"
 
   RetHostnameDNSSuffix:
     Description: Reticulum Hostname DNS Suffix [reticulum/run/hostname_dns_suffix]

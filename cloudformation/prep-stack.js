@@ -19,10 +19,13 @@ for (const ami of artifacts) {
 
 const useMinimalDefaults = () => {
 	template.Parameters.AppInstanceType.Default = "t3.micro"
-	template.Parameters.StreamInstanceType.Default = "t3.micro"
 	template.Parameters.AutoPauseDb.Default = "Yes - Pause database when not in use"
 	template.Parameters.LoadBalancingMethod.Default = "DNS Round Robin"
 	template.Parameters.MaxStorage.Default = 128
+
+	if (template.Parameters.StreamInstanceType) {
+		template.Parameters.StreamInstanceType.Default = "t3.micro"
+	}
 };
 
 if (mode === "personal") {
@@ -34,13 +37,13 @@ if (mode === "personal") {
 	}
 
 	for (p of Object.keys(metadata.ParameterLabels)) {
-		if (p.endsWith("InstanceCount")) {
+		if (p.endsWith("InstanceCount") || p.endsWith("StreamInstanceType")) {
 			delete metadata.ParameterLabels[p];
 		}
 	}
 
 	for (p of Object.keys(template.Parameters)) {
-		if (p.endsWith("InstanceCount")) {
+		if (p.endsWith("InstanceCount") || p.endsWith("StreamInstanceType")) {
 			delete template.Parameters[p];
 		}
 	}
@@ -51,9 +54,18 @@ if (mode === "personal") {
 				walk(o[i], i, o);
 			}
 		} else if (o instanceof Object) {
-			// Replace Refs to InstanceCount to 1
-			if (o.Ref && typeof(o.Ref) === "string" && o.Ref.endsWith("InstanceCount")) {
+			// Replace Refs to AppInstanceCount to 1
+			if (o.Ref && typeof(o.Ref) === "string" && o.Ref.endsWith("AppInstanceCount")) {
 				parent[k] = 1;
+			}
+
+			// Replace Refs to StreamInstanceCount to 1
+			if (o.Ref && typeof(o.Ref) === "string" && o.Ref.endsWith("StreamInstanceCount")) {
+				parent[k] = 0;
+			}
+
+			if (o.Ref && typeof(o.Ref) === "string" && o.Ref.endsWith("StreamInstanceType")) {
+				parent[k] = "t3.micro";
 			}
 
 			for (let k of Object.keys(o)) {
