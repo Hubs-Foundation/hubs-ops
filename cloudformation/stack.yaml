@@ -1136,6 +1136,7 @@ Resources:
       ValidationMethod: DNS
       Region: !Sub "${AWS::Region}"
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+    DependsOn: InternalZoneSSLCertEast
 
   ExternalZoneSSLCertEast:
     Type: Custom::DNSCertificate
@@ -1150,6 +1151,7 @@ Resources:
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+    DependsOn: ExternalZoneSSLCert
 
   ShortlinkZoneSSLCertEast:
     Type: Custom::DNSCertificate
@@ -1161,6 +1163,7 @@ Resources:
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+    DependsOn: InternalZoneSSLCertEast
 
   InternalZoneSSLCert:
     Type: Custom::DNSCertificate
@@ -1185,6 +1188,7 @@ Resources:
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+    DependsOn: InternalZoneSSLCert
 
 # SESDomain
   SESDomainRole:
