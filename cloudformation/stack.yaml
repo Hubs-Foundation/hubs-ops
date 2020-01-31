@@ -1183,6 +1183,8 @@ Resources:
     Type: Custom::DNSCertificate
     Properties: 
       DomainName: !Sub '*.${InternalZoneInfo.Name}'
+      SubjectAlternativeNames:
+        - !Sub '${LowerStackName.Value}-cors-proxy.${InternalZoneInfo.Name}'
       DomainValidationOptions:
         - DomainName: !GetAtt InternalZoneInfo.Name
           HostedZoneId: !Ref InternalZone
