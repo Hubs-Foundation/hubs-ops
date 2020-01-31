@@ -1150,6 +1150,8 @@ Resources:
       DomainValidationOptions:
         - DomainName: !GetAtt ExternalZoneInfo.Name
           HostedZoneId: !GetAtt ExternalZoneInfo.Id
+        - DomainName: !Sub '${LowerStackName.Value}-cors-proxy.${InternalZoneInfo.Name}'
+          HostedZoneId: !GetAtt InternalZoneInfo.Id
       ValidationMethod: DNS
       Region: !Sub "${AWS::Region}"
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
