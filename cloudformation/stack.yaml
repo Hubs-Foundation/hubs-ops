@@ -441,6 +441,10 @@ Conditions:
   HasDbMonthlyBudget: !Not [!Equals [!Ref DatabaseMonthlyBudget, 0]]
   IsNotRestore: !Equals [!Ref RestoreDbSnapshotIdentifier, ""]
   IsRestore: !Not [Condition: IsNotRestore]
+  IsEast: !Equals [!Sub "${AWS::Region}", "us-east-1"]
+  IsNonEast: !Not [Condition: IsEast]
+  HasManagedDomainNonEast: !And [Condition: IsNonEast, Condition: HasManagedDomain]
+  HasManagedDomainEast: !And [Condition: IsEast, Condition: HasManagedDomain]
 
   # NOTE: keep the ALB around if we are doing an offline redirect *and* we have an unmanaged domain, because otherwise
   # it would require the user to go update their external DNS CNAME to get the redirect to work. The downside is that
@@ -1125,9 +1129,9 @@ Resources:
       Id: !Ref EmailZone
       ServiceToken: !GetAtt Route53DependencyLambda.Arn
 
-  ExternalZoneSSLCert:
+  ExternalZoneSSLCertLocalIfNonEast:
     Type: Custom::DNSCertificate
-    Condition: HasManagedDomain
+    Condition: HasManagedDomainNonEast
     Properties: 
       DomainName: !GetAtt ExternalZoneInfo.Name
       DomainValidationOptions:
@@ -1136,11 +1140,24 @@ Resources:
       ValidationMethod: DNS
       Region: !Sub "${AWS::Region}"
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
-    DependsOn: InternalZoneSSLCertEast
+    DependsOn: ExternalZoneSSLCertEast
+
+  ExternalZoneSSLCertLocalIfEast:
+    Type: Custom::DNSCertificate
+    Condition: HasManagedDomainEast
+    Properties: 
+      DomainName: !GetAtt ExternalZoneInfo.Name
+      DomainValidationOptions:
+        - DomainName: !GetAtt ExternalZoneInfo.Name
+          HostedZoneId: !GetAtt ExternalZoneInfo.Id
+      ValidationMethod: DNS
+      Region: !Sub "${AWS::Region}"
+      ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
+    DependsOn: InternalZoneSSLCert
 
   ExternalZoneSSLCertEast:
     Type: Custom::DNSCertificate
-    Condition: HasManagedDomain
+    Condition: HasManagedDomainNonEast
     Properties: 
       DomainName: !GetAtt ExternalZoneInfo.Name
       DomainValidationOptions:
@@ -1151,7 +1168,7 @@ Resources:
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
-    DependsOn: ExternalZoneSSLCert
+    DependsOn: InternalZoneSSLCertEast
 
   ShortlinkZoneSSLCertEast:
     Type: Custom::DNSCertificate
@@ -1163,7 +1180,6 @@ Resources:
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
-    DependsOn: InternalZoneSSLCertEast
 
   InternalZoneSSLCert:
     Type: Custom::DNSCertificate
@@ -1178,6 +1194,7 @@ Resources:
 
   InternalZoneSSLCertEast:
     Type: Custom::DNSCertificate
+    Condition: IsNonEast
     Properties: 
       DomainName: !Sub '*.${InternalZoneInfo.Name}'
       SubjectAlternativeNames:
@@ -2224,7 +2241,7 @@ Resources:
           MinTTL: '0'
           DefaultTTL: '3600'
         ViewerCertificate:
-          AcmCertificateArn: !Ref InternalZoneSSLCertEast
+          AcmCertificateArn: !If [IsNonEast, !Ref InternalZoneSSLCertEast, !Ref InternalZoneSSLCert]
           SslSupportMethod: sni-only
 
   AssetsBucket:
@@ -2777,7 +2794,7 @@ Resources:
       Protocol: HTTPS
       SslPolicy: ELBSecurityPolicy-2015-05
       Certificates:
-        - CertificateArn: !If [HasManagedDomain, !Ref ExternalZoneSSLCert, !Ref UnmanagedDomainCertArn]
+        - CertificateArn: !If [HasManagedDomain, !If [IsEast, !Ref ExternalZoneSSLCertLocalIfEast, !Ref ExternalZoneSSLCertLocalIfNonEast], !Ref UnmanagedDomainCertArn]
       DefaultActions:
         - TargetGroupArn: !If [PerformOfflineRedirect, !Ref "AWS::NoValue", !Ref AppALBRetTargetGroup]
           Type: !If [PerformOfflineRedirect, redirect, forward]
@@ -2955,7 +2972,7 @@ Resources:
           DefaultTTL: 3600
           MaxTTL: 3600
         ViewerCertificate:
-          AcmCertificateArn: !If [HasManagedDomain, !Ref ExternalZoneSSLCertEast, !Ref UnmanagedDomainEastCertArn]
+          AcmCertificateArn: !If [HasManagedDomain, !If [IsNonEast, !Ref ExternalZoneSSLCertEast, !Ref ExternalZoneSSLCertLocalIfEast], !Ref UnmanagedDomainEastCertArn]
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1
 
@@ -3061,7 +3078,7 @@ Resources:
           DefaultTTL: 3600
           MaxTTL: 3600
         ViewerCertificate:
-          AcmCertificateArn: !Ref InternalZoneSSLCertEast
+          AcmCertificateArn: !If [IsNonEast, !Ref InternalZoneSSLCertEast, !Ref InternalZoneSSLCert]
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1
 
