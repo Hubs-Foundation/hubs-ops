@@ -1133,9 +1133,9 @@ Resources:
     Type: Custom::DNSCertificate
     Condition: HasManagedDomainNonEast
     Properties: 
-      DomainName: !GetAtt ExternalZoneInfo.Name
+      DomainName: !Ref DomainName
       DomainValidationOptions:
-        - DomainName: !GetAtt ExternalZoneInfo.Name
+        - DomainName: !Ref DomainName
           HostedZoneId: !GetAtt ExternalZoneInfo.Id
       ValidationMethod: DNS
       Region: !Sub "${AWS::Region}"
@@ -1146,12 +1146,10 @@ Resources:
     Type: Custom::DNSCertificate
     Condition: HasManagedDomainEast
     Properties: 
-      DomainName: !GetAtt ExternalZoneInfo.Name
+      DomainName: !Ref DomainName
       DomainValidationOptions:
-        - DomainName: !GetAtt ExternalZoneInfo.Name
+        - DomainName: !Ref DomainName
           HostedZoneId: !GetAtt ExternalZoneInfo.Id
-        - DomainName: !Sub '${LowerStackName.Value}-cors-proxy.${InternalZoneInfo.Name}'
-          HostedZoneId: !GetAtt InternalZoneInfo.Id
       ValidationMethod: DNS
       Region: !Sub "${AWS::Region}"
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
@@ -1161,12 +1159,10 @@ Resources:
     Type: Custom::DNSCertificate
     Condition: HasManagedDomainNonEast
     Properties: 
-      DomainName: !GetAtt ExternalZoneInfo.Name
+      DomainName: !Ref DomainName
       DomainValidationOptions:
-        - DomainName: !GetAtt ExternalZoneInfo.Name
+        - DomainName: !Ref DomainName
           HostedZoneId: !GetAtt ExternalZoneInfo.Id
-        - DomainName: !Sub '${LowerStackName.Value}-cors-proxy.${InternalZoneInfo.Name}'
-          HostedZoneId: !GetAtt InternalZoneInfo.Id
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
