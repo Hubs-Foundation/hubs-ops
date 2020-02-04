@@ -1166,7 +1166,7 @@ Resources:
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
-    DependsOn: ShortlinkZoneSSLCertEast
+    DependsOn: InternalZoneSSLCertEast
 
   ShortlinkZoneSSLCertEast:
     Type: Custom::DNSCertificate
@@ -1178,7 +1178,7 @@ Resources:
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
-    DependsOn: InternalZoneSSLCertEast
+    DependsOn: InternalZoneSSLCert
 
   InternalZoneSSLCert:
     Type: Custom::DNSCertificate
@@ -1206,7 +1206,7 @@ Resources:
       ValidationMethod: DNS
       Region: us-east-1
       ServiceToken: !GetAtt CustomAcmCertificateLambda.Arn
-    DependsOn: InternalZoneSSLCert
+    DependsOn: ShortlinkZoneSSLCertEast
 
 # SESDomain
   SESDomainRole:
