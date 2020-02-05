@@ -3701,7 +3701,7 @@ Outputs:
 
   NonCorsProxyDomains:
     Description: Non-CORS proxied domains [hubs/general/non_cors_proxy_domains,spoke/general/non_cors_proxy_domains]
-    Value: !Sub "${DomainName},${InternalZoneInfo.Name},${AppAssetsDNS},${AWS::StackName}-${AWS::AccountId}-hubs-worker.com"
+    Value: !Sub "${DomainName},${InternalZoneInfo.Name},${AppAssetsDNS},${LowerStackName.Value}-${AWS::AccountId}-hubs-worker.com"
 
   JanusAndReticulumAdminSecret:
     Description: Janus and Reticulum Admin Secret [reticulum/phx/admin_access_key!read-keymaster-secret,janus-gateway/general/admin_secret!read-keymaster-secret,reticulum/janus/admin_secret!read-keymaster-secret]

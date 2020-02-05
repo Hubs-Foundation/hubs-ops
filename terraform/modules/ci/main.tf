@@ -323,7 +323,6 @@ chown root:hab /hab/sup/default/CTL_SECRET
 chmod 0750 /hab/sup/default
 chmod 0640 /hab/sup/default/CTL_SECRET
 
-sudo apt-get install -y docker.io
 sudo /usr/bin/hab svc load mozillareality/jenkins-war --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
