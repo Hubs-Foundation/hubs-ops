@@ -59,3 +59,5 @@ janus_admin_port: 7000
 janus_service_name: "janus-gateway"
 cors_origins: "*"
 dd_api_key: null
+ret_db_ssl: "true"
+insecure_ssl: "true"

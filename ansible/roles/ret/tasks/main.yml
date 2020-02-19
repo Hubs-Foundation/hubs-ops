@@ -45,6 +45,32 @@
     shell: "cp {{ work_dir.path }}/reticulum.toml /hab/user/reticulum/config/user.toml"
     when: env == 'local'
 
+  - name: "Make local files dir"
+    shell: "mkdir -p /hab/svc/reticulum/files"
+    when: env == 'local'
+
+  - name: "Copy local ssl"
+    copy:
+      src: ssl.key.local
+      dest: "/hab/svc/reticulum/files/ssl.key"
+    when: env == 'local'
+
+  - name: "Copy local ssl cert"
+    copy:
+      src: ssl.pem.local
+      dest: "/hab/svc/reticulum/files/ssl.pem"
+    when: env == 'local'
+
+  - name: "Copy local ssl cert chain"
+    copy:
+      src: ssl-chain.pem.local
+      dest: "/hab/svc/reticulum/files/ssl-chain.pem"
+    when: env == 'local'
+
+  - name: Show JWT info
+    debug:
+      msg: "You need to run script/run.sh in reticulum and then while its running copy the JWT from priv/jwt-key.pem to /hab/svc/reticulum/files/jwt-key.pem"
+
   always:
   - name: Remove work directory
     file:
