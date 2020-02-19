@@ -12,6 +12,7 @@ phoenix_cors_proxy_url_host: "hubs-proxy.com"
 phoenix_allow_all_origins: "true"
 hubs_page_origin: "https://hubs.local:8080"
 spoke_page_origin: "https://hubs.local:9090"
+admin_page_origin: "https://hubs.local:8181"
 page_origin_insecure_ssl: "true"
 ret_bot_access_key: "secret"
 giphy_api_key: null
