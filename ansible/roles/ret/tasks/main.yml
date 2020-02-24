@@ -70,6 +70,7 @@
   - name: Show JWT info
     debug:
       msg: "You need to run script/run.sh in reticulum and then while its running copy the JWT from priv/jwt-key.pem to /hab/svc/reticulum/files/jwt-key.pem"
+    when: env == 'local'
 
   always:
   - name: Remove work directory
