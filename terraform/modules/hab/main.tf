@@ -35,12 +35,12 @@ resource "aws_security_group" "hab" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Papertrail
+  # InfluxDB
   egress {
-    from_port = "28666"
-    to_port = "28666"
+    from_port = "8086"
+    to_port = "8086"
     protocol = "tcp"
-    cidr_blocks = ["169.46.82.160/27"]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   # NTP
@@ -129,6 +129,7 @@ resource "aws_launch_configuration" "hab" {
 while ! nc -z localhost 9632 ; do sleep 1; done
 systemctl restart systemd-sysctl.service
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 

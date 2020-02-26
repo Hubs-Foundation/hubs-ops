@@ -29,12 +29,21 @@
       src: dd-agent.toml.j2
       dest: "{{ work_dir.path }}/dd-agent.toml"
 
+  - name: Write telegraf config file
+    template:
+      src: telegraf.toml.j2
+      dest: "{{ work_dir.path }}/telegraf.toml"
+
   - name: Deploy remote Reticulum configs
     shell: "cat {{ work_dir.path }}/reticulum.toml | /hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr reticulum.default $(date +%s)"
     when: env != 'local'
 
   - name: Deploy remote Datadog Agent configs
     shell: "cat {{ work_dir.path }}/dd-agent.toml | /hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr dd-agent.default $(date +%s)"
+    when: env != 'local'
+
+  - name: Deploy remote telegraf Agent configs
+    shell: "cat {{ work_dir.path }}/telegraf.toml | /hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr telegraf.default $(date +%s)"
     when: env != 'local'
 
   - name: "Make local target config dir"
