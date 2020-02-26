@@ -3,6 +3,7 @@
 services:
   - janus-gateway
   - dd-agent
+  - telegraf
 
 keyfiles:
   - dtls

@@ -3,6 +3,7 @@
 services:
   - postgrest
   - dd-agent
+  - telegraf
 
 keyfiles:
   - jwk.json

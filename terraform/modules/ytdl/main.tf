@@ -179,6 +179,7 @@ systemctl restart systemd-sysctl.service
 
 sudo /usr/bin/hab svc load mozillareality/youtube-dl-api-server --strategy ${var.ytdl_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ytdl_channel}
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 

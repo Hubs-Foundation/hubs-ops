@@ -3,6 +3,7 @@
 services:
   - hubs-discord-bot
   - dd-agent
+  - telegraf
 
 collect_ec2_tags: "no"
 shard_id: "0"

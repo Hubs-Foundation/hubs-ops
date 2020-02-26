@@ -206,6 +206,7 @@ sudo systemctl restart systemd-journald
 
 sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/janus-gateway-files.tar.gz.gpg .
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/janus-gateway/files/gpg-file-key.txt janus-gateway-files.tar.gz.gpg | tar xz -C /hab/svc/janus-gateway/files
 rm janus-gateway-files.tar.gz.gpg
@@ -268,6 +269,7 @@ sudo systemctl restart systemd-journald
 
 sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel unstable
 sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/janus-gateway-files.tar.gz.gpg .
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/janus-gateway/files/gpg-file-key.txt janus-gateway-files.tar.gz.gpg | tar xz -C /hab/svc/janus-gateway/files
 rm janus-gateway-files.tar.gz.gpg
