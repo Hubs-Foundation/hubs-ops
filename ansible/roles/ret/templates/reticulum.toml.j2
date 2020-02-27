@@ -142,6 +142,18 @@ content_security_policy = "{{ content_security_policy }}"
 csp = "{{ content_security_policy }}"
 cors_origins = "{{ cors_origins }}"
 
+[extra_csp]
+script_src = "{{ extra_csp_script_src }}"
+font_src = "{{ extra_csp_font_src }}"
+connect_src = "{{ extra_csp_connect_src }}"
+style_src = "{{ extra_csp_style_src }}"
+img_src = "{{ extra_csp_img_src }}"
+media_src = "{{ extra_csp_media_src }}"
+frame_src = "{{ extra_csp_frame_src }}"
+child_src = "{{ extra_csp_child_src }}"
+worker_src = "{{ extra_csp_worker_src }}"
+manifest_src = "{{ extra_csp_manifest_src }}"
+
 [email]
 {% if mailer_server is defined %}
 server = "{{ mailer_server }}"
