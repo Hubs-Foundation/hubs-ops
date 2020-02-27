@@ -609,7 +609,6 @@ chown hab:hab /hab/svc/reticulum/files/*
 popd
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
-sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
 sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 sudo /usr/bin/hab svc load mozillareality/hubs-docs --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
@@ -686,7 +685,6 @@ chown hab:hab /hab/svc/reticulum/files/*
 popd
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
-sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
 sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 sudo /usr/bin/hab svc load mozillareality/hubs-docs --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
