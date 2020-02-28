@@ -21,7 +21,7 @@ pkg_build_deps=(
     core/rust
     core/cacerts
     core/git
-    mozillareality/gnutls
+    mozillareality/gnutls/3.6.1/20180914001821
     mozillareality/gengetopt
 )
 
@@ -73,6 +73,12 @@ do_download() {
   pushd $HAB_CACHE_SRC_PATH
 
   git-get meetecho/janus-gateway v0.4.5
+  pushd meetecho/janus-gateway
+  # https://bugzilla.mozilla.org/show_bug.cgi?id=1606886
+  # https://github.com/meetecho/janus-gateway/commit/435a1e91f1661e99d7a78c7953adfeedd95b66e3
+  git cherry-pick -n 435a1e91f1661e99d7a78c7953adfeedd95b66e3
+  popd
+
   git-get mozilla/janus-plugin-sfu 97be0ad45747d5c04f2e10a5b3e74cc997445d89
 
   popd
