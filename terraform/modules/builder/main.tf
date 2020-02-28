@@ -164,6 +164,14 @@ resource "aws_security_group" "builder" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # InfluxDB
+  egress {
+    from_port = "8086"
+    to_port = "8086"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # NFS upload-fs
   egress {
     from_port = "2049"
@@ -344,6 +352,7 @@ cd /hab
 # Need to restart because of new sup key
 systemctl restart hab
 ./start_builder.sh
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 
 EOF
 }

@@ -347,6 +347,14 @@ resource "aws_security_group" "ret" {
     protocol = "tcp"
     security_groups = ["${aws_security_group.upload-fs.id}"]
   }
+
+  # InfluxDB
+  egress {
+    from_port = "8086"
+    to_port = "8086"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_iam_role" "ret" {
@@ -609,7 +617,7 @@ chown hab:hab /hab/svc/reticulum/files/*
 popd
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
-sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 sudo /usr/bin/hab svc load mozillareality/hubs-docs --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
@@ -685,7 +693,7 @@ chown hab:hab /hab/svc/reticulum/files/*
 popd
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
-sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 sudo /usr/bin/hab svc load mozillareality/hubs-docs --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
