@@ -144,6 +144,14 @@ resource "aws_security_group" "postgrest" {
     protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  # InfluxDB
+  egress {
+    from_port = "8086"
+    to_port = "8086"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_iam_role" "postgrest" {

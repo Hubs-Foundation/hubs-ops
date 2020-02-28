@@ -164,6 +164,14 @@ resource "aws_security_group" "builder" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # InfluxDB
+  egress {
+    from_port = "8086"
+    to_port = "8086"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # NFS upload-fs
   egress {
     from_port = "2049"
