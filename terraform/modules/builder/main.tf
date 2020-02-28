@@ -344,6 +344,7 @@ cd /hab
 # Need to restart because of new sup key
 systemctl restart hab
 ./start_builder.sh
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 
 EOF
 }
