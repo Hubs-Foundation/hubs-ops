@@ -2,7 +2,6 @@
 
 services:
   - janus-gateway
-  - telegraf
 
 keyfiles:
   - dtls
