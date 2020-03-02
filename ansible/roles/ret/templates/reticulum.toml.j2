@@ -43,6 +43,8 @@ password = "{{ ret_db_password }}"
 hostname = "{{ ret_db_hostname }}"
 database = "ret_production"
 pool_size = 16
+queue_interval = {{ queue_interval }}
+queue_target = {{ queue_target }}
 ssl = {{ ret_db_ssl }}
 
 [session_lock_db]
