@@ -3029,7 +3029,7 @@ Resources:
             TargetOriginId: !Sub "${AWS::StackName}-app"
             ForwardedValues:
               QueryString: true
-              Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers", "Accept"]
+              Headers: ["Origin", "Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers", "Accept", "Range"]
               Cookies:
                 Forward: none
             ViewerProtocolPolicy: https-only
