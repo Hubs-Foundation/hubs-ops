@@ -154,6 +154,20 @@ child_src = "{{ extra_csp_child_src }}"
 worker_src = "{{ extra_csp_worker_src }}"
 manifest_src = "{{ extra_csp_manifest_src }}"
 
+[extra_html]
+{% if extra_index_html is defined %}
+extra_index_html = "{{ extra_index_html }}"
+{% endif %}
+{% if extra_scene_html is defined %}
+extra_scene_html = "{{ extra_scene_html }}"
+{% endif %}
+{% if extra_avatar_html is defined %}
+extra_avatar_html = "{{ extra_avatar_html }}"
+{% endif %}
+{% if extra_room_html is defined %}
+extra_room_html = "{{ extra_room_html }}"
+{% endif %}
+
 [email]
 {% if mailer_server is defined %}
 server = "{{ mailer_server }}"
