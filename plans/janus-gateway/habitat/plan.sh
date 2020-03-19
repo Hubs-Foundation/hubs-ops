@@ -100,7 +100,7 @@ do_build() {
 
   ./autogen.sh
 
-  CFLAGS="${CFLAGS} -fsanitize=address -fno-omit-frame-pointer" LDFLAGS="${LDFLAGS} -lasan" ./configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
+  CFLAGS="${CFLAGS} -fno-omit-frame-pointer" ./configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
 
   make
 
