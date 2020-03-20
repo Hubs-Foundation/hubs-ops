@@ -2,7 +2,7 @@ pkg_name=janus-gateway
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 
-pkg_version="0.4.5"
+pkg_version="0.7.6"
 pkg_license=('GPLv3')
 pkg_description="Janus is an open source, general purpose, WebRTC gateway"
 pkg_upstream_url="https://janus.conf.meetecho.com/"
@@ -21,35 +21,36 @@ pkg_build_deps=(
     core/rust
     core/cacerts
     core/git
-    mozillareality/gnutls/3.6.1/20180914001821
-    mozillareality/gengetopt
+    mozillareality/gnutls/3.6.9
+    mozillareality/gengetopt/2.23
 )
 
 # versions are pinned for convenience building with Habitat, not because we give a crap about
 # having these versions in particular -- latest versions of everything should be sufficient
 pkg_deps=(
-    core/gcc/7.3.0/20180608051919 # reqd for libasan
-    core/glib/2.50.3/20180718153537
-    core/openssl/1.0.2n/20180608102213
-    core/p11-kit/0.23.10/20180608191918
-    core/sqlite/3130000/20180608141313
-    core/util-linux/2.31.1/20180608101132
+    core/gcc
+    core/glib
+    core/openssl
+    core/p11-kit
+    core/sqlite
+    core/util-linux
 
-    mozillareality/jansson/2.10/20170922013102
-    mozillareality/libmicrohttpd/0.9.55/20170923183119
-    mozillareality/libnice/0.1.15/20180914001451
-    mozillareality/libsrtp/2.1.0/20170923183826
-    mozillareality/libwebsockets/2.4.2/20180702225550
-    mozillareality/opus/1.2.1/20170922184322
-    mozillareality/usrsctp/0.9.4.0/20170923224507
+    mozillareality/jansson/2.12
+    mozillareality/libmicrohttpd/0.9.66
+    mozillareality/libnice/0.1.16
+    mozillareality/libsrtp/2.2.0
+    mozillareality/libwebsockets/2.4.2
+    mozillareality/opus/1.3.1
+    mozillareality/usrsctp/0.9.4.0
+    mozillareality/libconfig/1.7.2
 
     # https://github.com/habitat-sh/habitat/issues/3303
-    core/zlib/1.2.11/20180608050617
-    core/glibc/2.27/20180608041157
-    core/gcc-libs/7.3.0/20180608091701
-    core/nettle/3.4/20180609173754
-    core/pcre/8.41/20180608092740
-    core/libtasn1/4.13/20180608191858
+    core/zlib
+    core/glibc
+    core/gcc-libs
+    core/nettle
+    core/pcre
+    core/libtasn1
 )
 
 git-get () {
@@ -72,14 +73,11 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get meetecho/janus-gateway v0.4.5
+  git-get meetecho/janus-gateway v0.7.6
   pushd meetecho/janus-gateway
-  # https://bugzilla.mozilla.org/show_bug.cgi?id=1606886
-  # https://github.com/meetecho/janus-gateway/commit/435a1e91f1661e99d7a78c7953adfeedd95b66e3
-  git cherry-pick -n 435a1e91f1661e99d7a78c7953adfeedd95b66e3
   popd
 
-  git-get mozilla/janus-plugin-sfu 97be0ad45747d5c04f2e10a5b3e74cc997445d89
+  git-get mozilla/janus-plugin-sfu 14a33464726166fa0d3a20bd452ad05d2f7c53a6
 
   popd
 }
@@ -99,7 +97,7 @@ do_build() {
 
   ./autogen.sh
 
-  CFLAGS="${CFLAGS} -fsanitize=address -fno-omit-frame-pointer" LDFLAGS="${LDFLAGS} -lasan" ./configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
+  CFLAGS="${CFLAGS} -fno-omit-frame-pointer" ./configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
 
   make
 
