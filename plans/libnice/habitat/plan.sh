@@ -62,7 +62,7 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get libnice/libnice 563bee297bf29b73d8e2d7ebe68505e11a087276
+  git-get gfodor/libnice 9a0607732902c2024960886a952edc8b9e3e5f77
 
   popd
 }
@@ -72,7 +72,7 @@ do_strip() {
 }
 
 do_build() {
-  pushd $HAB_CACHE_SRC_PATH/libnice/libnice
+  pushd $HAB_CACHE_SRC_PATH/gfodor/libnice
 
   libtoolize
 
@@ -101,7 +101,7 @@ do_build() {
 }
 
 do_install() {
-  pushd $HAB_CACHE_SRC_PATH/libnice/libnice
+  pushd $HAB_CACHE_SRC_PATH/gfodor/libnice
 
   do_default_install
 
