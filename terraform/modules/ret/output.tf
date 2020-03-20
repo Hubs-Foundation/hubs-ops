@@ -29,3 +29,19 @@ output "ret_upload_fs_security_group_id" {
 output "ret_upload_fs_connect_security_group_id" {
   value = "${aws_security_group.upload-fs-connect.id}"
 }
+
+output "polycosm_assets_bucket_id" {
+  value ="${aws_s3_bucket.polycosm-assets-bucket.id}"
+}
+
+output "polycosm_assets_bucket_region" {
+  value ="${var.shared["region"]}"
+}
+
+output "polycosm_sam_bucket_id" {
+  value ="${aws_s3_bucket.polycosm-sam-bucket.id}"
+}
+
+output "polycosm_sam_bucket_region" {
+  value ="us-east-1"
+}

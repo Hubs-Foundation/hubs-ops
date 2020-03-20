@@ -15,7 +15,7 @@ ENV=""
 
 # There is a race condition on EC2 metadata, it can be not ready yet or have no tags yet.
 while [[ -z "$EC2_INFO" || -z "$HAB_RING" || -z "$ENV" ]] ; do
-  EC2_INFO=$(aws ec2 --region us-west-1 describe-instances)
+  EC2_INFO=$(aws ec2 --region us-west-1 describe-instances --no-paginate)
 
   # Get the ring name
   HAB_RING=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$INSTANCE_ID\") | .Tags | .[]? | select(.Key == \"hab-ring\") | .Value ")

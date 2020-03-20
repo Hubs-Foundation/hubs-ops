@@ -50,3 +50,16 @@ variable "root_redirector_target" {
 variable "root_redirector_target_hostname" {
   description = "Target hostname to redirect to for root redirector"
 }
+
+variable "stack_create_redirector_domains" {
+  description = "Domain names being used for stack create redirector"
+  type = "list"
+}
+
+variable "stack_create_redirector_enabled" {
+  description = "If stack create redirector is enabled"
+}
+
+variable "stack_create_redirector_target" {
+  description = "Target URL to redirect to for stack create redirector"
+}

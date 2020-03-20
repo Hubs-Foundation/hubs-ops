@@ -1,0 +1,22 @@
+[server]
+
+bind = ""
+read_timeout = ""
+write_timeout = ""
+download_timeout = ""
+ttl = ""
+
+[security]
+
+allow_origins = ""
+max_src_dimension = ""
+
+[compression]
+
+gzip_compression = ""
+
+[misc]
+
+server_url = ""
+cache_root = ""
+cache_size = ""

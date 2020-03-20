@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+exec 2>&1
+
+set -e
+
+INSTANCE_ID=$(curl -s "http://169.254.169.254/latest/meta-data/instance-id")
+
+while [[ -z "$EC2_INFO" || -z "$HAB_RING" || -z "$HOST_ENV" || -z "$HOST_TYPE" ]] ; do
+  EC2_INFO=$(aws ec2 --region us-west-1 describe-instances --no-paginate)
+
+  export HAB_RING=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$INSTANCE_ID\") | .Tags | .[]? | select(.Key == \"hab-ring\") | .Value ")
+  export HOST_TYPE=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$INSTANCE_ID\") | .Tags | .[]? | select(.Key == \"host-type\") | .Value ")
+  export HOST_ENV=$(echo "$EC2_INFO" | jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$INSTANCE_ID\") | .Tags | .[]? | select(.Key == \"env\") | .Value ")
+done
+
+telegraf --config {{ pkg.svc_config_path }}/telegraf.conf

@@ -1,0 +1,19 @@
+#!{{pkgPathFor "core/bash"}}/bin/bash
+
+set -e
+exec 2>&1
+
+export IMGPROXY_BIND={{ cfg.server.bind }}
+export IMGPROXY_READ_TIMEOUT={{ cfg.server.read_timeout }}
+export IMGPROXY_WRITE_TIMEOUT={{ cfg.server.write_timeout }}
+export IMGPROXY_DOWNLOAD_TIMEOUT={{ cfg.server.download_timeout }}
+export IMGPROXY_TTL={{ cfg.server.ttl }}
+export IMGPROXY_USE_ETAG={{ cfg.server.use_etag }}
+export IMGPROXY_LOCAL_FILESYSTEM_ROOT={{ cfg.server.local_filesystem_root }}
+export IMGPROXY_QUALITY={{ cfg.compression.quality }}
+export IMGPROXY_GZIP_COMPRESSION={{ cfg.compression.gzip_compression }}
+export IMGPROXY_SECRET={{ cfg.security.secret }}
+export IMGPROXY_ALLOW_ORIGIN={{ cfg.security.allow_origin }}
+export IMGPROXY_BASE_URL={{ cfg.misc.base_url }}
+
+exec imgproxy

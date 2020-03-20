@@ -70,6 +70,14 @@ resource "aws_security_group" "ci" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # InfluxDB
+  egress {
+    from_port = "8086"
+    to_port = "8086"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # Git (for fetching deps)
   egress {
     from_port = "9418"
@@ -212,6 +220,11 @@ resource "aws_iam_policy" "ci-upload-assets-s3-policy" {
       },
       {
           "Effect": "Allow",
+          "Action": "s3:DeleteObject",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.assets_bucket_id}/*"
+      },
+      {
+          "Effect": "Allow",
           "Action": "s3:PutObjectAcl",
           "Resource": "arn:aws:s3:::${data.terraform_remote_state.base.assets_bucket_id}/*"
       },
@@ -223,6 +236,11 @@ resource "aws_iam_policy" "ci-upload-assets-s3-policy" {
       {
           "Effect": "Allow",
           "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::${data.terraform_remote_state.base-prod.assets_bucket_id}/*"
+      },
+      {
+          "Effect": "Allow",
+          "Action": "s3:DeleteObject",
           "Resource": "arn:aws:s3:::${data.terraform_remote_state.base-prod.assets_bucket_id}/*"
       },
       {
@@ -283,11 +301,36 @@ sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-pkg-promote
 sudo echo 'hab pkg promote -z $(cat /hab/cache/keys/mozillareality-github.token) $1 $2' >> /usr/bin/hab-pkg-promote
 sudo chmod +x /usr/bin/hab-pkg-promote
 
+sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-ret-pkg-upload
+sudo echo 'hab pkg upload -u https://dev-builder-alb.reticulum.io -z $(cat /hab/cache/keys/mozillareality-reticulum.token) $1' >> /usr/bin/hab-ret-pkg-upload
+sudo chmod +x /usr/bin/hab-ret-pkg-upload
+
+sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-ret-pkg-promote
+sudo echo 'hab pkg promote -u https://dev-builder-alb.reticulum.io -z $(cat /hab/cache/keys/mozillareality-reticulum.token) $1 $2' >> /usr/bin/hab-ret-pkg-promote
+sudo chmod +x /usr/bin/hab-ret-pkg-promote
+
+sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-pkg-install
+sudo echo 'hab pkg install $1' >> /usr/bin/hab-pkg-install
+sudo chmod +x /usr/bin/hab-pkg-install
+
+sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-clean-perms
+sudo echo 'chown -R hab:hab .' >> /usr/bin/hab-clean-perms
+sudo chmod +x /usr/bin/hab-clean-perms
+
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-docker-studio" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-upload" >> /etc/sudoers
 sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-promote" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-pkg-install" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-ret-pkg-promote" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-ret-pkg-upload" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-user-toml-install" >> /etc/sudoers
+sudo echo "hab ALL=(ALL) NOPASSWD: /usr/bin/hab-clean-perms" >> /etc/sudoers
 
-sudo apt-get install -y docker.io
+chown root:hab /hab/sup/default
+chown root:hab /hab/sup/default/CTL_SECRET
+chmod 0750 /hab/sup/default
+chmod 0640 /hab/sup/default/CTL_SECRET
+
 sudo /usr/bin/hab svc load mozillareality/jenkins-war --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }

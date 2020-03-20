@@ -9,7 +9,7 @@ if [[ ! -f ~/.aws_region ]] ; then
 fi
 
 if [[ ! -f ~/.aws_host_type ]] ; then
-        aws ec2 --region $(cat ~/.aws_region) describe-instances |  jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$(cat ~/.aws_instance_id)\") | .Tags | .[] | select(.Key == \"host-type\") | .Value " > ~/.aws_host_type
+        aws ec2 --region $(cat ~/.aws_region) describe-instances --instance-ids $(cat ~/.aws_instance_id) |  jq -r ".Reservations | map(.Instances) | flatten | .[] | select(.InstanceId == \"$(cat ~/.aws_instance_id)\") | .Tags | .[] | select(.Key == \"host-type\") | .Value " > ~/.aws_host_type
 fi
 
 export PS1="\[\033[01;34m\]$(cat ~/.aws_host_type) $PS1"

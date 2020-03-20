@@ -143,6 +143,14 @@ resource "aws_security_group" "ytdl" {
     protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  # InfluxDB
+  egress {
+    from_port = "8086"
+    to_port = "8086"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_iam_role" "ytdl" {
@@ -178,7 +186,7 @@ while ! nc -z localhost 9632 ; do sleep 1; done
 systemctl restart systemd-sysctl.service
 
 sudo /usr/bin/hab svc load mozillareality/youtube-dl-api-server --strategy ${var.ytdl_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ytdl_channel}
-sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 

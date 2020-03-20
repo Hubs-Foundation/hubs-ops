@@ -13,6 +13,10 @@ static_url_host = "{{ phoenix_static_url_host }}"
 {% if phoenix_static_url_port is defined %}
 static_url_port = "{{ phoenix_static_url_port }}"
 {% endif %}
+cors_proxy_url_host = "{{ phoenix_cors_proxy_url_host }}"
+{% if phoenix_cors_proxy_url_port is defined %}
+cors_proxy_url_port = "{{ phoenix_cors_proxy_url_port }}"
+{% endif %}
 admin_access_key = "{{ phoenix_admin_access_key }}"
 
 [run]
@@ -39,6 +43,16 @@ password = "{{ ret_db_password }}"
 hostname = "{{ ret_db_hostname }}"
 database = "ret_production"
 pool_size = 16
+queue_interval = {{ queue_interval }}
+queue_target = {{ queue_target }}
+ssl = {{ ret_db_ssl }}
+
+[session_lock_db]
+username = "postgres"
+password = "{{ ret_db_password }}"
+hostname = "{{ ret_db_hostname }}"
+database = "ret_production"
+ssl = {{ ret_db_ssl }}
 
 [aws]
 {% if alb_target_group_arn is defined %}
@@ -47,11 +61,6 @@ alb_target_group_arn = "{{ alb_target_group_arn }}"
 {% if smoke_alb_target_group_arn is defined %}
 smoke_alb_target_group_arn = "{{ smoke_alb_target_group_arn }}"
 {% endif %}
-
-[farspark]
-signature_key = "{{ farspark_signature_key }}"
-signature_salt = "{{ farspark_signature_salt }}"
-host = "{{ farspark_host }}"
 
 [ret]
 bot_access_key = "{{ ret_bot_access_key }}"
@@ -131,8 +140,33 @@ ttl = {{ uploads_ttl }}
 host = "{{ uploads_host }}"
 
 [security]
-content_security_policy = "{{ content_security_policy }}"
 cors_origins = "{{ cors_origins }}"
+
+[extra_csp]
+script_src = "{{ extra_csp_script_src }}"
+font_src = "{{ extra_csp_font_src }}"
+connect_src = "{{ extra_csp_connect_src }}"
+style_src = "{{ extra_csp_style_src }}"
+img_src = "{{ extra_csp_img_src }}"
+media_src = "{{ extra_csp_media_src }}"
+frame_src = "{{ extra_csp_frame_src }}"
+child_src = "{{ extra_csp_child_src }}"
+worker_src = "{{ extra_csp_worker_src }}"
+manifest_src = "{{ extra_csp_manifest_src }}"
+
+[extra_html]
+{% if extra_index_html is defined %}
+extra_index_html = "{{ extra_index_html }}"
+{% endif %}
+{% if extra_scene_html is defined %}
+extra_scene_html = "{{ extra_scene_html }}"
+{% endif %}
+{% if extra_avatar_html is defined %}
+extra_avatar_html = "{{ extra_avatar_html }}"
+{% endif %}
+{% if extra_room_html is defined %}
+extra_room_html = "{{ extra_room_html }}"
+{% endif %}
 
 [email]
 {% if mailer_server is defined %}
@@ -179,3 +213,16 @@ spoke_page_origin = "{{ spoke_page_origin }}"
 insecure_ssl = "{{ page_origin_insecure_ssl }}"
 {% endif %}
 {% endif %}
+
+[stats]
+node_stats_enabled = true
+node_gauges_enabled = true
+
+[health]
+check_repo = true
+
+[assets]
+docs_path = "/hab/svc/hubs-docs/var/hubs-docs"
+
+[hackney]
+max_connections = {{ hackney_max_connections }}

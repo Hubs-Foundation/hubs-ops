@@ -7,6 +7,7 @@ HOSTED_ZONE_ID="Z26OTGLBBCAHK4"
 HOSTED_ZONE_NAME="reticulum.io"
 
 if [[ ! -z "$(hostname | grep $HOSTED_ZONE_NAME)" ]] ; then
+  sudo hostname > /var/run/generated_hostname
   echo "Hostname already set, exiting."
   exit 0
 fi
@@ -24,7 +25,7 @@ attempt_generate_hostname() {
   DNS_IP=$(dig $NEW_HOSTNAME.$HOSTED_ZONE_NAME A +short)
 
   if [[ ! -z "$DNS_IP" ]] ; then
-    EXISTING_IP=$(aws ec2 --region $REGION describe-instances | grep $DNS_IP)
+    EXISTING_IP=$(aws ec2 --region $REGION describe-instances --no-paginate | grep $DNS_IP)
   fi
 }
 

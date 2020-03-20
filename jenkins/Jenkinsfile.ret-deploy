@@ -14,8 +14,8 @@ pipeline {
             sh "curl -X POST --data-urlencode \'payload=${payload}\' ${slackURL}"
         }
 
-        sh "bin/ret_alb_to_pool.sh '${env.RET_DEV_POOL_HOST}' '${env.RET_DEV_SECONDARY_HOST}' '${env.RET_POOL}' dev"
-        sh "bin/ret_alb_to_pool.sh '${env.RET_PROD_POOL_HOST}' '${env.RET_PROD_SECONDARY_HOST}' '${env.RET_POOL}' prod"
+        sh "bin/ret_alb_to_pool.sh '${env.RET_DEV_POOL_HOST}' '${env.RET_DEV_SECONDARY_HOST}' '${env.RET_DEV_CORS_HOST}' '${env.RET_POOL}' dev"
+        sh "bin/ret_alb_to_pool.sh '${env.RET_PROD_POOL_HOST}' '${env.RET_PROD_SECONDARY_HOST}' '${env.RET_PROD_CORS_HOST}' '${env.RET_POOL}' prod"
         sh "curl -H \"x-ret-admin-access-key: ${env.RET_DEV_ADMIN_ACCESS_KEY}\" -H \"Content-Type: application/json\" -XPOST -d \"{ \\\"event\\\": \\\"ret-deploy\\\", \\\"ret_pool\\\": \\\"${env.RET_POOL}\\\", \\\"ret_version\\\": \\\"${env.RET_VERSION}\\\" }\" https://${env.RET_DEV_POOL_HOST}/api/v1/ret_notices"
         sh "curl -H \"x-ret-admin-access-key: ${env.RET_PROD_ADMIN_ACCESS_KEY}\" -H \"Content-Type: application/json\" -XPOST -d \"{ \\\"event\\\": \\\"ret-deploy\\\", \\\"ret_pool\\\": \\\"${env.RET_POOL}\\\", \\\"ret_version\\\": \\\"${env.RET_VERSION}\\\" }\" https://${env.RET_PROD_POOL_HOST}/api/v1/ret_notices"
 

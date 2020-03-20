@@ -1,0 +1,140 @@
+#!{{pkgPathFor "core/bash"}}/bin/bash
+exec 2>&1
+
+service_group() {
+  pkg_ident=$1
+  hab svc status \
+    | grep ${pkg_ident} \
+    | grep -v "^package" \
+    | awk '{print $7}'
+  return $?
+}
+
+begin_ip_filtering() {
+{{#if cfg.general.standalone_port }}
+  iptables -t nat -I PREROUTING 1 -p tcp --dport 80 -j REDIRECT --to-port {{ cfg.general.standalone_port }}
+{{else}}
+  :
+{{/if}}
+}
+
+end_ip_filtering() {
+{{#if cfg.general.standalone_port }}
+  iptables -t nat -D PREROUTING -p tcp --dport 80 -j REDIRECT --to-port {{ cfg.general.standalone_port }}
+{{else}}
+  :
+{{/if}}
+}
+
+set_perms() {
+{{#if cfg.general.cert_reader_group }}
+  for dir in live archive ;
+    do
+      chown -R root:{{ cfg.general.cert_reader_group }} {{ pkg.svc_data_path }}/$dir
+      find {{ pkg.svc_data_path }}/$dir -type d -exec chmod 750 {} \;
+      find {{ pkg.svc_data_path }}/$dir -type f -exec chmod 640 {} \;
+    done
+{{else}}
+  :
+{{/if}}
+}
+
+get_certificates() {
+  # shellcheck disable=SC2154
+  echo "$(date) Getting any needed LetsEncrypt certificates for '{{cfg.general.domain}}'"
+
+  if [[ "{{cfg.general.plugin}}" == "standalone" ]] ; then
+    begin_ip_filtering
+
+    {{#if cfg.general.standalone_port }}
+      {{#if cfg.general.admin_email }}
+        certbot certonly \
+          --{{cfg.general.plugin}} \
+          --http-01-port {{ cfg.general.standalone_port }} \
+          --config='{{pkg.svc_config_path}}/certbot.ini' \
+          --noninteractive
+      {{else}}
+        certbot certonly \
+          --{{cfg.general.plugin}} \
+          --http-01-port {{ cfg.general.standalone_port }} \
+          --config='{{pkg.svc_config_path}}/certbot.ini' \
+          --noninteractive \
+          --register-unsafely-without-email \
+          --agree-tos
+      {{/if}}
+    {{else}}
+      {{#if cfg.general.admin_email }}
+        certbot certonly \
+          --{{cfg.general.plugin}} \
+          --config='{{pkg.svc_config_path}}/certbot.ini' \
+          --noninteractive
+      {{else}}
+        certbot certonly \
+          --{{cfg.general.plugin}} \
+          --config='{{pkg.svc_config_path}}/certbot.ini' \
+          --noninteractive \
+          --register-unsafely-without-email \
+          --agree-tos
+      {{/if}}
+    {{/if}}
+
+    end_ip_filtering
+  else
+    {{#if cfg.general.admin_email }}
+      certbot certonly \
+        --{{cfg.general.plugin}} \
+        --config='{{pkg.svc_config_path}}/certbot.ini' \
+        --noninteractive 
+    {{else}}
+      certbot certonly \
+        --{{cfg.general.plugin}} \
+        --config='{{pkg.svc_config_path}}/certbot.ini' \
+        --noninteractive \
+        --register-unsafely-without-email \
+        --agree-tos
+    {{/if}}
+  fi
+
+  set_perms
+  return $?
+}
+
+renew_certificates() {
+  echo "$(date) Renewing LetsEncrypt certificates if neccessary"
+  begin_ip_filtering
+  {{#if cfg.general.admin_email }}
+  certbot renew \
+    --{{cfg.general.plugin}} \
+    --config='{{pkg.svc_config_path}}/certbot.renew.ini'
+  {{else}}
+  certbot renew \
+    --{{cfg.general.plugin}} \
+    --config='{{pkg.svc_config_path}}/certbot.renew.ini' \
+    --register-unsafely-without-email \
+    --agree-tos
+  {{/if}}
+  end_ip_filtering
+  set_perms
+  return $?
+}
+
+contains_pem() {
+  local pem=$1
+  local domain=$2
+  grep '\-\-\-\-\-BEGIN ' "$pem" &> '/dev/null' \
+    && grep '\-\-\-\-\-END ' "$pem" &> '/dev/null'
+  return $?
+}
+
+if [[ "{{ cfg.general.domain }}" == "" ]] ; then
+  echo "No domain configured for certbot."
+  sleep 99999999999
+fi
+
+get_certificates
+
+while true
+do
+  renew_certificates
+  sleep {{cfg.general.renewal_interval}}
+done

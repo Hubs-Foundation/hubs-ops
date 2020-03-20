@@ -40,7 +40,7 @@ function moz-ec2 {
       .PrivateIpAddress // "null",
       .PublicIpAddress // "null"
     ] | @tsv' <<< "$ALL")
-    echo "${OUTPUT}" | sort -k2,2 -k3,3 | column -t
+    echo "${OUTPUT}" | sort -k2,2 -k3,3 | column -t -s $'\t'
 }
 
 # moz-host env asg

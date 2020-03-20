@@ -75,9 +75,6 @@ do_download() {
 
   git-get meetecho/janus-gateway v0.7.6
   pushd meetecho/janus-gateway
-  # https://bugzilla.mozilla.org/show_bug.cgi?id=1606886
-  # https://github.com/meetecho/janus-gateway/commit/435a1e91f1661e99d7a78c7953adfeedd95b66e3
-  #git cherry-pick -n 435a1e91f1661e99d7a78c7953adfeedd95b66e3
   popd
 
   git-get mozilla/janus-plugin-sfu 14a33464726166fa0d3a20bd452ad05d2f7c53a6

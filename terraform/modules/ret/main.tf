@@ -89,6 +89,18 @@ resource "aws_route53_record" "ret-alb-dns" {
   }
 }
 
+resource "aws_route53_record" "ret-alb-cors-proxy-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "cors-proxy-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_alb.ret.dns_name}"
+    zone_id = "${aws_alb.ret.zone_id}"
+    evaluate_target_health = true
+  }
+}
+
 resource "aws_alb" "ret" {
   name = "${var.shared["env"]}-ret"
   security_groups = ["${aws_security_group.ret-alb.id}"]
@@ -335,6 +347,14 @@ resource "aws_security_group" "ret" {
     protocol = "tcp"
     security_groups = ["${aws_security_group.upload-fs.id}"]
   }
+
+  # InfluxDB
+  egress {
+    from_port = "8086"
+    to_port = "8086"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_iam_role" "ret" {
@@ -381,7 +401,7 @@ resource "aws_cloudfront_distribution" "ret-assets" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin", "Content-Type"]
+      headers = ["Origin", "Content-Type", "Range", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
       cookies { forward = "none" }
     }
 
@@ -456,7 +476,7 @@ resource "aws_cloudfront_distribution" "ret-uploads" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin", "Content-Type", "Authorization"]
+      headers = ["Origin", "Content-Type", "Authorization", "Range", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
       cookies { forward = "none" }
     }
 
@@ -536,6 +556,18 @@ resource "aws_route53_record" "ret-smoke-alb-dns" {
   }
 }
 
+resource "aws_route53_record" "ret-smoke-alb-cors-proxy-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "smoke-cors-proxy-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_alb.ret.dns_name}"
+    zone_id = "${aws_alb.ret.zone_id}"
+    evaluate_target_health = true
+  }
+}
+
 resource "aws_launch_configuration" "ret-pool" {
   count = "${length(var.ret_pools)}"
   image_id = "${data.aws_ami.ret-ami.id}"
@@ -585,7 +617,8 @@ chown hab:hab /hab/svc/reticulum/files/*
 popd
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
-sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/hubs-docs --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 
@@ -660,7 +693,8 @@ chown hab:hab /hab/svc/reticulum/files/*
 popd
 
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
-sudo /usr/bin/hab svc load mozillareality/dd-agent --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/hubs-docs --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 
@@ -707,7 +741,7 @@ resource "aws_cloudfront_distribution" "ret-asset-bundles" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin"]
+      headers = ["Origin", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
       cookies { forward = "none" }
     }
 
@@ -769,7 +803,7 @@ resource "aws_cloudfront_distribution" "timecheck" {
 
     forwarded_values {
       query_string = true
-      headers = ["Origin"]
+      headers = ["Origin", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
       cookies { forward = "none" }
     }
 
@@ -803,6 +837,78 @@ resource "aws_route53_record" "timecheck-dns" {
 resource "aws_efs_file_system" "uploads-fs" {
   creation_token = "${var.shared["env"]}-uploads"
   performance_mode = "generalPurpose"
+  tags = {
+    backup = "daily"
+  }
+}
+
+resource "aws_kms_key" "daily-backup-key" {
+  description = "Encryption key for storage backups"
+  enable_key_rotation = true
+  is_enabled = true
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+        "Effect": "Allow",
+        "Action": "kms:*",
+        "Principal": { "AWS": "arn:aws:iam::${var.shared["account_id"]}:root" },
+        "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_backup_vault" "daily-backup-vault" {
+  name = "${var.shared["env"]}-daily-backup"
+  kms_key_arn = "${aws_kms_key.daily-backup-key.arn}"
+}
+
+resource "aws_backup_plan" "daily-backup-plan" {
+  name = "${var.shared["env"]}-daily-backup-plan"
+
+  rule {
+    rule_name = "daily"
+    target_vault_name = "${aws_backup_vault.daily-backup-vault.name}"
+    schedule = "cron(0 10 ? * * *)"
+  }
+}
+
+resource "aws_iam_role" "daily-backup-role" {
+  name = "${var.shared["env"]}-daily-backup"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+        "Effect": "Allow",
+        "Principal": { "Service": [ "backup.amazonaws.com" ] },
+        "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "daily-backup-aws-backup-policy" {
+  role = "${aws_iam_role.daily-backup-role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+}
+
+resource "aws_backup_selection" "daily-backup-selection" {
+  iam_role_arn = "${aws_iam_role.daily-backup-role.arn}"
+  name = "${var.shared["env"]}-daily-backup-selection"
+  plan_id = "${aws_backup_plan.daily-backup-plan.id}"
+
+  selection_tag {
+    type = "STRINGEQUALS"
+    key = "backup"
+    value = "daily"
+  }
+
+  depends_on = ["aws_iam_role_policy_attachment.daily-backup-aws-backup-policy"]
 }
 
 resource "aws_efs_mount_target" "uploads-fs" {
@@ -901,4 +1007,116 @@ resource "aws_iam_policy" "ret-upload-backup-policy" {
   ]
 }
 EOF
+}
+
+resource "aws_s3_bucket" "polycosm-assets-bucket" {
+  bucket = "polycosm-assets-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+}
+
+resource "aws_cloudfront_distribution" "polycosm-assets" {
+  enabled = true
+
+  origin {
+    origin_id = "reticulum-${var.shared["env"]}-polycosm-assets"
+    domain_name = "${aws_s3_bucket.polycosm-assets-bucket.bucket_domain_name}"
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  aliases = ["polycosm-assets-${var.shared["env"]}.${var.ret_domain}"]
+
+  default_cache_behavior {
+    compress = true
+    allowed_methods = ["GET", "HEAD", "OPTIONS"]
+    cached_methods = ["GET", "HEAD"]
+    target_origin_id = "reticulum-${var.shared["env"]}-polycosm-assets"
+
+    forwarded_values {
+      query_string = true
+      headers = ["Origin", "Content-Type", "Range", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "https-only"
+    min_ttl = 0
+    default_ttl = 3600
+    max_ttl = 3600
+  }
+
+  custom_error_response {
+    error_code = 403
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 404
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 500
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 502
+    error_caching_min_ttl = 0
+  }
+
+  custom_error_response {
+    error_code = 503
+    error_caching_min_ttl = 0
+  }
+
+  price_class = "PriceClass_All"
+
+  viewer_certificate {
+    acm_certificate_arn = "${data.aws_acm_certificate.ret-alb-listener-cert-east.arn}"
+    ssl_support_method = "sni-only"
+    minimum_protocol_version = "TLSv1"
+  }
+}
+
+resource "aws_route53_record" "polycosm-assets-dns" {
+  zone_id = "${data.aws_route53_zone.reticulum-zone.zone_id}"
+  name = "polycosm-assets-${var.shared["env"]}.${data.aws_route53_zone.reticulum-zone.name}"
+  type = "A"
+
+  alias {
+    name = "${aws_cloudfront_distribution.polycosm-assets.domain_name}"
+    zone_id = "${aws_cloudfront_distribution.polycosm-assets.hosted_zone_id}"
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_s3_bucket" "polycosm-sam-bucket" {
+  provider = "aws.east"
+  bucket = "polycosm-sam-${var.shared["env"]}-${random_id.bucket-identifier.hex}"
+  acl = "public-read"
+}
+
+resource "aws_s3_bucket_policy" "sam-bucket-policy" {
+  provider = "aws.east"
+  bucket = "${aws_s3_bucket.polycosm-sam-bucket.id}"
+
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "serverlessrepo.amazonaws.com"
+      },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::${aws_s3_bucket.polycosm-sam-bucket.id}/*"
+    }
+  ]
+}
+POLICY
 }

@@ -106,34 +106,6 @@ sudo mkdir /uploads
 sudo echo "${data.terraform_remote_state.ret.ret_upload_mount_target_dns_name}:/       /uploads        nfs     ro,nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=3,noresvport" >> /etc/fstab
 sudo mount /uploads
 
-sudo cat > /usr/bin/backup-uploads-to-s3.sh << EOBACKUP
-#!/usr/bin/env bash
-
-BUCKET=\$1
-DATE=\`date '+%Y%m%d%H%M%S'\`
-EXIT_CODE=0
-
-cleanup () {
-  rm uploads-\$DATE.tar.xz
-  exit $EXIT_CODE
-}
-
-trap cleanup EXIT ERR INT TERM
-
-tar cfvJ uploads-\$DATE.tar.xz /uploads
-aws s3 cp uploads-\$DATE.tar.xz s3://\$BUCKET/backups/uploads/\$DATE.tar.xz
-
-EXIT_CODE=\$?
-EOBACKUP
-
-chmod a+x /usr/bin/backup-uploads-to-s3.sh
-
-sudo cat > /etc/cron.d/uploads-backup << EOCRON
-0 10 * * * root cd /root ; /usr/bin/backup-uploads-to-s3.sh ${data.terraform_remote_state.ret.ret_upload_backup_bucket_id}
-EOCRON
-
-/etc/init.d/cron reload
-
 EOF
 }
 
