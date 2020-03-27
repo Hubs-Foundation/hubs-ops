@@ -75,6 +75,8 @@ do_download() {
 
   git-get meetecho/janus-gateway v0.7.6
   pushd meetecho/janus-gateway
+  # Enable ICE-TCP https://github.com/meetecho/janus-gateway/pull/1946/commits/fb55c0acf0e391f4f3a91356a0db19b4db1d7201
+  git cherry-pick -n d5d81abe864081a567111c0db43e225b2d8edd33
   popd
 
   git-get mozilla/janus-plugin-sfu 14a33464726166fa0d3a20bd452ad05d2f7c53a6
