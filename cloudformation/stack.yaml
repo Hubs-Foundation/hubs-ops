@@ -2509,7 +2509,7 @@ Resources:
           FromPort: 123
           ToPort: 123
           CidrIp: 0.0.0.0/0
-        # Outbound RTP
+        # Outbound RTP + STUN
         - IpProtocol: udp
           FromPort: 0
           ToPort: 65535
@@ -3133,7 +3133,7 @@ Resources:
           FromPort: 123
           ToPort: 123
           CidrIp: 0.0.0.0/0
-        # Outbound RTP
+        # Outbound RTP + STUN
         - IpProtocol: udp
           FromPort: 0
           ToPort: 65535
