@@ -38,10 +38,3 @@ variable "ret_pools" {
   default = ["earth", "arbre"]
 }
 
-variable "ytdl_channel" {
-  description = "Distribution channel for YT-DL servers"
-}
-
-variable "ytdl_restart_strategy" {
-  description = "Habitat restart strategy for YT-DL"
-}
