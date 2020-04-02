@@ -26,3 +26,5 @@ max_ret_servers = 2
 reticulum_restart_strategy = "at-once"
 public_domain_enabled = true
 public_domain = "hubs.mozilla.com"
+ytdl_restart_strategy = "at-once"
+ytdl_channel = "stable"
