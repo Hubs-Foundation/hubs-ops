@@ -13,8 +13,8 @@ pkg_deps=(
 )
 # Add the same version of the full gcc package as a build dep
 pkg_build_deps=(
-  core/gcc/$pkg_version
-  core/patchelf
+  mozillareality/gcc/$pkg_version
+  mozillareality/patchelf
 )
 
 # Zero out the bin and include paths, as we're only shipping shared libs

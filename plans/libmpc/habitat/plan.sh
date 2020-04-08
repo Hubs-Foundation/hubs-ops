@@ -1,42 +1,48 @@
-pkg_name=libcap
+pkg_name=libmpc
+_distname=mpc
 pkg_origin=core
-pkg_version=2.27
+pkg_version=1.1.0
 pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
-pkg_description="POSIX 1003.1e capabilities."
-pkg_upstream_url="http://sites.google.com/site/fullycapable/"
-pkg_license=('gplv2')
-pkg_source="https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/${pkg_name}-${pkg_version}.tar.xz"
-pkg_shasum="dac1792d0118bee6aae6ba7fb93ff1602c6a9bda812fd63916eee1435b9c486a"
+pkg_description="\
+GNU MPC is a C library for the arithmetic of complex numbers with arbitrarily \
+high precision and correct rounding of the result.\
+"
+pkg_upstream_url="http://www.multiprecision.org/"
+pkg_license=('lgpl')
+pkg_source="https://ftp.gnu.org/gnu/${_distname}/${_distname}-${pkg_version}.tar.gz"
+pkg_shasum="6985c538143c1208dcb1ac42cedad6ff52e267b47e5f970183a3e75125b43c2e"
+pkg_dirname="${_distname}-${pkg_version}"
 pkg_deps=(
   core/glibc
-  core/attr
+  mozillareality/gmp
+  mozillareality/mpfr
 )
 pkg_build_deps=(
+  core/coreutils
+  core/diffutils
   core/patch
   core/make
   core/gcc
-  core/linux-headers
-  core/perl
+  core/binutils
 )
-pkg_bin_dirs=(bin)
 pkg_include_dirs=(include)
 pkg_lib_dirs=(lib)
 
 do_prepare() {
   do_default_prepare
 
-  # Install binaries under `bin/` vs. `sbin/`
-  sed -i "/SBINDIR/s#sbin#bin#" Make.Rules
+  LDFLAGS="$LDFLAGS -Wl,-rpath=${LD_RUN_PATH},--enable-new-dtags"
+  build_line "Updating LDFLAGS=$LDFLAGS"
+}
+
+do_check() {
+  make check
 }
 
 do_build() {
-  make KERNEL_HEADERS="$(pkg_path_for linux-headers)/include" LDFLAGS="$LDFLAGS" CFLAGS="${CFLAGS} -O3 -g"
+  CFLAGS="${CFLAGS} -O3 -g" ./configure --prefix "${pkg_prefix}"
+  make
 }
-
-do_install() {
-  make prefix="$pkg_prefix" lib=lib RAISE_SETFCAP=no install
-}
-
 
 # ----------------------------------------------------------------------------
 # **NOTICE:** What follows are implementation details required for building a
@@ -47,7 +53,6 @@ do_install() {
 # ----------------------------------------------------------------------------
 if [[ "$STUDIO_TYPE" = "stage1" ]]; then
   pkg_build_deps=(
-    core/gcc
-    core/linux-headers
+    core/binutils
   )
 fi
