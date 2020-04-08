@@ -9,7 +9,7 @@ pkg_source="https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/$
 pkg_shasum="dac1792d0118bee6aae6ba7fb93ff1602c6a9bda812fd63916eee1435b9c486a"
 pkg_deps=(
   core/glibc
-  core/attr
+  mozillareality/attr
 )
 pkg_build_deps=(
   core/patch
