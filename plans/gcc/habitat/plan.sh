@@ -60,7 +60,7 @@ do_prepare() {
       CFLAGS="$CFLAGS $include"
     fi
   done
-  export CFLAGS="${CFLAGS} -O3 -g"
+  export CFLAGS="${CFLAGS} -O2 -g"
   build_line "Updating CFLAGS=$CFLAGS"
 
   # Set `CXXFLAGS` for the c++ code
