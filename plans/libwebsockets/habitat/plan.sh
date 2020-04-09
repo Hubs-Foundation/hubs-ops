@@ -7,7 +7,7 @@ pkg_source="https://github.com/warmcat/libwebsockets/archive/v2.4.2.tar.gz"
 pkg_shasum="73012d7fcf428dedccc816e83a63a01462e27819d5537b8e0d0c7264bfacfad6"
 pkg_license=('LGPL-2.1')
 pkg_build_deps=(core/make core/gcc core/cmake core/openssl core/git)
-pkg_deps=(core/zlib)
+pkg_deps=(mozillareality/zlib)
 pkg_lib_dirs=(lib)
 pkg_bin_dirs=(bin)
 pkg_include_dirs=(include)
@@ -20,9 +20,9 @@ do_build() {
 
   # see https://github.com/meetecho/janus-gateway/issues/732 re: LWS_MAX_SMP
 
-  cmake \
+  CFLAGS="${CFLAGS} -O2 -g" cmake \
     -DCMAKE_INSTALL_PREFIX:PATH=${pkg_prefix} \
-    -DZLIB_ROOT=$(pkg_path_for core/zlib) \
+    -DZLIB_ROOT=$(pkg_path_for mozillareality/zlib) \
     -DLWS_MAX_SMP=1 \
     -DLWS_WITHOUT_TESTAPPS=ON \
     -DCMAKE_C_FLAGS="-fpic" \

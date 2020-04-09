@@ -97,7 +97,7 @@ do_build() {
 
   ./autogen.sh
 
-  CFLAGS="${CFLAGS} -fno-omit-frame-pointer" ./configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
+  CFLAGS="${CFLAGS} -O2 -g -fno-omit-frame-pointer" ./configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
 
   make
 

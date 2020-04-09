@@ -13,6 +13,6 @@ pkg_lib_dirs=(lib)
 pkg_include_dirs=(include)
 
 do_build() {
-  ./configure --prefix=${pkg_prefix} --enable-openssl 
+  CFLAGS="${CFLAGS} -O2 -g" CPPFLAGS="${CPPFLAGS} -O2 -g" CXXFLAGS="${CXXFLAGS} -O2 -g" ./configure --prefix "${pkg_prefix}" --enable-openssl
   make shared_library
 }
