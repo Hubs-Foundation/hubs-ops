@@ -28,12 +28,12 @@ pkg_build_deps=(
 # versions are pinned for convenience building with Habitat, not because we give a crap about
 # having these versions in particular -- latest versions of everything should be sufficient
 pkg_deps=(
-    core/gcc
-    core/glib
+    mozillareality/gcc
+    mozillareality/glib
     core/openssl
     core/p11-kit
     core/sqlite
-    core/util-linux
+    mozillareality/util-linux
 
     mozillareality/jansson/2.12
     mozillareality/libmicrohttpd/0.9.66

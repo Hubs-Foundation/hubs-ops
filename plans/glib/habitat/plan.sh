@@ -14,15 +14,15 @@ pkg_maintainer='The Habitat Maintainers <humans@habitat.sh>'
 pkg_upstream_url="https://developer.gnome.org/glib/"
 pkg_shasum="82ee94bf4c01459b6b00cb9db0545c2237921e3060c0b74cff13fbc020cfd999"
 pkg_deps=(
-  core/coreutils
-  core/elfutils
+  mozillareality/coreutils
+  mozillareality/elfutils
   core/glibc
-  core/libffi
-  core/libiconv
-  core/pcre
+  mozillareality/libffi
+  mozillareality/libiconv
+  mozillareality/pcre
   core/python
-  core/util-linux
-  core/zlib
+  mozillareality/util-linux
+  mozillareality/zlib
 )
 pkg_build_deps=(
   core/dbus
@@ -39,7 +39,7 @@ pkg_bin_dirs=(bin)
 pkg_lib_dirs=(lib)
 pkg_include_dirs=(include)
 pkg_pconfig_dirs=(lib/pkgconfig)
-pkg_interpreters=(core/coreutils)
+pkg_interpreters=(mozillareality/coreutils)
 
 do_prepare() {
   if [[ ! -r /usr/bin/file ]]; then
@@ -49,7 +49,7 @@ do_prepare() {
 }
 
 do_build() {
-  CFLAGS="${CFLAGS} -O3 -g" ./configure \
+  CFLAGS="${CFLAGS} -O2 -g" CPPFLAGS="${CPPFLAGS} -O2 -g" CXXFLAGS="${CXXFLAGS} -O2 -g" ./configure \
     --prefix="$pkg_prefix" \
     --with-libiconv \
     --disable-gtk-doc \
@@ -58,7 +58,7 @@ do_build() {
 }
 
 do_after() {
-  fix_interpreter "$pkg_prefix/bin/*" core/coreutils bin/env
+  fix_interpreter "$pkg_prefix/bin/*" mozillareality/coreutils bin/env
 }
 
 do_end() {
