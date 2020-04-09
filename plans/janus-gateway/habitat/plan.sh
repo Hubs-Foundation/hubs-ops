@@ -41,16 +41,16 @@ pkg_deps=(
     mozillareality/libsrtp/2.2.0
     mozillareality/libwebsockets/2.4.2
     mozillareality/opus/1.3.1
-    mozillareality/usrsctp/0.9.4.0
+    mozillareality/usrsctp/0.9.7.0
     mozillareality/libconfig/1.7.2
 
     # https://github.com/habitat-sh/habitat/issues/3303
-    core/zlib
+    mozillareality/zlib
     core/glibc
-    core/gcc-libs
-    core/nettle
-    core/pcre
-    core/libtasn1
+    mozillareality/gcc-libs
+    mozillareality/nettle
+    mozillareality/pcre
+    mozillareality/libtasn1
 )
 
 git-get () {
@@ -77,7 +77,7 @@ do_download() {
   pushd meetecho/janus-gateway
   popd
 
-  git-get mozilla/janus-plugin-sfu 5cfd16d8b4023d3eb010ce8413b41160900ec41d
+  git-get mozilla/janus-plugin-sfu 420220e3669fb6bee289cc4e81ea7d4d884594aa 
 
   popd
 }

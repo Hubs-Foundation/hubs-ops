@@ -41,7 +41,7 @@ do_prepare() {
 do_build() {
   # * `lt_cv_sys_dlsearch_path` Makes the default library search path empty,
   # rather than `"/lib /usr/lib"`
-  ./configure \
+  CFLAGS="${CFLAGS} -O2 -g" CPPFLAGS="${CPPFLAGS} -O2 -g" CXXFLAGS="${CXXFLAGS} -O2 -g" ./configure \
     --prefix="$pkg_prefix" \
     lt_cv_sys_lib_dlsearch_path_spec="" \
     lt_cv_sys_lib_search_path_spec=""
