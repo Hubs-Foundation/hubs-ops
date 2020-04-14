@@ -4,4 +4,4 @@ exec 2>&1
 
 set -e
 
-exec turnserver -c {{ pkg.svc_config_path }}/turnserver.cfg | logger
+exec turnserver -c {{ pkg.svc_config_path }}/turnserver.conf | logger
