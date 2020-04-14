@@ -1,0 +1,20 @@
+[general]
+realm = "{{ coturn_realm }}"
+no_udp = "{{ coturn_no_udp }}"
+no_tcp = "{{ coturn_no_tcp }}"
+no_dtls = "{{ coturn_no_dtls }}"
+max_port = {{ coturn_max_port }}
+min_port = {{ coturn_min_port }}
+tls_listening_port = {{ coturn_tls_listening_port }}
+
+{% if coturn_listening_ip %}
+listening_ip = "{{ coturn_listening_ip }}"
+{% endif %}
+
+{% if coturn_external_ip %}
+external_ip = "{{ coturn_external_ip }}"
+{% endif %}
+
+{% if coturn_relay_ip %}
+relay_ip = "{{ coturn_relay_ip }}"
+{% endif %}

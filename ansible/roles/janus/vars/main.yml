@@ -2,7 +2,11 @@
 
 services:
   - janus-gateway
+  - coturn
 
-keyfiles:
+janus_keyfiles:
   - dtls
   - wss # reticulum.io.pem, reticulum.io.crt
+
+coturn_keyfiles:
+  - turn
