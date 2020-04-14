@@ -41,3 +41,23 @@ variable "janus_channel" {
 variable "janus_restart_strategy" {
   description = "Habitat restart strategy for Janus"
 }
+
+variable "coturn_public_tls_port" {
+  description = "Public TLS port for coturn"
+}
+
+variable "coturn_port_from" {
+  description = "Lower relay port for coturn"
+}
+
+variable "coturn_port_to" {
+  description = "Upper relay port for coturn"
+}
+
+variable "coturn_channel" {
+  description = "Distribution channel for coturn on non-smoke servers"
+}
+
+variable "coturn_restart_strategy" {
+  description = "Habitat restart strategy for coturn"
+}
