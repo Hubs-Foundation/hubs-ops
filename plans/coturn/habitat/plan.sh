@@ -9,6 +9,8 @@ pkg_license=('COTURN')
 pkg_deps=(
   mozillareality/openssl
   mozillareality/libevent
+  mozillareality/zlib
+  mozillareality/pcre
   core/postgresql-client
 )
 
