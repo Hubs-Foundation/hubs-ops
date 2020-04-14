@@ -11,7 +11,7 @@ pkg_deps=(
   mozillareality/libevent
   mozillareality/zlib
   mozillareality/pcre
-  core/postgresql-client
+  mozillareality/postgresql-client
 )
 
 pkg_build_deps=(
