@@ -6,6 +6,7 @@ no_dtls = "{{ coturn_no_dtls }}"
 max_port = {{ coturn_max_port }}
 min_port = {{ coturn_min_port }}
 tls_listening_port = {{ coturn_tls_listening_port }}
+psql_userdb = "{{ coturn_psql_userdb }}"
 
 {% if coturn_listening_ip is defined %}
 listening_ip = "{{ coturn_listening_ip }}"

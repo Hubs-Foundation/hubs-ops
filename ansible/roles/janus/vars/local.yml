@@ -13,3 +13,4 @@ coturn_no_tcp: "true"
 coturn_no_dtls: "true"
 coturn_min_port: 49152
 coturn_max_port: 51609
+coturn_psql_userdb: "postgresql://postgres:postgres@localhost/ret_dev"
