@@ -2745,6 +2745,9 @@ Resources:
     Condition: HasALB
     Properties:
       Name: !Sub "${AWS::StackName}-app"
+      LoadBalancerAttributes:
+        - Key: 'idle_timeout.timeout_seconds'
+          Value: 120
       SecurityGroups:
         - !Ref AppALBSecurityGroup
       Subnets:
@@ -2894,6 +2897,7 @@ Resources:
               HTTPSPort: 443
               OriginProtocolPolicy: https-only
               OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
+              OriginReadTimeout: 60
           - Id: !Sub "${AWS::StackName}-redirector"
             DomainName: !Select [2, !Split ["/", !GetAtt RootRedirectorBucket.WebsiteURL]]
             CustomOriginConfig:
