@@ -7,14 +7,14 @@ max_port = {{ coturn_max_port }}
 min_port = {{ coturn_min_port }}
 tls_listening_port = {{ coturn_tls_listening_port }}
 
-{% if coturn_listening_ip %}
+{% if coturn_listening_ip is defined %}
 listening_ip = "{{ coturn_listening_ip }}"
 {% endif %}
 
-{% if coturn_external_ip %}
+{% if coturn_external_ip is defined %}
 external_ip = "{{ coturn_external_ip }}"
 {% endif %}
 
-{% if coturn_relay_ip %}
+{% if coturn_relay_ip is defined %}
 relay_ip = "{{ coturn_relay_ip }}"
 {% endif %}
