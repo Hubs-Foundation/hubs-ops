@@ -9,6 +9,7 @@ data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/te
 data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bastion/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "hab" { backend = "s3", config = { key = "hab/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "ret" { backend = "s3", config = { key = "ret/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+data "terraform_remote_state" "ret-db" { backend = "s3", config = { key = "ret-db/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
 data "aws_ami" "janus-ami" {
   most_recent = true
@@ -187,6 +188,7 @@ resource "aws_launch_configuration" "janus" {
   security_groups = [
     "${aws_security_group.janus.id}",
     "${data.terraform_remote_state.hab.hab_ring_security_group_id}",
+    "${data.terraform_remote_state.ret-db.ret_db_consumer_security_group_id}",
   ]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.janus.id}"
@@ -269,6 +271,7 @@ resource "aws_launch_configuration" "janus-smoke" {
   security_groups = [
     "${aws_security_group.janus.id}",
     "${data.terraform_remote_state.hab.hab_ring_security_group_id}",
+    "${data.terraform_remote_state.ret-db.ret_db_consumer_security_group_id}",
   ]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.janus.id}"
