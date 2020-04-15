@@ -213,9 +213,6 @@ EOCRON
 /etc/init.d/cron reload
 
 sudo cat > /hab/user/janus-gateway/config/user.toml << EOTOML
-[nat]
-nat_1_1_mapping = "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
-
 [transports.http]
 admin_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
@@ -296,9 +293,6 @@ EOCRON
 /etc/init.d/cron reload
 
 sudo cat > /hab/user/janus-gateway/config/user.toml << EOTOML
-[nat]
-nat_1_1_mapping = "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
-
 [transports.http]
 admin_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
