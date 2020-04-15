@@ -105,6 +105,7 @@ resource "aws_alb" "ret" {
   name = "${var.shared["env"]}-ret"
   security_groups = ["${aws_security_group.ret-alb.id}"]
   subnets = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
+  idle_timeout = 120
 
   lifecycle { create_before_destroy = true }
 }
