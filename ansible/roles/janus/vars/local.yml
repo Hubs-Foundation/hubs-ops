@@ -5,6 +5,7 @@ dd_api_key: datadog_api_key
 collect_ec2_tags: "no"
 coturn_realm: "hubs"
 coturn_listening_ip: "127.0.0.1"
+coturn_allowed_ip: "127.0.0.1"
 coturn_external_ip: "127.0.0.1"
 coturn_relay_ip: "127.0.0.1"
 coturn_tls_listening_port: 5349

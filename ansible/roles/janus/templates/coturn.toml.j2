@@ -19,3 +19,7 @@ external_ip = "{{ coturn_external_ip }}"
 {% if coturn_relay_ip is defined %}
 relay_ip = "{{ coturn_relay_ip }}"
 {% endif %}
+
+{% if coturn_allowed_peer_ip is defined %}
+allowed_peer_ip = "{{ coturn_allowed_peer_ip }}"
+{% endif %}

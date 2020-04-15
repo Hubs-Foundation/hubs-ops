@@ -223,19 +223,20 @@ sudo cat > /hab/user/coturn/config/user.toml << EOTOML
 listening_ip = "0.0.0.0"
 external_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 relay_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+allowed_peer_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
 
 sudo sed -i "s/#RateLimitBurst=1000/RateLimitBurst=5000/" /etc/systemd/journald.conf
 sudo systemctl restart systemd-journald
 
+sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/janus-gateway-files.tar.gz.gpg .
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/janus-gateway/files/gpg-file-key.txt janus-gateway-files.tar.gz.gpg | tar xz -C /hab/svc/janus-gateway/files
 rm janus-gateway-files.tar.gz.gpg
+sudo /usr/bin/hab svc load mozillareality/coturn --strategy ${var.coturn_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/coturn/files/gpg-file-key.txt coturn-files.tar.gz.gpg | tar xz -C /hab/svc/coturn/files
 aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/coturn-files.tar.gz.gpg .
 rm coturn-files.tar.gz.gpg
-sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
-sudo /usr/bin/hab svc load mozillareality/coturn --strategy ${var.coturn_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
@@ -297,19 +298,20 @@ sudo cat > /hab/user/coturn/config/user.toml << EOTOML
 listening_ip = "0.0.0.0"
 external_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 relay_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+allowed_peer_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
 
 sudo sed -i "s/#RateLimitBurst=1000/RateLimitBurst=5000/" /etc/systemd/journald.conf
 sudo systemctl restart systemd-journald
 
+sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/janus-gateway-files.tar.gz.gpg .
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/janus-gateway/files/gpg-file-key.txt janus-gateway-files.tar.gz.gpg | tar xz -C /hab/svc/janus-gateway/files
 rm janus-gateway-files.tar.gz.gpg
+sudo /usr/bin/hab svc load mozillareality/coturn --strategy ${var.coturn_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/coturn/files/gpg-file-key.txt coturn-files.tar.gz.gpg | tar xz -C /hab/svc/coturn/files
 aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/coturn-files.tar.gz.gpg .
 rm coturn-files.tar.gz.gpg
-sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
-sudo /usr/bin/hab svc load mozillareality/coturn --strategy ${var.coturn_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
