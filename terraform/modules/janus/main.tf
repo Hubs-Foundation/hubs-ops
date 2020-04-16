@@ -219,7 +219,7 @@ EOTOML
 
 sudo cat > /hab/user/coturn/config/user.toml << EOTOML
 [general]
-listening_ip = "0.0.0.0"
+listening_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 external_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 relay_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 allowed_peer_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
@@ -299,7 +299,7 @@ EOTOML
 
 sudo cat > /hab/user/coturn/config/user.toml << EOTOML
 [general]
-listening_ip = "0.0.0.0"
+listening_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 external_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 relay_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 allowed_peer_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
