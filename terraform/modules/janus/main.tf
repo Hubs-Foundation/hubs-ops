@@ -219,7 +219,7 @@ EOTOML
 
 sudo cat > /hab/user/coturn/config/user.toml << EOTOML
 [general]
-listening_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+listening_ip = "0.0.0.0"
 external_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 relay_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 allowed_peer_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
@@ -240,6 +240,9 @@ rm janus-gateway-files.tar.gz.gpg
 aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/coturn-files.tar.gz.gpg .
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/coturn/files/gpg-file-key.txt coturn-files.tar.gz.gpg | tar xz -C /hab/svc/coturn/files
 rm coturn-files.tar.gz.gpg
+
+chown -R hab:hab /hab/svc/janus-gateway/files
+chown -R hab:hab /hab/svc/coturn/files
 
 sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 sudo /usr/bin/hab svc load mozillareality/coturn --strategy ${var.coturn_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
@@ -299,7 +302,7 @@ EOTOML
 
 sudo cat > /hab/user/coturn/config/user.toml << EOTOML
 [general]
-listening_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+listening_ip = "0.0.0.0"
 external_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 relay_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 allowed_peer_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
@@ -320,6 +323,9 @@ rm janus-gateway-files.tar.gz.gpg
 aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/coturn-files.tar.gz.gpg .
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/coturn/files/gpg-file-key.txt coturn-files.tar.gz.gpg | tar xz -C /hab/svc/coturn/files
 rm coturn-files.tar.gz.gpg
+
+chown -R hab:hab /hab/svc/janus-gateway/files
+chown -R hab:hab /hab/svc/coturn/files
 
 sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
 sudo /usr/bin/hab svc load mozillareality/coturn --strategy ${var.coturn_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
