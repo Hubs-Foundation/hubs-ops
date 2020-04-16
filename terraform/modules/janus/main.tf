@@ -9,6 +9,7 @@ data "terraform_remote_state" "base" { backend = "s3", config = { key = "base/te
 data "terraform_remote_state" "bastion" { backend = "s3", config = { key = "bastion/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "hab" { backend = "s3", config = { key = "hab/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 data "terraform_remote_state" "ret" { backend = "s3", config = { key = "ret/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
+data "terraform_remote_state" "ret-db" { backend = "s3", config = { key = "ret-db/terraform.tfstate", bucket = "${var.shared["state_bucket"]}", region = "${var.shared["region"]}", dynamodb_table = "${var.shared["dynamodb_table"]}", encrypt = "true" } }
 
 data "aws_ami" "janus-ami" {
   most_recent = true
@@ -104,6 +105,14 @@ resource "aws_security_group" "janus" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # TURN TCP
+  ingress {
+    from_port = "${var.coturn_public_tls_port}"
+    to_port = "${var.coturn_public_tls_port}"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # SSH
   ingress {
     from_port = "22"
@@ -179,6 +188,7 @@ resource "aws_launch_configuration" "janus" {
   security_groups = [
     "${aws_security_group.janus.id}",
     "${data.terraform_remote_state.hab.hab_ring_security_group_id}",
+    "${data.terraform_remote_state.ret-db.ret_db_consumer_security_group_id}",
   ]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.janus.id}"
@@ -189,11 +199,12 @@ resource "aws_launch_configuration" "janus" {
 #!/usr/bin/env bash
 while ! nc -z localhost 9632 ; do sleep 1; done
 systemctl restart systemd-sysctl.service
-# Forward port 8080 to 80, 8443 to 443 for janus websockets
-sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
+# Forward 8443 to 443 for janus websockets, 5349 to 80 for TURN TLS
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
+sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 5349
 
 sudo mkdir -p /hab/user/janus-gateway/config
+sudo mkdir -p /hab/user/coturn/config
 
 sudo cat > /etc/cron.d/janus-restart << EOCRON
 0 10 * * * hab PID=\$(head -n 1 /hab/svc/janus-gateway/var/janus-self.pid) ; kill \$PID ; sleep 10 ; kill -0 \$PID 2> /dev/null && kill -9 \$PID
@@ -202,21 +213,40 @@ EOCRON
 /etc/init.d/cron reload
 
 sudo cat > /hab/user/janus-gateway/config/user.toml << EOTOML
-[nat]
-nat_1_1_mapping = "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
-
 [transports.http]
 admin_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+EOTOML
+
+sudo cat > /hab/user/coturn/config/user.toml << EOTOML
+[general]
+listening_ip = "0.0.0.0"
+external_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+relay_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+allowed_peer_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
 
 sudo sed -i "s/#RateLimitBurst=1000/RateLimitBurst=5000/" /etc/systemd/journald.conf
 sudo systemctl restart systemd-journald
 
-sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
-sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
+mkdir -p /hab/svc/janus-gateway/files
+mkdir -p /hab/svc/coturn/files
+
+chown -R hab:hab /hab/svc/janus-gateway
+chown -R hab:hab /hab/svc/coturn
+
 aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/janus-gateway-files.tar.gz.gpg .
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/janus-gateway/files/gpg-file-key.txt janus-gateway-files.tar.gz.gpg | tar xz -C /hab/svc/janus-gateway/files
 rm janus-gateway-files.tar.gz.gpg
+aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/coturn-files.tar.gz.gpg .
+gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/coturn/files/gpg-file-key.txt coturn-files.tar.gz.gpg | tar xz -C /hab/svc/coturn/files
+rm coturn-files.tar.gz.gpg
+
+chown -R hab:hab /hab/svc/janus-gateway/files
+chown -R hab:hab /hab/svc/coturn/files
+
+sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
+sudo /usr/bin/hab svc load mozillareality/coturn --strategy ${var.coturn_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 
@@ -241,6 +271,7 @@ resource "aws_launch_configuration" "janus-smoke" {
   security_groups = [
     "${aws_security_group.janus.id}",
     "${data.terraform_remote_state.hab.hab_ring_security_group_id}",
+    "${data.terraform_remote_state.ret-db.ret_db_consumer_security_group_id}",
   ]
   key_name = "${data.terraform_remote_state.base.mr_ssh_key_id}"
   iam_instance_profile = "${aws_iam_instance_profile.janus.id}"
@@ -251,11 +282,12 @@ resource "aws_launch_configuration" "janus-smoke" {
 #!/usr/bin/env bash
 while ! nc -z localhost 9632 ; do sleep 1; done
 systemctl restart systemd-sysctl.service
-# Forward port 8080 to 80, 8443 to 443 for janus websockets
-sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
+# Forward 8443 to 443 for janus websockets, 5349 to 80 for TURN TLS
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
+sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 5349
 
 sudo mkdir -p /hab/user/janus-gateway/config
+sudo mkdir -p /hab/user/coturn/config
 
 sudo cat > /etc/cron.d/janus-restart << EOCRON
 0 10 * * * hab PID=\$(head -n 1 /hab/svc/janus-gateway/var/janus-self.pid) ; kill \$PID ; sleep 10 ; kill -0 \$PID 2> /dev/null && kill -9 \$PID
@@ -264,20 +296,39 @@ EOCRON
 /etc/init.d/cron reload
 
 sudo cat > /hab/user/janus-gateway/config/user.toml << EOTOML
-[nat]
-nat_1_1_mapping = "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
-
 [transports.http]
 admin_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+EOTOML
+
+sudo cat > /hab/user/coturn/config/user.toml << EOTOML
+[general]
+listening_ip = "0.0.0.0"
+external_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+relay_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+allowed_peer_ip = "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 EOTOML
 
 sudo sed -i "s/#RateLimitBurst=1000/RateLimitBurst=5000/" /etc/systemd/journald.conf
 sudo systemctl restart systemd-journald
 
-sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy at-once --url https://bldr.habitat.sh --channel unstable
-sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
+mkdir -p /hab/svc/janus-gateway/files
+mkdir -p /hab/svc/coturn/files
+
+chown -R hab:hab /hab/svc/janus-gateway
+chown -R hab:hab /hab/svc/coturn
+
 aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/janus-gateway-files.tar.gz.gpg .
 gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/janus-gateway/files/gpg-file-key.txt janus-gateway-files.tar.gz.gpg | tar xz -C /hab/svc/janus-gateway/files
 rm janus-gateway-files.tar.gz.gpg
+aws s3 cp s3://${aws_s3_bucket.janus-bucket.id}/coturn-files.tar.gz.gpg .
+gpg2 -d --pinentry-mode=loopback --passphrase-file=/hab/svc/coturn/files/gpg-file-key.txt coturn-files.tar.gz.gpg | tar xz -C /hab/svc/coturn/files
+rm coturn-files.tar.gz.gpg
+
+chown -R hab:hab /hab/svc/janus-gateway/files
+chown -R hab:hab /hab/svc/coturn/files
+
+sudo /usr/bin/hab svc load mozillareality/janus-gateway --strategy ${var.janus_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
+sudo /usr/bin/hab svc load mozillareality/coturn --strategy ${var.coturn_restart_strategy} --url https://bldr.habitat.sh --channel ${var.janus_channel}
+sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
