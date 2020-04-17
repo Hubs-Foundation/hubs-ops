@@ -3722,7 +3722,7 @@ Outputs:
     Value: !If [ HasALB, !GetAtt AppALB.DNSName, !GetAtt AppCloudfrontDistribution.DomainName ]
 
   DomainName:
-    Description: Primary hub domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
+    Description: Primary hub domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server,reticulum/turn/realm]
     Value: !Ref DomainName
 
   CorsOrigins:
