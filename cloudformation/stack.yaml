@@ -430,7 +430,7 @@ Conditions:
   HasStreamingServers: !And [!Equals [!Ref StackOffline, "Online"], !Not [!Equals [!Ref StreamInstanceCount, 0]]]
   AppIsNoPlacement: !Equals [!Ref AppPlacementGroupStrategy, none]
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
-  HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
+  HasEmailSubdomain: !Not [!Equals [!Ref EmailSubdomain, ""]]
   CreateDiskEncryptionKey: !Equals [!Ref NewCMKForDiskEncryption, "Yes - Create a new CMK"]
   SubnetChoiceA: !Equals [!Ref SubnetAZs, "Use zone a and b"]
   SubnetChoiceB: !Equals [!Ref SubnetAZs, "Use zone b and c"]
