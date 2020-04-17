@@ -365,10 +365,14 @@ Mappings:
       Port: 443
     RetInternal:
       Port: 4000
+    RetTurnExternal:
+      Port: 5349
     JanusInternal:
       Port: 8443
     JanusExternal:
       Port: 80
+    JanusTurnExternal:
+      Port: 443
     JanusAdmin:
       Port: 7000
     JanusWebRTCFrom:
@@ -1800,6 +1804,7 @@ Resources:
         - reticulum.default
         - janus-gateway.default
         - postgrest.default
+        - coturn.default
         - certbot.default
         - ita.default
         - speelycaptor.default
@@ -2473,8 +2478,16 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, RetExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
@@ -3551,11 +3564,24 @@ Resources:
 
   AppPostgrestDbSecret:
     Type: Custom::GenerateSecret
+    DependsOn: AppCoturnDbSecret
     DeletionPolicy: Retain
     Properties:
       Description: 'PostgREST admin db password'
       ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
       Name: postgrest-db-secret
+      Region: !Ref "AWS::Region"
+      StackName: !Ref "AWS::StackName"
+      CopyFromStackName: !If [IsRestore, !Ref RestoreStackName, !Ref "AWS::NoValue"]
+      CopyFromStackRegion: !If [IsRestore, !Ref "AWS::Region", !Ref "AWS::NoValue"]
+
+  AppCoturnDbSecret:
+    Type: Custom::GenerateSecret
+    DeletionPolicy: Retain
+    Properties:
+      Description: 'PostgREST admin db password'
+      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
+      Name: coturn-db-secret
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
       CopyFromStackName: !If [IsRestore, !Ref RestoreStackName, !Ref "AWS::NoValue"]
@@ -3787,13 +3813,13 @@ Outputs:
     Description: Reticulum Bot Access Key Secret [reticulum/ret/bot_access_key!read-keymaster-secret]
     Value: reticulum-bot-access-key
 
-  AppDbUsername:
-    Description: App DB Username [reticulum/db/username,ita/db/username]
-    Value: postgres
-
   AppDbSecret:
     Description: App DB Secret [ita/db/password!read-aws-secret]
     Value: !Ref AppDbSecret
+
+  AppCoturnDbSecret:
+    Description: App Coturn DB Secret [reticulum/db/coturn_password!read-keymaster-secret]
+    Value: coturn-db-secret
 
   AppPostgrestDbSecret:
     Description: App PostgREST DB Secret [reticulum/db/postgrest_password!read-keymaster-secret]
@@ -3810,6 +3836,10 @@ Outputs:
   PostgrestDbURI:
     Description: Postgrest DB URI [postgrest/db/uri!inject-keymaster-secret]
     Value: !Sub "postgres://postgrest_authenticator:{postgrest-db-secret}@${AppDb.Endpoint.Address}/polycosm_production"
+
+  CoturnDbURI:
+    Description: Coturn DB URI [coturn/general/psql_userdb!inject-keymaster-secret]
+    Value: !Sub "postgresql://coturn:{coturn-db-secret}@${AppDb.Endpoint.Address}/polycosm_production"
 
   PgbouncerDb:
     Description: Pgbouncer DB Info [pgbouncer/pgbouncer/db!inject-aws-secret]
