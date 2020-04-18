@@ -2,9 +2,9 @@ pkg_name=coturn
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 
-pkg_version="4.5.1.1"
-pkg_source="https://github.com/coturn/coturn/archive/${pkg_version}.tar.gz"
-pkg_shasum="8eabe4c241ad9a74655d8516c69b1fa3275e020e7f7fca50a6cb822809e7c220"
+pkg_version="4.5.2.0"
+pkg_source="https://github.com/mozillareality/coturn/archive/${pkg_version}.tar.gz"
+pkg_shasum="92ce593c01013b372084f5dfce4f07c1a96870d6cb59e22328a12db45f67b342"
 pkg_license=('COTURN')
 pkg_deps=(
   mozillareality/openssl
