@@ -2598,6 +2598,15 @@ Resources:
       FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
       DestinationSecurityGroupId: !Ref AppDbSecurityGroup
 
+  StreamDbEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref StreamSecurityGroup
+      IpProtocol: tcp
+      ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+      FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+      DestinationSecurityGroupId: !Ref AppDbSecurityGroup
+
   AppFullSelfEgress:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
@@ -3465,6 +3474,10 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
           FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
           SourceSecurityGroupId: !Ref AppSecurityGroup
+        - IpProtocol: tcp
+          ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+          FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+          SourceSecurityGroupId: !Ref StreamSecurityGroup
 
   DiskKmsKey:
     Type: AWS::KMS::Key
@@ -3564,24 +3577,11 @@ Resources:
 
   AppPostgrestDbSecret:
     Type: Custom::GenerateSecret
-    DependsOn: AppCoturnDbSecret
     DeletionPolicy: Retain
     Properties:
       Description: 'PostgREST admin db password'
       ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
       Name: postgrest-db-secret
-      Region: !Ref "AWS::Region"
-      StackName: !Ref "AWS::StackName"
-      CopyFromStackName: !If [IsRestore, !Ref RestoreStackName, !Ref "AWS::NoValue"]
-      CopyFromStackRegion: !If [IsRestore, !Ref "AWS::Region", !Ref "AWS::NoValue"]
-
-  AppCoturnDbSecret:
-    Type: Custom::GenerateSecret
-    DeletionPolicy: Retain
-    Properties:
-      Description: 'PostgREST admin db password'
-      ServiceToken: !GetAtt KeymasterApplication.Outputs.GenerateSecretFunctionArn
-      Name: coturn-db-secret
       Region: !Ref "AWS::Region"
       StackName: !Ref "AWS::StackName"
       CopyFromStackName: !If [IsRestore, !Ref RestoreStackName, !Ref "AWS::NoValue"]
@@ -3816,10 +3816,6 @@ Outputs:
   AppDbSecret:
     Description: App DB Secret [ita/db/password!read-aws-secret]
     Value: !Ref AppDbSecret
-
-  AppCoturnDbSecret:
-    Description: App Coturn DB Secret [reticulum/db/coturn_password!read-keymaster-secret]
-    Value: coturn-db-secret
 
   AppPostgrestDbSecret:
     Description: App PostgREST DB Secret [reticulum/db/postgrest_password!read-keymaster-secret]
