@@ -7,6 +7,7 @@ max_port = {{ coturn_max_port }}
 min_port = {{ coturn_min_port }}
 tls_listening_port = {{ coturn_tls_listening_port }}
 psql_userdb = "{{ coturn_psql_userdb }}"
+psql_schema = "coturn"
 use_auth_secret = "true"
 
 {% if coturn_listening_ip is defined %}
