@@ -2481,11 +2481,19 @@ Resources:
           FromPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
           ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: udp
+          FromPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
@@ -2516,6 +2524,16 @@ Resources:
         - IpProtocol: tcp
           FromPort: 587
           ToPort: 587
+          CidrIp: 0.0.0.0/0
+        # Outbound SMTP 25
+        - IpProtocol: tcp
+          FromPort: 25
+          ToPort: 25
+          CidrIp: 0.0.0.0/0
+        # Outbound SMTP Sendgrid 2525
+        - IpProtocol: tcp
+          FromPort: 2525
+          ToPort: 2525
           CidrIp: 0.0.0.0/0
         # Outbound NTP
         - IpProtocol: udp
