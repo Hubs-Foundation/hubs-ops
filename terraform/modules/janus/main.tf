@@ -105,11 +105,19 @@ resource "aws_security_group" "janus" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # TURN TCP
+  # TURN TCP TLS
   ingress {
     from_port = "${var.coturn_public_tls_port}"
     to_port = "${var.coturn_public_tls_port}"
     protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # TURN DTLS
+  ingress {
+    from_port = "${var.coturn_public_tls_port}"
+    to_port = "${var.coturn_public_tls_port}"
+    protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -199,9 +207,10 @@ resource "aws_launch_configuration" "janus" {
 #!/usr/bin/env bash
 while ! nc -z localhost 9632 ; do sleep 1; done
 systemctl restart systemd-sysctl.service
-# Forward 8443 to 443 for janus websockets, 5349 to 80 for TURN TLS
+# Forward 8443 to 443 for janus websockets, 5349 to 80 for TURN DTLS/TCP TLS
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 5349
+sudo iptables -t nat -A PREROUTING -p udp --dport 80 -j REDIRECT --to-port 5349
 
 sudo mkdir -p /hab/user/janus-gateway/config
 sudo mkdir -p /hab/user/coturn/config
@@ -285,6 +294,7 @@ systemctl restart systemd-sysctl.service
 # Forward 8443 to 443 for janus websockets, 5349 to 80 for TURN TLS
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 5349
+sudo iptables -t nat -A PREROUTING -p udp --dport 80 -j REDIRECT --to-port 5349
 
 sudo mkdir -p /hab/user/janus-gateway/config
 sudo mkdir -p /hab/user/coturn/config
