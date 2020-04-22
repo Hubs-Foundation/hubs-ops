@@ -365,10 +365,14 @@ Mappings:
       Port: 443
     RetInternal:
       Port: 4000
+    RetTurnExternal:
+      Port: 5349
     JanusInternal:
       Port: 8443
     JanusExternal:
       Port: 80
+    JanusTurnExternal:
+      Port: 443
     JanusAdmin:
       Port: 7000
     JanusWebRTCFrom:
@@ -426,7 +430,7 @@ Conditions:
   HasStreamingServers: !And [!Equals [!Ref StackOffline, "Online"], !Not [!Equals [!Ref StreamInstanceCount, 0]]]
   AppIsNoPlacement: !Equals [!Ref AppPlacementGroupStrategy, none]
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
-  HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
+  HasEmailSubdomain: !Not [!Equals [!Ref EmailSubdomain, ""]]
   CreateDiskEncryptionKey: !Equals [!Ref NewCMKForDiskEncryption, "Yes - Create a new CMK"]
   SubnetChoiceA: !Equals [!Ref SubnetAZs, "Use zone a and b"]
   SubnetChoiceB: !Equals [!Ref SubnetAZs, "Use zone b and c"]
@@ -1800,6 +1804,7 @@ Resources:
         - reticulum.default
         - janus-gateway.default
         - postgrest.default
+        - coturn.default
         - certbot.default
         - ita.default
         - speelycaptor.default
@@ -2473,8 +2478,24 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, RetExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: udp
+          FromPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: udp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
@@ -2503,6 +2524,16 @@ Resources:
         - IpProtocol: tcp
           FromPort: 587
           ToPort: 587
+          CidrIp: 0.0.0.0/0
+        # Outbound SMTP 25
+        - IpProtocol: tcp
+          FromPort: 25
+          ToPort: 25
+          CidrIp: 0.0.0.0/0
+        # Outbound SMTP Sendgrid 2525
+        - IpProtocol: tcp
+          FromPort: 2525
+          ToPort: 2525
           CidrIp: 0.0.0.0/0
         # Outbound NTP
         - IpProtocol: udp
@@ -2580,6 +2611,15 @@ Resources:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+      FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+      DestinationSecurityGroupId: !Ref AppDbSecurityGroup
+
+  StreamDbEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref StreamSecurityGroup
       IpProtocol: tcp
       ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
       FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
@@ -3109,6 +3149,14 @@ Resources:
           FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: udp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
@@ -3452,6 +3500,10 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
           FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
           SourceSecurityGroupId: !Ref AppSecurityGroup
+        - IpProtocol: tcp
+          ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+          FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+          SourceSecurityGroupId: !Ref StreamSecurityGroup
 
   DiskKmsKey:
     Type: AWS::KMS::Key
@@ -3696,7 +3748,7 @@ Outputs:
     Value: !If [ HasALB, !GetAtt AppALB.DNSName, !GetAtt AppCloudfrontDistribution.DomainName ]
 
   DomainName:
-    Description: Primary hub domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
+    Description: Primary hub domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server,reticulum/turn/realm,coturn/general/realm]
     Value: !Ref DomainName
 
   CorsOrigins:
@@ -3786,10 +3838,6 @@ Outputs:
   ReticulumBotAccessKeySecret:
     Description: Reticulum Bot Access Key Secret [reticulum/ret/bot_access_key!read-keymaster-secret]
     Value: reticulum-bot-access-key
-
-  AppDbUsername:
-    Description: App DB Username [reticulum/db/username,ita/db/username]
-    Value: postgres
 
   AppDbSecret:
     Description: App DB Secret [ita/db/password!read-aws-secret]
