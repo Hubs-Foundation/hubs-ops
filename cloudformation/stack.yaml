@@ -696,7 +696,7 @@ Resources:
                 if (properties.Id) {
                   return zone.Id === "/hostedzone/" + properties.Id;
                 } else {
-                  var apexParts = properties.Domain.split(".");
+                  var apexParts = properties.Domain.split(".").filter(Boolean);
                   var apex = apexParts.slice(1, apexParts.length).join(".");
                   return zone.Name === apex + ".";
                 }
