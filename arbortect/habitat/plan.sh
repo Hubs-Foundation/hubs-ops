@@ -2,7 +2,7 @@ pkg_name=arbortect
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 pkg_version="0.0.1"
-pkg_description="A tool for configuring Hubs Clud"
+pkg_description="Generates stack configs for single server instances"
 
 pkg_deps=(
   core/coreutils
