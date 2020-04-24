@@ -1,0 +1,42 @@
+{
+  "name": "arbortect",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Interactive tool for polycosm stack configuration.",
+  "repository": "github:MozillaReality/arbortect",
+  "scripts": {
+    "build": "webpack --mode=production",
+    "start": "node bin/run",
+    "lint": "eslint . --ext .js"
+  },
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^6.0.1",
+    "eslint-config-prettier": "^4.3.0",
+    "eslint-plugin-node": "^8.0.1",
+    "eslint-plugin-prettier": "^3.1.1",
+    "prettier": "^1.19.1",
+    "webpack": "^4.41.0",
+    "webpack-cli": "^3.3.9",
+    "webpack-node-externals": "^1.7.2"
+  },
+  "dependencies": {
+    "@iarna/toml": "^2.2.3",
+    "base32-encode": "^1.1.1",
+    "cli-table": "^0.3.1",
+    "colors": "^1.4.0",
+    "debug": "^4.1.1",
+    "do-wrapper": "^3.25.3",
+    "hubs-configtool": "github:MozillaReality/hubs-configtool",
+    "inquirer": "^7.0.0",
+    "lodash.merge": "^4.6.2",
+    "mkdirp": "^0.5.1",
+    "node-fetch": "^2.6.0",
+    "qrcode": "^1.4.4",
+    "qrcode-terminal": "^0.12.0",
+    "web-push": "^3.4.1",
+    "yargs": "^15.0.2"
+  }
+}
