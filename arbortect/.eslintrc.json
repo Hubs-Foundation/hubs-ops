@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "prettier/prettier": "error",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }]
+  },
+  "extends": ["prettier", "eslint:recommended", "plugin:node/recommended"],
+  "plugins": ["prettier"]
+}
