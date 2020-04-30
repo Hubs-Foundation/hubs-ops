@@ -190,6 +190,10 @@ async function writeStackConfigs(
         Targets: ["postgrest/db/pool"],
         OutputValue: 2
       },
+      CoturnDbURI: {
+        Targets: ["coturn/general/psql_userdb"],
+        OutputValue: `postgresql://${databaseUser}:${databasePassword}@${databaseHost}:${databasePort}/polycosm_production`
+      },
       AssetsPath: {
         Targets: ["hubs/deploy/target", "spoke/deploy/target", "reticulum/assets/assets_path"],
         OutputValue: `${storagePath}/assets`
