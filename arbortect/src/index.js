@@ -281,11 +281,11 @@ async function createDNSRecords(client, ip, projectResources, { domainName, root
 
   const pendingRecords = {
     hub: [
-      { type: "A", name: `${subdomain === "" ? "@" : subdomain}`, data: ip, ttl: 600 },
-      { type: "A", name: corsProxyName, data: ip, ttl: 600 },
-      { type: "A", name: assetsName, data: ip, ttl: 600 }
+      { type: "A", name: `${subdomain === "" ? "@" : subdomain}`, data: ip, ttl: 300 },
+      { type: "A", name: corsProxyName, data: ip, ttl: 300 },
+      { type: "A", name: assetsName, data: ip, ttl: 300 }
     ],
-    link: [{ type: "A", name: "@", data: ip, ttl: 600 }]
+    link: [{ type: "A", name: "@", data: ip, ttl: 300 }]
   };
 
   const ensureRecord = async (domain, record, currentRecords) => {
