@@ -94,7 +94,13 @@ async function writeStackConfigs(
     ...configs,
     ...{
       DomainName: {
-        Targets: ["reticulum/phx/url_host", "reticulum/phx/static_url_host", "spoke/general/hubs_server"],
+        Targets: [
+          "reticulum/phx/url_host",
+          "reticulum/phx/static_url_host",
+          "spoke/general/hubs_server",
+          "reticulum/turn/realm",
+          "coturn/general/realm"
+        ],
         OutputValue: domainName
       },
       ReticulumServer: {

@@ -162,7 +162,7 @@ async function loadProject(client, dropletId) {
 
   if (project.is_default) {
     console.log(
-      "Error: This droplet should be assigned to a project other than the default. To proceed, create a new project for your hub and move this droplet into it."
+      "Error: This droplet should be assigned to a project other than the default. To proceed, create a new project for your hub and move this droplet into it.\nOnce completed, re-run setup:\n\n/opt/polycosm/setup.sh"
         .yellow
     );
     process.exit(1); // eslint-disable-line no-process-exit
@@ -258,7 +258,7 @@ async function setupStorage(client, droplet, token) {
       })
     ).json();
 
-    storagePath = `/mnt/${volume.name}`;
+    storagePath = `/mnt/${volume.name.replace(/-/g, "_")}`;
     console.log(`Using block storage ${volume.name} (${volume.size_gigabytes} GB) for asset storage.`.cyan);
   }
 
@@ -682,7 +682,9 @@ const run = async function() {
         fs.closeSync(fs.openSync(readyFile, "w"));
       }
     } catch (e) {
+      console.error("There was an error during setup:\n");
       console.error(e);
+      console.log("\nTo re-run setup, run:\n\n/opt/polycosm/setup.sh");
       process.exit(1); // eslint-disable-line no-process-exit
     }
   }

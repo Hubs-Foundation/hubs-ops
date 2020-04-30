@@ -1,7 +1,7 @@
 pkg_name=arbortect
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
-pkg_version="0.0.1"
+pkg_version="1.0.0"
 pkg_description="Generates stack configs for single server instances"
 
 pkg_deps=(
