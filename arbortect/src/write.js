@@ -120,7 +120,7 @@ async function writeStackConfigs(
       },
       JanusMediaRtpPortRange: {
         Targets: ["janus-gateway/media/rtp_port_range"],
-        OutputValue: "49152-60999"
+        OutputValue: "51610-60999"
       },
       JanusInternalPort: {
         Targets: ["janus-gateway/transports.websockets/wss_port"],
