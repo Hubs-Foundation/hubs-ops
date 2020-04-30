@@ -138,10 +138,6 @@ async function writeStackConfigs(
         Targets: ["reticulum/janus/service_name"],
         OutputValue: "janus-gateway"
       },
-      JanusNatMapping: {
-        Targets: ["janus-gateway/nat/nat_1_1_mapping"],
-        OutputValue: ip
-      },
       RetInternalPort: {
         Targets: ["reticulum/phx/port"],
         OutputValue: 4000
@@ -293,6 +289,14 @@ async function writeStackConfigs(
       EnableDbSsl: {
         Targets: ["reticulum/db/ssl", "reticulum/session_lock_db/ssl"],
         OutputValue: true
+      },
+      JanusStunServer: {
+        Targets: ["janus-gateway/nat/stun_server"],
+        OutputValue: ip
+      },
+      JanusStunPort: {
+        Targets: ["janus-gateway/nat/stun_port"],
+        OutputValue: 5349
       }
     }
   };
