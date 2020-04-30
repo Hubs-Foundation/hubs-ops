@@ -376,7 +376,7 @@ Mappings:
     JanusAdmin:
       Port: 7000
     JanusWebRTCFrom:
-      Port: 49152
+      Port: 51610
     JanusWebRTCTo:
       Port: 60999
     YTDL:

@@ -229,6 +229,7 @@ async function configureFirewall(token, stackName, droplet, { smtpPort, database
         rule("tcp", 443),
         rule("tcp", 5349),
         rule("udp", 5349),
+        rule("tcp", "49152-60999"),
         rule("udp", "49152-60999")
       ],
       outbound_rules: [
