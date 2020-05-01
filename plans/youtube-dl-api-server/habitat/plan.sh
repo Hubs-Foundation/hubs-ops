@@ -7,7 +7,12 @@ pkg_description="A youtube-dl REST API server"
 pkg_upstream_url="https://github.com/mozillareality/youtube-dl-api-server"
 pkg_source="https://github.com/mozillareality/youtube-dl-api-server/archive/${pkg_version}.tar.gz"
 pkg_shasum="6107513539ac18ef14377a0ecea55e54248e0113d7bef479da98a3dc19dad8d1"
-pkg_deps=(core/envdir core/lzop core/pv core/python)
+pkg_deps=(
+  core/envdir
+  core/lzop 
+  core/pv 
+  core/python 
+  core/aws-cli/1.16.118/20190305224525 # AWS cli used for run hook when uploading to S3)
 pkg_bin_dirs=(bin)
 
 do_prepare() {
