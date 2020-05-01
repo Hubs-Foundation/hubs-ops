@@ -3631,7 +3631,7 @@ Resources:
       MasterUsername: !If [IsRestore, !Ref "AWS::NoValue", !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]]
       MasterUserPassword: !If [IsRestore, !Ref "AWS::NoValue", !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]]
       ScalingConfiguration:
-        AutoPause: !If [EnableDbAutoPause, true, false]
+        AutoPause: !If [IsOffline, true, !If [EnableDbAutoPause, true, false]]
         MaxCapacity: !Ref DbMaxCapacity
         MinCapacity: 2
         SecondsUntilAutoPause: 300
