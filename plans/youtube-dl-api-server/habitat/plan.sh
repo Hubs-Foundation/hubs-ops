@@ -12,6 +12,7 @@ pkg_deps=(
   core/lzop/1.04/20200404063539
   core/pv1.6.0/20200403140749
   core/python/3.7.0/20200310040007
+)
 pkg_bin_dirs=(bin)
 
 do_prepare() {
