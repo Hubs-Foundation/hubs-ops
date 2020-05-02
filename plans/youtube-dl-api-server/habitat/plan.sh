@@ -10,7 +10,7 @@ pkg_shasum="6107513539ac18ef14377a0ecea55e54248e0113d7bef479da98a3dc19dad8d1"
 pkg_deps=(
   core/envdir/1.0.1/20200404003559
   core/lzop/1.04/20200404063539
-  core/pv1.6.0/20200403140749
+  core/pv/1.6.0/20200403140749
   core/python/3.7.0/20200310040007
 )
 pkg_bin_dirs=(bin)
