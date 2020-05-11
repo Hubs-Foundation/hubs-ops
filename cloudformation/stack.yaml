@@ -2509,6 +2509,14 @@ Resources:
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
           ToPort: !FindInMap [ServicesMeta, Ssh, Port]
           CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: icmpv6
+          FromPort: -1
+          ToPort: -1
+          CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
       SecurityGroupEgress:
         # Outbound HTTP
         - IpProtocol: tcp
@@ -3168,6 +3176,14 @@ Resources:
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
           ToPort: !FindInMap [ServicesMeta, Ssh, Port]
+          CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: icmpv6
+          FromPort: -1
+          ToPort: -1
           CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
       SecurityGroupEgress:
         # Outbound HTTP
