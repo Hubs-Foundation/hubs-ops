@@ -77,7 +77,7 @@ do_download() {
   pushd meetecho/janus-gateway
   popd
 
-  git-get mozilla/janus-plugin-sfu 420220e3669fb6bee289cc4e81ea7d4d884594aa 
+  git-get mozilla/janus-plugin-sfu 3694c36040eea4de1e80b83447a3625156454956
 
   popd
 }
