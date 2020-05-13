@@ -30,10 +30,10 @@ pkg_build_deps=(
 pkg_deps=(
     mozillareality/gcc
     mozillareality/glib
-    mozillareality/openssl
-    core/p11-kit
-    core/sqlite
-    mozillareality/util-linux
+    core/openssl/1.0.2r/20190305210149 
+    core/p11-kit/0.23.10/20190117183627
+    core/sqlite/3130000/20190115154252
+    mozillareality/util-linux/2.34
 
     mozillareality/jansson/2.12
     mozillareality/libmicrohttpd/0.9.66
@@ -45,12 +45,12 @@ pkg_deps=(
     mozillareality/libconfig/1.7.2
 
     # https://github.com/habitat-sh/habitat/issues/3303
-    mozillareality/zlib
-    core/glibc
-    mozillareality/gcc-libs
-    mozillareality/nettle
-    mozillareality/pcre
-    mozillareality/libtasn1
+    mozillareality/zlib/1.2.11
+    core/glibc/2.27/20190115002733
+    mozillareality/gcc-libs/9.1.0
+    mozillareality/nettle/3.5.1
+    mozillareality/pcre/8.42
+    mozillareality/libtasn1/4.13
 )
 
 git-get () {
