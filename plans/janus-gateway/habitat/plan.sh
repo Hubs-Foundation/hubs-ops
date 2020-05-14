@@ -30,7 +30,6 @@ pkg_build_deps=(
 pkg_deps=(
     mozillareality/gcc
     mozillareality/glib
-    core/openssl/1.0.2r/20190305210149 
     core/p11-kit/0.23.10/20190117183627
     core/sqlite/3130000/20190115154252
     mozillareality/util-linux/2.34

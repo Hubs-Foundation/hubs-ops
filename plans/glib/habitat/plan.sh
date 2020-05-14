@@ -16,24 +16,25 @@ pkg_shasum="82ee94bf4c01459b6b00cb9db0545c2237921e3060c0b74cff13fbc020cfd999"
 pkg_deps=(
   mozillareality/coreutils
   mozillareality/elfutils
-  core/glibc
+  core/glibc/2.27
   mozillareality/libffi
   mozillareality/libiconv
   mozillareality/pcre
-  core/python
   mozillareality/util-linux
   mozillareality/zlib
 )
 pkg_build_deps=(
-  core/dbus
+  mozillareality/dbus
+  mozillareality/python
   core/diffutils
   core/file
   core/gcc
   core/gettext
-  core/libxslt
+  #core/libxslt
   core/make
   core/perl
   core/pkg-config
+  core/coreutils
 )
 pkg_bin_dirs=(bin)
 pkg_lib_dirs=(lib)
