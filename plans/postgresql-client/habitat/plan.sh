@@ -1,12 +1,13 @@
-pkg_name=postgresql
+pkg_name=postgresql-client
 pkg_version=10.3
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 pkg_description="PostgreSQL is a powerful, open source object-relational database system."
 pkg_upstream_url="https://www.postgresql.org/"
 pkg_license=('PostgreSQL')
-pkg_source=https://ftp.postgresql.org/pub/source/v${pkg_version}/${pkg_name}-${pkg_version}.tar.bz2
+pkg_source=https://ftp.postgresql.org/pub/source/v${pkg_version}/postgresql-${pkg_version}.tar.bz2
 pkg_shasum=6ea268780ee35e88c65cdb0af7955ad90b7d0ef34573867f223f14e43467931a
+pkg_dirname="postgresql-${pkg_version}"
 
 pkg_deps=(
   core/bash
@@ -37,12 +38,6 @@ pkg_build_deps=(
 pkg_bin_dirs=(bin)
 pkg_include_dirs=(include)
 pkg_lib_dirs=(lib)
-pkg_exports=(
-  [port]=port
-  [superuser_name]=superuser.name
-  [superuser_password]=superuser.password
-)
-pkg_exposes=(port)
 
 ext_postgis_version=2.4.4
 ext_postgis_source=http://download.osgeo.org/postgis/source/postgis-${ext_postgis_version}.tar.gz
@@ -92,24 +87,24 @@ do_build() {
 }
 
 do_install() {
-  make install-world
+	make -C src/bin install
+	make -C src/include install
+	make -C src/interfaces install
 
-  # make and install PostGIS extension
-  HAB_LIBRARY_PATH="$(pkg_path_for proj)/lib:${pkg_prefix}/lib"
-  export LIBRARY_PATH="${LIBRARY_PATH}:${HAB_LIBRARY_PATH}"
-  build_line "Added habitat libraries to LIBRARY_PATH: ${HAB_LIBRARY_PATH}"
-
-  export PATH="${PATH}:${pkg_prefix}/bin"
-  build_line "Added postgresql binaries to PATH: ${pkg_prefix}/bin"
-
-  pushd "$ext_postgis_cache_path" > /dev/null
-
-  build_line "Building ${ext_postgis_dirname}"
-  CFLAGS="${CFLAGS} -O2 -g" ./configure --prefix="$pkg_prefix"
-  make
-
-  build_line "Installing ${ext_postgis_dirname}"
-  make install
-
-  popd > /dev/null
+	# Clean up files needed only for server installs
+    # this shrinks the package by about 60%
+    echo "Purging unneeded execs"
+    for unneeded in "${server_execs[@]}"
+    do
+       target="$pkg_prefix/bin/${unneeded}"
+       echo "rm -f ${target}"
+       rm -f "${target}"
+    done
+    echo "Purging unneeded includes"
+    for unneeded in "${server_includes[@]}"
+    do
+       target="$pkg_prefix/include/${unneeded}"
+       echo "rm -rf ${target}"
+       rm -rf "${target}"
+    done
 }

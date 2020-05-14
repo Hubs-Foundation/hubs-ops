@@ -365,14 +365,18 @@ Mappings:
       Port: 443
     RetInternal:
       Port: 4000
+    RetTurnExternal:
+      Port: 5349
     JanusInternal:
       Port: 8443
     JanusExternal:
       Port: 80
+    JanusTurnExternal:
+      Port: 443
     JanusAdmin:
       Port: 7000
     JanusWebRTCFrom:
-      Port: 49152
+      Port: 51610
     JanusWebRTCTo:
       Port: 60999
     YTDL:
@@ -426,7 +430,7 @@ Conditions:
   HasStreamingServers: !And [!Equals [!Ref StackOffline, "Online"], !Not [!Equals [!Ref StreamInstanceCount, 0]]]
   AppIsNoPlacement: !Equals [!Ref AppPlacementGroupStrategy, none]
   AppIsClusterPlacement: !Equals [!Ref AppPlacementGroupStrategy, cluster]
-  HasEmailSubdomain: !Equals [!Ref EmailSubdomain, ""]
+  HasEmailSubdomain: !Not [!Equals [!Ref EmailSubdomain, ""]]
   CreateDiskEncryptionKey: !Equals [!Ref NewCMKForDiskEncryption, "Yes - Create a new CMK"]
   SubnetChoiceA: !Equals [!Ref SubnetAZs, "Use zone a and b"]
   SubnetChoiceB: !Equals [!Ref SubnetAZs, "Use zone b and c"]
@@ -1014,48 +1018,48 @@ Resources:
       Version: 1.7.2
     Properties:
       Code:
-      ZipFile: "y=Exception\nU=RuntimeError\nM=True\nimport copy,hashlib as t,json,logging\
-         \ as B,time\nfrom boto3 import client as J\nfrom botocore.exceptions import\
-         \ ClientError as u,ParamValidationError as v\nfrom urllib.request import\
-         \ Request as w,urlopen as x\nA=B.getLogger()\nA.setLevel(B.INFO)\nC=A.info\n\
-         R=A.exception\nL=copy.copy\nS=time.sleep\nT=lambda j:json.dumps(j,sort_keys=M).encode()\n\
-         def handler(e,c):\n\tAB='OldResourceProperties';AA='Update';A9='Delete';A8='None';A7='acm';A6='FAILED';A5='properties';A4='stack-id';A3='logical-id';A2='DNS';s='Old';r='Certificate';q='LogicalResourceId';p='DomainName';o='ValidationMethod';n='Route53RoleArn';m='Region';d='RequestType';b='Reinvoked';a='StackId';Z=None;Q='Status';P='Key';O='';N='DomainValidationOptions';K=False;I='ResourceProperties';H='cloudformation:';G='Value';F='CertificateArn';E='Tags';B='PhysicalResourceId';f=c.get_remaining_time_in_millis;C(e)\n\
-         \tdef g():\n\t\tC=L(A)\n\t\tfor G in ['ServiceToken',m,E,n]:C.pop(G,Z)\n\
-         \t\tif o in A:\n\t\t\tif A[o]==A2:\n\t\t\t\tfor H in set([A[p]]+A.get('SubjectAlternativeNames',[])):k(H)\n\
-         \t\t\t\tdel C[N]\n\t\te[B]=D.request_certificate(IdempotencyToken=A0,**C)[F];l()\n\
-         \tdef V(a):\n\t\twhile M:\n\t\t\ttry:D.delete_certificate(**{F:a});return\n\
-         \t\t\texcept u as B:\n\t\t\t\tR(O);A=B.response['Error']['Code']\n\t\t\t\
-         \tif A=='ResourceInUseException':\n\t\t\t\t\tif f()/1000<30:raise\n\t\t\t\
-         \t\tS(5);continue\n\t\t\t\tif A in['ResourceNotFoundException','ValidationException']:return\n\
-         \t\t\t\traise\n\t\t\texcept v:return\n\tdef W(p):\n\t\tfor I in D.get_paginator('list_certificates').paginate():\n\
-         \t\t\tfor A in I['CertificateSummaryList']:\n\t\t\t\tC(A);B={B[P]:B[G]for\
-         \ B in D.list_tags_for_certificate(**{F:A[F]})[E]}\n\t\t\t\tif B.get(H+A3)==e[q]and\
-         \ B.get(H+A4)==e[a]and B.get(H+A5)==X(p):return A[F]\n\tdef h():\n\t\tif\
-         \ e.get(b,K):raise U('Certificate not issued in time')\n\t\te[b]=M;C(e);J('lambda').invoke(FunctionName=c.invoked_function_arn,InvocationType='Event',Payload=T(e))\n\
-         \tdef i():\n\t\twhile f()/1000>30:\n\t\t\tA=D.describe_certificate(**{F:e[B]})[r];C(A)\n\
-         \t\t\tif A[Q]=='ISSUED':return M\n\t\t\telif A[Q]==A6:raise U(A.get('FailureReason',O))\n\
-         \t\t\tS(5)\n\t\treturn K\n\tdef z():A=L(e[s+I]);A.pop(E,Z);B=L(e[I]);B.pop(E,Z);return\
-         \ A!=B\n\tdef j():\n\t\tW='Type';V='Name';U='HostedZoneId';T='ValidationStatus';R='PENDING_VALIDATION';K='ResourceRecord'\n\
-         \t\tif A.get(o)!=A2:return\n\t\twhile M:\n\t\t\tH=D.describe_certificate(**{F:e[B]})[r];C(H)\n\
-         \t\t\tif H[Q]!=R:return\n\t\t\tif not[A for A in H.get(N,[{}])if T not in\
-         \ A or K not in A]:break\n\t\t\tS(1)\n\t\tfor E in H[N]:\n\t\t\tif E[T]==R:L=k(E[p]);O=L.get(n,A.get(n));I=J('sts').assume_role(RoleArn=O,RoleSessionName=(r+e[q])[:64],DurationSeconds=900)['Credentials']if\
-         \ O is not Z else{};P=J('route53',aws_access_key_id=I.get('AccessKeyId'),aws_secret_access_key=I.get('SecretAccessKey'),aws_session_token=I.get('SessionToken')).change_resource_record_sets(**{U:L[U],'ChangeBatch':{'Comment':'Domain\
-         \ validation for '+e[B],'Changes':[{'Action':'UPSERT','ResourceRecordSet':{V:E[K][V],W:E[K][W],'TTL':60,'ResourceRecords':[{G:E[K][G]}]}}]}});C(P)\n\
-         \tdef k(n):\n\t\tC='.';n=n.rstrip(C);D={B[p].rstrip(C):B for B in A[N]};B=n.split(C)\n\
-         \t\twhile len(B):\n\t\t\tif C.join(B)in D:return D[C.join(B)]\n\t\t\tB=B[1:]\n\
-         \t\traise U(N+' missing for '+n)\n\tX=lambda v:t.new('md5',T(v)).hexdigest()\n\
-         \tdef l():A=L(e[I].get(E,[]));A+=[{P:H+A3,G:e[q]},{P:H+A4,G:e[a]},{P:H+'stack-name',G:e[a].split('/')[1]},{P:H+A5,G:X(e[I])}];D.add_tags_to_certificate(**{F:e[B],E:A})\n\
-         \tdef Y():\n\t\tC(e);A=x(w(e['ResponseURL'],T(e),{'content-type':O},method='PUT'))\n\
-         \t\tif A.status!=200:raise y(A)\n\ttry:\n\t\tA0=X(e['RequestId']+e[a]);A=e[I];D=J(A7,region_name=A.get(m));e[Q]='SUCCESS'\n\
-         \t\tif e[d]=='Create':\n\t\t\tif e.get(b,K)is K:e[B]=A8;g()\n\t\t\tj()\n\
-         \t\t\tif not i():return h()\n\t\telif e[d]==A9:\n\t\t\tif e[B]!=A8:\n\t\t\
-         \t\tif e[B].startswith('arn:'):V(e[B])\n\t\t\t\telse:V(W(A))\n\t\telif e[d]==AA:\n\
-         \t\t\tif z():\n\t\t\t\tC(AA)\n\t\t\t\tif W(A)==e[B]:\n\t\t\t\t\ttry:D=J(A7,region_name=e[AB].get(m));C(A9);V(W(e[AB]))\n\
-         \t\t\t\t\texcept:R(O)\n\t\t\t\t\treturn Y()\n\t\t\t\tif e.get(b,K)is K:g()\n\
-         \t\t\t\tj()\n\t\t\t\tif not i():return h()\n\t\t\telse:\n\t\t\t\tif E in\
-         \ e[s+I]:D.remove_tags_from_certificate(**{F:e[B],E:e[s+I][E]})\n\t\t\t\t\
-         l()\n\t\telse:raise U(e[d])\n\t\treturn Y()\n\texcept y as A1:R(O);e[Q]=A6;e['Reason']=str(A1);return\
-         \ Y()"
+        ZipFile: "y=Exception\nU=RuntimeError\nM=True\nimport copy,hashlib as t,json,logging\
+           \ as B,time\nfrom boto3 import client as J\nfrom botocore.exceptions import\
+           \ ClientError as u,ParamValidationError as v\nfrom urllib.request import\
+           \ Request as w,urlopen as x\nA=B.getLogger()\nA.setLevel(B.INFO)\nC=A.info\n\
+           R=A.exception\nL=copy.copy\nS=time.sleep\nT=lambda j:json.dumps(j,sort_keys=M).encode()\n\
+           def handler(e,c):\n\tAB='OldResourceProperties';AA='Update';A9='Delete';A8='None';A7='acm';A6='FAILED';A5='properties';A4='stack-id';A3='logical-id';A2='DNS';s='Old';r='Certificate';q='LogicalResourceId';p='DomainName';o='ValidationMethod';n='Route53RoleArn';m='Region';d='RequestType';b='Reinvoked';a='StackId';Z=None;Q='Status';P='Key';O='';N='DomainValidationOptions';K=False;I='ResourceProperties';H='cloudformation:';G='Value';F='CertificateArn';E='Tags';B='PhysicalResourceId';f=c.get_remaining_time_in_millis;C(e)\n\
+           \tdef g():\n\t\tC=L(A)\n\t\tfor G in ['ServiceToken',m,E,n]:C.pop(G,Z)\n\
+           \t\tif o in A:\n\t\t\tif A[o]==A2:\n\t\t\t\tfor H in set([A[p]]+A.get('SubjectAlternativeNames',[])):k(H)\n\
+           \t\t\t\tdel C[N]\n\t\te[B]=D.request_certificate(IdempotencyToken=A0,**C)[F];l()\n\
+           \tdef V(a):\n\t\twhile M:\n\t\t\ttry:D.delete_certificate(**{F:a});return\n\
+           \t\t\texcept u as B:\n\t\t\t\tR(O);A=B.response['Error']['Code']\n\t\t\t\
+           \tif A=='ResourceInUseException':\n\t\t\t\t\tif f()/1000<30:raise\n\t\t\t\
+           \t\tS(5);continue\n\t\t\t\tif A in['ResourceNotFoundException','ValidationException']:return\n\
+           \t\t\t\traise\n\t\t\texcept v:return\n\tdef W(p):\n\t\tfor I in D.get_paginator('list_certificates').paginate():\n\
+           \t\t\tfor A in I['CertificateSummaryList']:\n\t\t\t\tC(A);B={B[P]:B[G]for\
+           \ B in D.list_tags_for_certificate(**{F:A[F]})[E]}\n\t\t\t\tif B.get(H+A3)==e[q]and\
+           \ B.get(H+A4)==e[a]and B.get(H+A5)==X(p):return A[F]\n\tdef h():\n\t\tif\
+           \ e.get(b,K):raise U('Certificate not issued in time')\n\t\te[b]=M;C(e);J('lambda').invoke(FunctionName=c.invoked_function_arn,InvocationType='Event',Payload=T(e))\n\
+           \tdef i():\n\t\twhile f()/1000>30:\n\t\t\tA=D.describe_certificate(**{F:e[B]})[r];C(A)\n\
+           \t\t\tif A[Q]=='ISSUED':return M\n\t\t\telif A[Q]==A6:raise U(A.get('FailureReason',O))\n\
+           \t\t\tS(5)\n\t\treturn K\n\tdef z():A=L(e[s+I]);A.pop(E,Z);B=L(e[I]);B.pop(E,Z);return\
+           \ A!=B\n\tdef j():\n\t\tW='Type';V='Name';U='HostedZoneId';T='ValidationStatus';R='PENDING_VALIDATION';K='ResourceRecord'\n\
+           \t\tif A.get(o)!=A2:return\n\t\twhile M:\n\t\t\tH=D.describe_certificate(**{F:e[B]})[r];C(H)\n\
+           \t\t\tif H[Q]!=R:return\n\t\t\tif not[A for A in H.get(N,[{}])if T not in\
+           \ A or K not in A]:break\n\t\t\tS(1)\n\t\tfor E in H[N]:\n\t\t\tif E[T]==R:L=k(E[p]);O=L.get(n,A.get(n));I=J('sts').assume_role(RoleArn=O,RoleSessionName=(r+e[q])[:64],DurationSeconds=900)['Credentials']if\
+           \ O is not Z else{};P=J('route53',aws_access_key_id=I.get('AccessKeyId'),aws_secret_access_key=I.get('SecretAccessKey'),aws_session_token=I.get('SessionToken')).change_resource_record_sets(**{U:L[U],'ChangeBatch':{'Comment':'Domain\
+           \ validation for '+e[B],'Changes':[{'Action':'UPSERT','ResourceRecordSet':{V:E[K][V],W:E[K][W],'TTL':60,'ResourceRecords':[{G:E[K][G]}]}}]}});C(P)\n\
+           \tdef k(n):\n\t\tC='.';n=n.rstrip(C);D={B[p].rstrip(C):B for B in A[N]};B=n.split(C)\n\
+           \t\twhile len(B):\n\t\t\tif C.join(B)in D:return D[C.join(B)]\n\t\t\tB=B[1:]\n\
+           \t\traise U(N+' missing for '+n)\n\tX=lambda v:t.new('md5',T(v)).hexdigest()\n\
+           \tdef l():A=L(e[I].get(E,[]));A+=[{P:H+A3,G:e[q]},{P:H+A4,G:e[a]},{P:H+'stack-name',G:e[a].split('/')[1]},{P:H+A5,G:X(e[I])}];D.add_tags_to_certificate(**{F:e[B],E:A})\n\
+           \tdef Y():\n\t\tC(e);A=x(w(e['ResponseURL'],T(e),{'content-type':O},method='PUT'))\n\
+           \t\tif A.status!=200:raise y(A)\n\ttry:\n\t\tA0=X(e['RequestId']+e[a]);A=e[I];D=J(A7,region_name=A.get(m));e[Q]='SUCCESS'\n\
+           \t\tif e[d]=='Create':\n\t\t\tif e.get(b,K)is K:e[B]=A8;g()\n\t\t\tj()\n\
+           \t\t\tif not i():return h()\n\t\telif e[d]==A9:\n\t\t\tif e[B]!=A8:\n\t\t\
+           \t\tif e[B].startswith('arn:'):V(e[B])\n\t\t\t\telse:V(W(A))\n\t\telif e[d]==AA:\n\
+           \t\t\tif z():\n\t\t\t\tC(AA)\n\t\t\t\tif W(A)==e[B]:\n\t\t\t\t\ttry:D=J(A7,region_name=e[AB].get(m));C(A9);V(W(e[AB]))\n\
+           \t\t\t\t\texcept:R(O)\n\t\t\t\t\treturn Y()\n\t\t\t\tif e.get(b,K)is K:g()\n\
+           \t\t\t\tj()\n\t\t\t\tif not i():return h()\n\t\t\telse:\n\t\t\t\tif E in\
+           \ e[s+I]:D.remove_tags_from_certificate(**{F:e[B],E:e[s+I][E]})\n\t\t\t\t\
+           l()\n\t\telse:raise U(e[d])\n\t\treturn Y()\n\texcept y as A1:R(O);e[Q]=A6;e['Reason']=str(A1);return\
+           \ Y()"
       Description: Cloudformation custom resource for DNS validated certificates
       Handler: index.handler
       Role: !GetAtt CustomAcmCertificateLambdaExecutionRole.Arn
@@ -1635,7 +1639,7 @@ Resources:
       Timeout: 900
       Code:
         ZipFile: !Sub |
-          const AWS=require("aws-sdk"),promisify=e=>t=>new Promise((a,n)=>e(t,(e,t)=>{e?(console.log(e),n(e)):a(t)})),OFFLINE_SETTING="Offline - Temporarily shut off servers";async function handleBudgetAlert(e,t){const a=e.Records[0].Sns.TopicArn,n=new AWS.SNS,s=(await promisify(n.listTagsForResource.bind(n))({ResourceArn:a})).Tags,r=s.find(e=>"stack-name"===e.Key).Value,o=s.find(e=>"stack-region"===e.Key).Value,i=new AWS.CloudFormation({region:o});await new Promise(async e=>{let t;const a=async()=>{const a=await promisify(i.describeStacks.bind(i))({StackName:r});if(a){const n=a.Stacks[0].StackStatus;if(n.endsWith("_COMPLETE")||n.endsWith("_FAILED"))return t&&clearInterval(t),e(),!0}return!1};await a()||(t=setInterval(a,3e4))});const c=(await promisify(i.describeStacks.bind(i))({StackName:r})).Stacks[0].Parameters,d=[];for(const e of c)"StackOffline"===e.ParameterKey?d.push({ParameterKey:e.ParameterKey,ParameterValue:OFFLINE_SETTING}):d.push({ParameterKey:e.ParameterKey,UsePreviousValue:!0});await promisify(i.updateStack.bind(i))({StackName:r,UsePreviousTemplate:!0,Parameters:d,Capabilities:["CAPABILITY_IAM","CAPABILITY_NAMED_IAM"]})}async function handleASGMessage(e,t){const a=e.AutoScalingGroupName,n=e.Event,s="${LowerStackName.Value}-app.${InternalZoneInfo.Name}.";if("autoscaling:EC2_INSTANCE_LAUNCH"===n||"autoscaling:EC2_INSTANCE_TERMINATE"===n){const e=new AWS.AutoScaling({region:"${AWS::Region}"}),t=new AWS.EC2({region:"${AWS::Region}"}),n=new AWS.Route53,r=await promisify(e.describeAutoScalingGroups.bind(e))({AutoScalingGroupNames:[a],MaxRecords:1}),o=(await promisify(n.listResourceRecordSets.bind(n))({StartRecordName:s,StartRecordType:"A",HostedZoneId:"${InternalZoneInfo.Id}",MaxItems:"100"})).ResourceRecordSets,i=r.AutoScalingGroups[0].Instances.map(e=>e.InstanceId),c=await promisify(t.describeInstances.bind(t))({DryRun:!1,InstanceIds:i}),d=[];for(let e=0;e<c.Reservations.length;e++){const t=c.Reservations[e];for(let e=0;e<t.Instances.length;e++){const a=t.Instances[e].NetworkInterfaces[0].Association.PublicIp;a&&d.indexOf(a)<0&&d.push(a)}}for(let e=0,t=o.length;e<t;e++){const t=o[e];if(t.Name!==s||"A"!==t.Type)continue;const a=t.ResourceRecords.length>0&&t.ResourceRecords[0].Value;if(a&&!d.find(e=>e===a))try{await promisify(n.changeResourceRecordSets.bind(n))({ChangeBatch:{Changes:[{Action:"DELETE",ResourceRecordSet:{MultiValueAnswer:!0,Name:t.Name,Type:t.Type,TTL:t.TTL,SetIdentifier:t.SetIdentifier,ResourceRecords:t.ResourceRecords,HealthCheckId:t.HealthCheckId}}]},HostedZoneId:"${InternalZoneInfo.Id}"})}catch(e){}}let l=(await promisify(n.listHealthChecks.bind(n))({MaxItems:"100"})).HealthChecks;if(d.length>1)for(let e=0,t=d.length;e<t;e++){const t=d[e];if(!l.find(e=>e.HealthCheckConfig.IPAddress===t))try{await promisify(n.createHealthCheck.bind(n))({CallerReference:Math.floor(1e9*Math.random()).toString(),HealthCheckConfig:{EnableSNI:!0,FailureThreshold:2,FullyQualifiedDomainName:s,IPAddress:t,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}l=(await promisify(n.listHealthChecks.bind(n))({})).HealthChecks;for(let e=0,t=d.length;e<t;e++){const t=d[e];if(!o.find(e=>e.Name===s&&e.ResourceRecords&&e.ResourceRecords.length&&e.ResourceRecords[0].Value===t)){const e=l.find(e=>e.HealthCheckConfig.IPAddress===t);try{await promisify(n.changeResourceRecordSets.bind(n))({ChangeBatch:{Changes:[{Action:"UPSERT",ResourceRecordSet:{MultiValueAnswer:!0,Name:s,Type:"A",HealthCheckId:e?e.Id:null,TTL:15,SetIdentifier:t,ResourceRecords:[{Value:t}]}}]},HostedZoneId:"${InternalZoneInfo.Id}"})}catch(e){}}}for(let e=0,t=l.length;e<t;e++){const t=l[e];if(1===d.length||!d.find(e=>t.HealthCheckConfig.IPAddress===e))try{await promisify(n.deleteHealthCheck.bind(n))({HealthCheckId:t.Id})}catch(e){}}}else console.log("Unsupported ASG event: "+a+" "+n),t.done("Unsupported ASG event: "+a+" "+n)}exports.handler=async function(e,t){if(e.Records[0].Sns.Message.indexOf("Budget Name")>=0)return handleBudgetAlert(e,t);return handleASGMessage(JSON.parse(e.Records[0].Sns.Message),t)};
+          const AWS=require("aws-sdk"),promisify=e=>t=>new Promise((a,n)=>e(t,(e,t)=>{e?(console.log(e),n(e)):a(t)})),OFFLINE_SETTING="Offline - Temporarily shut off servers";async function handleBudgetAlert(e,t){const a=e.Records[0].Sns.TopicArn,n=new AWS.SNS,s=(await promisify(n.listTagsForResource.bind(n))({ResourceArn:a})).Tags,r=s.find(e=>"stack-name"===e.Key).Value,o=s.find(e=>"stack-region"===e.Key).Value,i=new AWS.CloudFormation({region:o});await new Promise(async e=>{let t;const a=async()=>{const a=await promisify(i.describeStacks.bind(i))({StackName:r});if(a){const n=a.Stacks[0].StackStatus;if(n.endsWith("_COMPLETE")||n.endsWith("_FAILED"))return t&&clearInterval(t),e(),!0}return!1};await a()||(t=setInterval(a,3e4))});const c=(await promisify(i.describeStacks.bind(i))({StackName:r})).Stacks[0].Parameters,d=[];for(const e of c)"StackOffline"===e.ParameterKey?d.push({ParameterKey:e.ParameterKey,ParameterValue:OFFLINE_SETTING}):d.push({ParameterKey:e.ParameterKey,UsePreviousValue:!0});await promisify(i.updateStack.bind(i))({StackName:r,UsePreviousTemplate:!0,Parameters:d,Capabilities:["CAPABILITY_IAM","CAPABILITY_NAMED_IAM"]})}async function handleASGMessage(e,t){const a=e.AutoScalingGroupName,n=e.Event,s="${LowerStackName.Value}-app.${InternalZoneInfo.Name}.";if("autoscaling:EC2_INSTANCE_LAUNCH"===n||"autoscaling:EC2_INSTANCE_TERMINATE"===n||"INSTANCE_REBOOT"===n){const e=new AWS.AutoScaling({region:"${AWS::Region}"}),t=new AWS.EC2({region:"${AWS::Region}"}),n=new AWS.Route53,r=await promisify(e.describeAutoScalingGroups.bind(e))({AutoScalingGroupNames:[a],MaxRecords:1}),o=(await promisify(n.listResourceRecordSets.bind(n))({StartRecordName:s,StartRecordType:"A",HostedZoneId:"${InternalZoneInfo.Id}",MaxItems:"100"})).ResourceRecordSets,i=r.AutoScalingGroups[0].Instances.map(e=>e.InstanceId),c=await promisify(t.describeInstances.bind(t))({DryRun:!1,InstanceIds:i}),d=[];for(let e=0;e<c.Reservations.length;e++){const t=c.Reservations[e];for(let e=0;e<t.Instances.length;e++){const a=t.Instances[e].NetworkInterfaces[0].Association.PublicIp;a&&d.indexOf(a)<0&&d.push(a)}}for(let e=0,t=o.length;e<t;e++){const t=o[e];if(t.Name!==s||"A"!==t.Type)continue;const a=t.ResourceRecords.length>0&&t.ResourceRecords[0].Value;if(a&&!d.find(e=>e===a))try{await promisify(n.changeResourceRecordSets.bind(n))({ChangeBatch:{Changes:[{Action:"DELETE",ResourceRecordSet:{MultiValueAnswer:!0,Name:t.Name,Type:t.Type,TTL:t.TTL,SetIdentifier:t.SetIdentifier,ResourceRecords:t.ResourceRecords,HealthCheckId:t.HealthCheckId}}]},HostedZoneId:"${InternalZoneInfo.Id}"})}catch(e){}}let l=(await promisify(n.listHealthChecks.bind(n))({MaxItems:"100"})).HealthChecks;if(d.length>1)for(let e=0,t=d.length;e<t;e++){const t=d[e];if(!l.find(e=>e.HealthCheckConfig.IPAddress===t))try{await promisify(n.createHealthCheck.bind(n))({CallerReference:Math.floor(1e9*Math.random()).toString(),HealthCheckConfig:{EnableSNI:!0,FailureThreshold:2,FullyQualifiedDomainName:s,IPAddress:t,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}l=(await promisify(n.listHealthChecks.bind(n))({})).HealthChecks;for(let e=0,t=d.length;e<t;e++){const t=d[e];if(!o.find(e=>e.Name===s&&e.ResourceRecords&&e.ResourceRecords.length&&e.ResourceRecords[0].Value===t)){const e=l.find(e=>e.HealthCheckConfig.IPAddress===t);try{await promisify(n.changeResourceRecordSets.bind(n))({ChangeBatch:{Changes:[{Action:"UPSERT",ResourceRecordSet:{MultiValueAnswer:!0,Name:s,Type:"A",HealthCheckId:e?e.Id:null,TTL:15,SetIdentifier:t,ResourceRecords:[{Value:t}]}}]},HostedZoneId:"${InternalZoneInfo.Id}"})}catch(e){}}}for(let e=0,t=l.length;e<t;e++){const t=l[e];if(1===d.length||!d.find(e=>t.HealthCheckConfig.IPAddress===e))try{await promisify(n.deleteHealthCheck.bind(n))({HealthCheckId:t.Id})}catch(e){}}}else console.log("Unsupported ASG event: "+a+" "+n),t.done("Unsupported ASG event: "+a+" "+n)}exports.handler=async function(e,t){if(e.Records[0].Sns.Message.indexOf("Budget Name")>=0)return handleBudgetAlert(e,t);return handleASGMessage(JSON.parse(e.Records[0].Sns.Message),t)};
   
   InvokeStackTopicHandlerPermission:
     Type: AWS::Lambda::Permission
@@ -1800,6 +1804,7 @@ Resources:
         - reticulum.default
         - janus-gateway.default
         - postgrest.default
+        - coturn.default
         - certbot.default
         - ita.default
         - speelycaptor.default
@@ -2473,8 +2478,24 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, RetExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: udp
+          FromPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: udp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
@@ -2487,6 +2508,14 @@ Resources:
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
           ToPort: !FindInMap [ServicesMeta, Ssh, Port]
+          CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: icmpv6
+          FromPort: -1
+          ToPort: -1
           CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
       SecurityGroupEgress:
         # Outbound HTTP
@@ -2503,6 +2532,16 @@ Resources:
         - IpProtocol: tcp
           FromPort: 587
           ToPort: 587
+          CidrIp: 0.0.0.0/0
+        # Outbound SMTP 25
+        - IpProtocol: tcp
+          FromPort: 25
+          ToPort: 25
+          CidrIp: 0.0.0.0/0
+        # Outbound SMTP Sendgrid 2525
+        - IpProtocol: tcp
+          FromPort: 2525
+          ToPort: 2525
           CidrIp: 0.0.0.0/0
         # Outbound NTP
         - IpProtocol: udp
@@ -2580,6 +2619,15 @@ Resources:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       GroupId: !Ref AppSecurityGroup
+      IpProtocol: tcp
+      ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+      FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+      DestinationSecurityGroupId: !Ref AppDbSecurityGroup
+
+  StreamDbEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref StreamSecurityGroup
       IpProtocol: tcp
       ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
       FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
@@ -2668,6 +2716,10 @@ Resources:
             Resource: "*"
           - Effect: Allow
             Action:
+              - sns:Publish
+            Resource: !Ref StackTopic
+          - Effect: Allow
+            Action:
               - ec2messages:AcknowledgeMessage
               - ec2messages:DeleteMessage
               - ec2messages:FailMessage
@@ -2745,6 +2797,9 @@ Resources:
     Condition: HasALB
     Properties:
       Name: !Sub "${AWS::StackName}-app"
+      LoadBalancerAttributes:
+        - Key: 'idle_timeout.timeout_seconds'
+          Value: 120
       SecurityGroups:
         - !Ref AppALBSecurityGroup
       Subnets:
@@ -2894,6 +2949,7 @@ Resources:
               HTTPSPort: 443
               OriginProtocolPolicy: https-only
               OriginSSLProtocols: [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
+              OriginReadTimeout: 60
           - Id: !Sub "${AWS::StackName}-redirector"
             DomainName: !Select [2, !Split ["/", !GetAtt RootRedirectorBucket.WebsiteURL]]
             CustomOriginConfig:
@@ -3105,6 +3161,14 @@ Resources:
           FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: udp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
           ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
@@ -3116,6 +3180,14 @@ Resources:
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
           ToPort: !FindInMap [ServicesMeta, Ssh, Port]
+          CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: icmpv6
+          FromPort: -1
+          ToPort: -1
           CidrIp: !If [HasInboundSSHCidrOverride, !Ref InboundSSHCidrOverride, "0.0.0.0/0"]
       SecurityGroupEgress:
         # Outbound HTTP
@@ -3448,6 +3520,10 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
           FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
           SourceSecurityGroupId: !Ref AppSecurityGroup
+        - IpProtocol: tcp
+          ToPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+          FromPort: !FindInMap [ServicesMeta, PostgreSQL, Port]
+          SourceSecurityGroupId: !Ref StreamSecurityGroup
 
   DiskKmsKey:
     Type: AWS::KMS::Key
@@ -3575,7 +3651,7 @@ Resources:
       MasterUsername: !If [IsRestore, !Ref "AWS::NoValue", !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]]
       MasterUserPassword: !If [IsRestore, !Ref "AWS::NoValue", !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:password}}' ]]]
       ScalingConfiguration:
-        AutoPause: !If [EnableDbAutoPause, true, false]
+        AutoPause: !If [IsOffline, true, !If [EnableDbAutoPause, true, false]]
         MaxCapacity: !Ref DbMaxCapacity
         MinCapacity: 2
         SecondsUntilAutoPause: 300
@@ -3692,7 +3768,7 @@ Outputs:
     Value: !If [ HasALB, !GetAtt AppALB.DNSName, !GetAtt AppCloudfrontDistribution.DomainName ]
 
   DomainName:
-    Description: Primary hub domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server]
+    Description: Primary hub domain name [reticulum/phx/url_host,reticulum/phx/static_url_host,hubs/general/reticulum_server,spoke/general/reticulum_server,spoke/general/hubs_server,reticulum/turn/realm,coturn/general/realm]
     Value: !Ref DomainName
 
   CorsOrigins:
@@ -3782,10 +3858,6 @@ Outputs:
   ReticulumBotAccessKeySecret:
     Description: Reticulum Bot Access Key Secret [reticulum/ret/bot_access_key!read-keymaster-secret]
     Value: reticulum-bot-access-key
-
-  AppDbUsername:
-    Description: App DB Username [reticulum/db/username,ita/db/username]
-    Value: postgres
 
   AppDbSecret:
     Description: App DB Secret [ita/db/password!read-aws-secret]
@@ -3926,3 +3998,7 @@ Outputs:
   MaxStorage:
     Description: Max storage in GB [reticulum/uploads/quota_gb]
     Value: !Ref MaxStorage
+
+  StackTopic:
+    Description: Stack SNS Topic
+    Value: !Ref StackTopic

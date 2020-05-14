@@ -76,7 +76,7 @@ async function handleASGMessage(message, context) {
 
   //console.log(asgEvent);
 
-  if (asgEvent === "autoscaling:EC2_INSTANCE_LAUNCH" || asgEvent === "autoscaling:EC2_INSTANCE_TERMINATE") {
+  if (asgEvent === "autoscaling:EC2_INSTANCE_LAUNCH" || asgEvent === "autoscaling:EC2_INSTANCE_TERMINATE" || asgEvent === "INSTANCE_REBOOT") {
     //console.log("Handling Launch/Terminate Event for " + asgName);
 
     const autoscaling = new AWS.AutoScaling({region});

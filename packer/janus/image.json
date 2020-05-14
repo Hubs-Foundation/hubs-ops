@@ -115,8 +115,11 @@
         "chmod -R 0600 /hab/cache/keys",
         "mkdir -p /hab/svc/janus-gateway/files",
         "mv secrets/janus/* /hab/svc/janus-gateway/files",
+        "mkdir -p /hab/svc/coturn/files",
+        "mv secrets/coturn/* /hab/svc/coturn/files",
         "chown -R hab:hab /hab/svc",
         "chmod -R 0600 /hab/svc/janus-gateway/files/*",
+        "chmod -R 0600 /hab/svc/coturn/files/*",
         "rm -rf secrets"
       ]
     }

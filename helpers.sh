@@ -23,15 +23,16 @@ function hab-build-and-run {
 # moz-ec2 [env] [asg]
 # Lists active hosts from EC2, displaying environment, ASG, name, private IP, and public IP.
 function moz-ec2 {
-    local FILTERS="Name=instance-state-name,Values=running"
+    local FILTERS="[{\"Name\": \"instance-state-name\",\"Values\": [\"running\"]}"
     if [ ! -z "$1" ]
     then
-        FILTERS="$FILTERS,Name=tag:env,Values=$1"
+        FILTERS="$FILTERS,{\"Name\": \"tag:env\",\"Values\": [\"$1\"]}"
     fi
     if [ ! -z "$2" ]
     then
-        FILTERS="$FILTERS,Name=tag:aws:autoscaling:groupName,Values=$1-$2"
+        FILTERS="$FILTERS,{\"Name\": \"tag:aws:autoscaling:groupName\",\"Values\":[\"$1-$2\"]}"
     fi
+    FILTERS="$FILTERS]"
     local ALL=$(aws ec2 describe-instances --output json --filters "$FILTERS")
     local OUTPUT=$(jq -r '.Reservations | map(.Instances) | flatten | .[] | [
       ((.Tags//[])[]|select(.Key=="env")|.Value) // "null",

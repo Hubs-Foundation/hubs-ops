@@ -30,29 +30,48 @@
       dest: "{{ work_dir.path }}/{{ item }}.toml"
     loop: "{{ services }}"
 
-  - name: "Write local file key"
+  - name: "Write local janus key keyfiles"
     copy:
       src: "{{ secrets_path }}/roles/janus/files/{{ item }}.key"
       dest: "{{ work_dir.path }}/{{ item }}.key"
     when: env != 'local'
-    loop: "{{ keyfiles }}"
+    loop: "{{ janus_keyfiles }}"
 
-  - name: "Write local file pem"
+  - name: "Write local janus pem keyfiles"
     copy:
       src: "{{ item }}.pem"
       dest: "{{ work_dir.path }}/{{ item }}.pem"
     when: env != 'local'
-    loop: "{{ keyfiles }}"
+    loop: "{{ janus_keyfiles }}"
+
+  - name: "Write local coturn key keyfiles"
+    copy:
+      src: "{{ secrets_path }}/roles/janus/files/{{ item }}.key"
+      dest: "{{ work_dir.path }}/{{ item }}.key"
+    when: env != 'local'
+    loop: "{{ coturn_keyfiles }}"
+
+  - name: "Write local coturn pem keyfiles"
+    copy:
+      src: "{{ item }}.pem"
+      dest: "{{ work_dir.path }}/{{ item }}.pem"
+    when: env != 'local'
+    loop: "{{ coturn_keyfiles }}"
 
   - name: "Write local auth key"
     copy:
       src: "perms.pub.der.{{ env }}"
       dest: "{{ work_dir.path }}/perms.pub.der"
 
-  - name: "Generate local cert"
+  - name: "Generate local janus cert"
     shell: "openssl req -newkey rsa:2048 -nodes -keyout \"{{ work_dir.path }}/{{ item }}.key\" -x509 -days 365 -out \"{{ work_dir.path }}/{{ item }}.pem\" -subj '/C=US/ST=California/L=Mountain View/O=YourOrg/OU=YourDept/CN=yoursite.com'"
     when: env == 'local'
-    loop: "{{ keyfiles }}"
+    loop: "{{ janus_keyfiles }}"
+
+  - name: "Generate local coturn cert"
+    shell: "openssl req -newkey rsa:2048 -nodes -keyout \"{{ work_dir.path }}/{{ item }}.key\" -x509 -days 365 -out \"{{ work_dir.path }}/{{ item }}.pem\" -subj '/C=US/ST=California/L=Mountain View/O=YourOrg/OU=YourDept/CN=yoursite.com'"
+    when: env == 'local'
+    loop: "{{ coturn_keyfiles }}"
 
   - name: "Deploy remote configs"
     shell: "cat {{ work_dir.path }}/{{ item }}.toml | /hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly config apply --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr {{ item }}.default $(date +%s)"
@@ -74,33 +93,53 @@
     when: env == 'local'
     loop: "{{ services }}"
 
-  - name: "Deploy remote file key"
+  - name: "Deploy remote janus file key"
     shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/{{ item }}.key"
     when: env != 'local'
-    loop: "{{ keyfiles }}"
+    loop: "{{ janus_keyfiles }}"
 
-  - name: "Deploy remote file pem"
+  - name: "Deploy remote janus file pem"
     shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/{{ item }}.pem"
     when: env != 'local'
-    loop: "{{ keyfiles }}"
+    loop: "{{ janus_keyfiles }}"
 
   - name: "Deploy remote auth key"
     shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr janus-gateway.default $(date +%s) {{ work_dir.path }}/perms.pub.der"
     when: env != 'local'
 
-  - name: "Copy local keyfile pem"
+  - name: "Deploy remote coturn file key"
+    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr coturn.default $(date +%s) {{ work_dir.path }}/{{ item }}.key"
+    when: env != 'local'
+    loop: "{{ coturn_keyfiles }}"
+
+  - name: "Deploy remote coturn file pem"
+    shell: "/hab/pkgs/mozillareality/hab-butterfly/0.39.1/20171118004554/bin/hab-butterfly file upload --peer $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4) --org mozillareality --ring mr coturn.default $(date +%s) {{ work_dir.path }}/{{ item }}.pem"
+    when: env != 'local'
+    loop: "{{ coturn_keyfiles }}"
+
+  - name: "Copy local janus keyfile pem"
     shell: "cp \"{{ work_dir.path }}/{{ item }}.pem\" /hab/svc/janus-gateway/files"
     when: env == 'local'
-    loop: "{{ keyfiles }}"
+    loop: "{{ janus_keyfiles }}"
 
-  - name: "Copy local keyfile key"
+  - name: "Copy local janus keyfile key"
     shell: "cp \"{{ work_dir.path }}/{{ item }}.key\" /hab/svc/janus-gateway/files"
     when: env == 'local'
-    loop: "{{ keyfiles }}"
+    loop: "{{ janus_keyfiles }}"
 
   - name: "Copy local auth key"
     shell: "cp \"{{ work_dir.path }}/perms.pub.der\" /hab/svc/janus-gateway/files"
     when: env == 'local'
+
+  - name: "Copy local coturn keyfile pem"
+    shell: "cp \"{{ work_dir.path }}/{{ item }}.pem\" /hab/svc/coturn/files"
+    when: env == 'local'
+    loop: "{{ coturn_keyfiles }}"
+
+  - name: "Copy local coturn keyfile key"
+    shell: "cp \"{{ work_dir.path }}/{{ item }}.key\" /hab/svc/coturn/files"
+    when: env == 'local'
+    loop: "{{ coturn_keyfiles }}"
 
   always:
   - name: Remove work directory

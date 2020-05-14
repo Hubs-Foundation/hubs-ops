@@ -6,12 +6,14 @@ log_to_syslog = "true"
 debug_level = 4
 
 [media]
-rtp_port_range = "20000-60000"
+rtp_port_range = "51610-65535"
 
 [nat]
 ice_ignore_list = "eth0:0"
-ice_lite = "true"
+ice_lite = "false"
 ice_tcp = "true"
+stun_server = "stun1.l.google.com"
+stun_port = 19302
 
 [plugins.sfu]
 max_room_size = 256

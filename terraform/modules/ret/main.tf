@@ -105,6 +105,7 @@ resource "aws_alb" "ret" {
   name = "${var.shared["env"]}-ret"
   security_groups = ["${aws_security_group.ret-alb.id}"]
   subnets = ["${data.terraform_remote_state.vpc.public_subnet_ids}"]
+  idle_timeout = 120
 
   lifecycle { create_before_destroy = true }
 }
@@ -619,6 +620,7 @@ popd
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
 sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 sudo /usr/bin/hab svc load mozillareality/hubs-docs --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/youtube-dl-api-server --strategy ${var.ytdl_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ytdl_channel}
 EOF
 }
 
@@ -695,6 +697,7 @@ popd
 sudo /usr/bin/hab svc load mozillareality/reticulum --strategy ${var.reticulum_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ret_pools[count.index]}
 sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 sudo /usr/bin/hab svc load mozillareality/hubs-docs --strategy at-once --url https://bldr.habitat.sh --channel stable
+sudo /usr/bin/hab svc load mozillareality/youtube-dl-api-server --strategy ${var.ytdl_restart_strategy} --url https://bldr.habitat.sh --channel ${var.ytdl_channel}
 EOF
 }
 
