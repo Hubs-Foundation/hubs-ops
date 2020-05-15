@@ -12,3 +12,8 @@ pkg_lib_dirs=(lib)
 pkg_include_dirs=(include)
 pkg_description="Jansson is a C library for encoding, decoding and manipulating JSON data."
 pkg_upstream_url="http://www.digip.org/jansson/"
+
+do_build() {
+  CFLAGS="${CFLAGS} -O2 -g" CPPFLAGS="${CPPFLAGS} -O2 -g" CXXFLAGS="${CXXFLAGS} -O2 -g" ./configure --prefix "${pkg_prefix}"
+  make
+}

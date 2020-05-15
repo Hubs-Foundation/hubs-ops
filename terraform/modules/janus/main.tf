@@ -129,6 +129,22 @@ resource "aws_security_group" "janus" {
     security_groups = ["${data.terraform_remote_state.bastion.bastion_security_group_id}"]
   }
 
+  # ICMP
+  ingress {
+    from_port = "-1"
+    to_port = "-1"
+    protocol = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # ICMP
+  ingress {
+    from_port = "-1"
+    to_port = "-1"
+    protocol = "icmpv6"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # NTP
   egress {
     from_port = "123"

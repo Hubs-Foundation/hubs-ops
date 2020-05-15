@@ -31,11 +31,11 @@ pkg_build_deps=(
   core/p11-kit
 )
 pkg_deps=(
-  core/glib
+  mozillareality/glib
   core/glibc # https://github.com/habitat-sh/habitat/issues/3303
-  core/nettle
-  core/pcre
-  core/libtasn1
+  mozillareality/nettle
+  mozillareality/pcre
+  mozillareality/libtasn1
   mozillareality/gnutls/3.6.9
 )
 
@@ -89,7 +89,7 @@ do_build() {
   rm -rf docs
   rm -rf tests
 
-  sh autogen.sh --prefix=${pkg_prefix}
+  CFLAGS="${CFLAGS} -O2 -g" CPPFLAGS="${CPPFLAGS} -O2 -g" CXXFLAGS="${CXXFLAGS} -O2 -g" sh autogen.sh --prefix=${pkg_prefix}
 
   # This is a hack -- there is a name conflict between socket.h in gnutls and
   # socket.h in the libnice/socket directory, and the included

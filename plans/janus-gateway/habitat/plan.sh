@@ -2,7 +2,7 @@ pkg_name=janus-gateway
 pkg_origin=mozillareality
 pkg_maintainer="Mozilla Mixed Reality <mixreality@mozilla.com>"
 
-pkg_version="0.7.6"
+pkg_version="0.9.2"
 pkg_license=('GPLv3')
 pkg_description="Janus is an open source, general purpose, WebRTC gateway"
 pkg_upstream_url="https://janus.conf.meetecho.com/"
@@ -28,12 +28,12 @@ pkg_build_deps=(
 # versions are pinned for convenience building with Habitat, not because we give a crap about
 # having these versions in particular -- latest versions of everything should be sufficient
 pkg_deps=(
-    core/gcc
-    core/glib
-    core/openssl
-    core/p11-kit
-    core/sqlite
-    core/util-linux
+    mozillareality/gcc
+    mozillareality/glib
+    mozillareality/openssl
+    core/p11-kit/0.23.10/20190117183627
+    core/sqlite/3130000/20190115154252
+    mozillareality/util-linux/2.34
 
     mozillareality/jansson/2.12
     mozillareality/libmicrohttpd/0.9.66
@@ -41,16 +41,16 @@ pkg_deps=(
     mozillareality/libsrtp/2.2.0
     mozillareality/libwebsockets/2.4.2
     mozillareality/opus/1.3.1
-    mozillareality/usrsctp/0.9.4.0
+    mozillareality/usrsctp/0.9.7.0
     mozillareality/libconfig/1.7.2
 
     # https://github.com/habitat-sh/habitat/issues/3303
-    core/zlib
-    core/glibc
-    core/gcc-libs
-    core/nettle
-    core/pcre
-    core/libtasn1
+    mozillareality/zlib/1.2.11
+    core/glibc/2.27/20190115002733
+    mozillareality/gcc-libs/9.1.0
+    mozillareality/nettle/3.5.1
+    mozillareality/pcre/8.42
+    mozillareality/libtasn1/4.13
 )
 
 git-get () {
@@ -73,13 +73,11 @@ do_download() {
 
   pushd $HAB_CACHE_SRC_PATH
 
-  git-get meetecho/janus-gateway v0.7.6
+  git-get meetecho/janus-gateway v0.9.2
   pushd meetecho/janus-gateway
-  # Enable ICE-TCP https://github.com/meetecho/janus-gateway/pull/1946/commits/fb55c0acf0e391f4f3a91356a0db19b4db1d7201
-  git cherry-pick -n d5d81abe864081a567111c0db43e225b2d8edd33
   popd
 
-  git-get mozilla/janus-plugin-sfu 14a33464726166fa0d3a20bd452ad05d2f7c53a6
+  git-get mozilla/janus-plugin-sfu 3694c36040eea4de1e80b83447a3625156454956
 
   popd
 }
@@ -99,7 +97,7 @@ do_build() {
 
   ./autogen.sh
 
-  CFLAGS="${CFLAGS} -fno-omit-frame-pointer" ./configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
+  CFLAGS="${CFLAGS} -O2 -g -fno-omit-frame-pointer" ./configure --prefix="$pkg_prefix" --disable-all-plugins --disable-all-handlers
 
   make
 

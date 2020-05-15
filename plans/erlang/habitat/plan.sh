@@ -31,17 +31,16 @@ do_prepare() {
 do_build() {
   sed -i 's/std_ssl_locations=.*/std_ssl_locations=""/' erts/configure.in
   sed -i 's/std_ssl_locations=.*/std_ssl_locations=""/' erts/configure
-  export CFLAGS="-O2 -g"
-  ./configure --prefix="${pkg_prefix}" \
-              --enable-threads \
-              --enable-smp-support \
-              --enable-kernel-poll \
-              --enable-dynamic-ssl-lib \
-              --enable-shared-zlib \
-              --enable-hipe \
-              --with-ssl="$(pkg_path_for openssl)" \
-              --with-ssl-include="$(pkg_path_for openssl)/include" \
-              --without-javac
+  CFLAGS="${CFLAGS} -O3 -g" ./configure --prefix="${pkg_prefix}" \
+    --enable-threads \
+    --enable-smp-support \
+    --enable-kernel-poll \
+    --enable-dynamic-ssl-lib \
+    --enable-shared-zlib \
+    --enable-hipe \
+    --with-ssl="$(pkg_path_for openssl)" \
+    --with-ssl-include="$(pkg_path_for openssl)/include" \
+    --without-javac
   make
 }
 

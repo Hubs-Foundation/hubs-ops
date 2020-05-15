@@ -11,3 +11,8 @@ pkg_description="GNU libmicrohttpd is a small C library that is supposed to make
 pkg_upstream_url="https://www.gnu.org/software/libmicrohttpd/"
 pkg_lib_dirs=(lib)
 pkg_include_dirs=(include)
+
+do_build() {
+  CFLAGS="${CFLAGS} -O2 -g" CPPFLAGS="${CPPFLAGS} -O2 -g" CXXFLAGS="${CXXFLAGS} -O2 -g" ./configure --prefix "${pkg_prefix}"
+  make
+}

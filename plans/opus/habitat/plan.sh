@@ -12,3 +12,8 @@ pkg_lib_dirs=(lib)
 pkg_include_dirs=(include)
 pkg_description="Opus is a totally open, royalty-free, highly versatile audio codec."
 pkg_upstream_url="http://opus-codec.org/"
+
+do_build() {
+  CFLAGS="${CFLAGS} -O2 -g" CPPFLAGS="${CPPFLAGS} -O2 -g" CXXFLAGS="${CXXFLAGS} -O2 -g" ./configure --prefix "${pkg_prefix}"
+  make
+}
