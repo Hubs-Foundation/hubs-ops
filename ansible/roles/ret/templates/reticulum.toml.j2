@@ -76,6 +76,22 @@ client_secret = "{{ discord_client_client_secret }}"
 bot_token = "{{ discord_client_bot_token }}"
 {% endif %}
 
+[slack_client]
+{% if slack_client_client_id is defined %}
+client_id = "{{ slack_client_client_id }}"
+{% endif %}
+{% if slack_client_client_secret is defined %}
+client_secret = "{{ slack_client_client_secret }}"
+{% endif %}
+{% if slack_client_bot_token is defined %}
+bot_token = "{{ slack_client_bot_token }}"
+{% endif %}
+
+[slack_controller]
+{% if slack_controller_token is defined %}
+token = "{{ slack_controller_token }}"
+{% endif %}
+
 [twitter_client]
 {% if twitter_client_consumer_key is defined %}
 consumer_key = "{{ twitter_client_consumer_key }}"
