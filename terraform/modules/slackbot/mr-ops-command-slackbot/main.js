@@ -7,37 +7,11 @@ const https = require('https');
 const slackToken = process.env.slackToken;
 const jenkinsToken = process.env.jenkinsToken;
 const reticulumToken = process.env.reticulumToken;
-const slackClientIdToken = process.env.slackClientIdToken;
-const slackSecretToken = process.env.slackSecretToken;
 
 let token;
 let jtoken;
-let rtoken;
-let slackClientId;
-let slackSecret;
-
-function processOAuth(event, callback) {
-    const params = new URLSearchParams({
-        code: event.queryStringParameters.code,
-        client_id: slackClientId,
-        client_secret: slackSecret
-    });
-
-    https.get("https://slack.com/api/oauth.v2.access?" + params, (res) => {
-        if (res.statusCode < 400) {
-            callback(null, 'Slack App successfully registered', 'text');
-        } else {
-            callback(null, `Slack App failed to register (${res.statusCode})`, 'text');
-        }
-    })
-}
 
 function processEvent(event, callback) {
-    if (event.httpMethod === "GET" && "oauth" in event.queryStringParameters) {
-        processOAuth(event, callback);
-        return;
-    }
-
     const params = qs.parse(event.body);
     const requestToken = params.token;
     if (requestToken !== token) {
@@ -74,42 +48,10 @@ function processEvent(event, callback) {
         const msg = commandParts[2].trim();
         const url = `${ciBaseUrl}?job=bp-test&MSG=${msg}&token=${jtoken}&SOURCE=${user}`;
         https.get(url, () => { callback(null, "Test job started. See #mr-push."); });
-    } else if (commandText.startsWith("hubs support on")) {
-        const options = {
-            hostname: 'hubs.mozilla.com',
-            port: 443,
-            path: '/api/v1/support/subscriptions',
-            method: 'POST',
-            headers: {
-                'x-ret-admin-access-key': rtoken,
-                'Content-Type': "application/json"
-            }
-        };
-
-        const req = https.request(options, () => { callback(null, "You are now available for Hubs support requests."); });
-        req.write("{ \"subscription\": { \"identifier\": \"" + user + "\" } }");
-        req.end();
-    } else if (commandText.startsWith("hubs support off")) {
-        const options = {
-            hostname: 'hubs.mozilla.com',
-            port: 443,
-            path: '/api/v1/support/subscriptions/' + user,
-            method: 'DELETE',
-            headers: {
-                'x-ret-admin-access-key': rtoken,
-                'Content-Type': "application/json"
-            }
-        };
-
-        const req = https.request(options, () => {
-            callback(null, "You are now no longer available for Hubs support requests.");
-        });
-        req.write("{ }");
-        req.end();
     } else {
         callback(null, (
             `Invalid command, try \`hab promote <package>, ret deploy <version> <pool>, ` +
-            `hubs deploy <version> <s3 target>, hubs support on, hubs support off\``
+            `hubs deploy <version> <s3 target>, spoke deploy <version> <s3 target>\``
         ));
     }
 }
@@ -137,7 +79,6 @@ function decryptWithFunctionContext(kms, token) {
     return decrypt(kms, token, true);
 }
 
-
 exports.handler = (event, context, callback) => {
     const done = (err, res, type) => callback(null, {
         statusCode: err ? '400' : '200',
@@ -147,7 +88,7 @@ exports.handler = (event, context, callback) => {
         },
     });
 
-    if (token && jtoken && rtoken && slackClientId && slackSecret) {
+    if (token && jtoken) {
         // Container reuse, simply process the event with the key in memory
         processEvent(event, done);
     } else if (slackToken && slackToken !== '<slackToken>') {
@@ -159,11 +100,9 @@ exports.handler = (event, context, callback) => {
             // an anonymous async iife in order to await the decryption calls.
             (async () => {
                 const kms = new AWS.KMS();
+                // Newer tokens are encrypted with a function context.
                 token = await decryptWithFunctionContext(kms, slackToken);
                 jtoken = await decrypt(kms, jenkinsToken); 
-                rtoken = await decrypt(kms, reticulumToken);
-                slackClientId = await decryptWithFunctionContext(kms, slackClientIdToken);  
-                slackSecret = await decryptWithFunctionContext(kms, slackSecretToken);
                 processEvent(event, done);
             })()
         } catch(e) {
