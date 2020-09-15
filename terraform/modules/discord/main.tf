@@ -95,7 +95,6 @@ while ! nc -z localhost 9632 ; do sleep 1; done
 systemctl restart systemd-sysctl.service
 
 sudo /usr/bin/hab svc load mozillareality/hubs-discord-bot --strategy ${var.discord_restart_strategy} --url https://bldr.habitat.sh --channel ${var.discord_channel}
-sudo /usr/bin/hab svc load mozillareality/telegraf --strategy at-once --url https://bldr.habitat.sh --channel stable
 EOF
 }
 
