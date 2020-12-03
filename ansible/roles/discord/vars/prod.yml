@@ -2,3 +2,5 @@
 
 reticulum_host: "hubs.mozilla.com"
 hubs_hosts: "hubs.mozilla.com"
+shard_id: "1"
+shard_count: "1"
