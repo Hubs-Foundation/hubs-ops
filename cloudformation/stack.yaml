@@ -370,7 +370,7 @@ Mappings:
     JanusInternal:
       Port: 8443
     JanusExternal:
-      Port: 80
+      Port: 8443
     JanusTurnExternal:
       Port: 443
     JanusAdmin:
