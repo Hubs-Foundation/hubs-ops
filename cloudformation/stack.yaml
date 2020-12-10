@@ -361,23 +361,23 @@ Mappings:
       Abbreviation: EU
 
   ServicesMeta:
-    RetExternal:
+    RetExternalAH:
       Port: 443
-    RetInternal:
+    RetInternalAH:
       Port: 4000
-    RetTurnExternal:
+    RetTurnExternalH: # To be combined into TurnExternalSH 5349
       Port: 5349
-    JanusInternal:
+    DialogInternalSH:
       Port: 8443
-    JanusExternal:
+    DialogExternalSH: # To be changed to DialogExternalH 8443 + DialogExternalS 443
       Port: 8443
-    JanusTurnExternal:
+    DialogTurnExternalS: # To be combined into TurnExternalSH 5349
       Port: 443
-    JanusAdmin:
+    DialogAdminSH:
       Port: 7000
-    JanusWebRTCFrom:
+    DialogWebRTCFromSH:
       Port: 51610
-    JanusWebRTCTo:
+    DialogWebRTCToSH:
       Port: 60999
     YTDL:
       Port: 8080
@@ -819,18 +819,18 @@ Resources:
         ZipFile: |
           const URL = require('url');
           const parseURL = {};
-          
+
           function btoa(s) {
             return Buffer.from(s).toString('base64');
           }
-          
+
           parseURL.handler = function(event, context) {
             const url = event.ResourceProperties.URL || "https://en.wikipedia.org/wiki/Rubber_duck";
-          
+
             try {
               const parsed = URL.parse(url);
               const pathname = parsed.pathname;
-          
+
               return sendResponse(event, context, "SUCCESS", {
                 S3ReplaceKeyPrefixWith: `${parsed.pathname.substring(1)}${parsed.search || ""}${parsed.hash || ""}`,
                 S3Protocol: parsed.protocol.replace(":", ""),
@@ -845,14 +845,14 @@ Resources:
               return sendResponse(event, context, "FAILED", null, `Invalid URL specified: ${url}`);
             }
           };
-          
+
           function getReason(err) {
             if (err)
               return err.message;
             else
               return '';
           }
-          
+
           function sendResponse(event, context, status, data, err) {
             var responseBody = {
               StackId: event.StackId,
@@ -863,13 +863,13 @@ Resources:
               Reason: getReason(err) + " See details in CloudWatch Log: " + context.logStreamName,
               Data: data
             };
-          
+
             console.log("RESPONSE:\n", responseBody);
             var json = JSON.stringify(responseBody);
-          
+
             var https = require("https");
             var url = require("url");
-          
+
             var parsedUrl = url.parse(event.ResponseURL);
             var options = {
               hostname: parsedUrl.hostname,
@@ -881,25 +881,25 @@ Resources:
                 "content-length": json.length
               }
             };
-          
+
             var request = https.request(options, function(response) {
               console.log("STATUS: " + response.statusCode);
               console.log("HEADERS: " + JSON.stringify(response.headers));
               context.done(null, data);
             });
-          
+
             request.on("error", function(error) {
               console.log("sendResponse Error:\n", error);
               context.done(error);
             });
-          
+
             request.on("end", function() {
               console.log("end");
             });
             request.write(json);
             request.end();
           }
-          
+
           module.exports = parseURL;
 
   ParseURLRole:
@@ -930,7 +930,7 @@ Resources:
       Code:
         ZipFile: |
           const toLower = {};
-          
+
           function btoa(s) {
             return Buffer.from(s).toString('base64');
           };
@@ -945,7 +945,7 @@ Resources:
           toLower.handler = function(event, context) {
             return sendResponse(event, context, "SUCCESS", { Value: event.ResourceProperties.String.toLowerCase() });
           };
-          
+
           function sendResponse(event, context, status, data, err) {
             var responseBody = {
               StackId: event.StackId,
@@ -956,13 +956,13 @@ Resources:
               Reason: getReason(err) + " See details in CloudWatch Log: " + context.logStreamName,
               Data: data
             };
-          
+
             console.log("RESPONSE:\n", responseBody);
             var json = JSON.stringify(responseBody);
-          
+
             var https = require("https");
             var url = require("url");
-          
+
             var parsedUrl = url.parse(event.ResponseURL);
             var options = {
               hostname: parsedUrl.hostname,
@@ -974,25 +974,25 @@ Resources:
                 "content-length": json.length
               }
             };
-          
+
             var request = https.request(options, function(response) {
               console.log("STATUS: " + response.statusCode);
               console.log("HEADERS: " + JSON.stringify(response.headers));
               context.done(null, data);
             });
-          
+
             request.on("error", function(error) {
               console.log("sendResponse Error:\n", error);
               context.done(error);
             });
-          
+
             request.on("end", function() {
               console.log("end");
             });
             request.write(json);
             request.end();
           }
-          
+
           module.exports = toLower;
 
   ToLowerRole:
@@ -1136,7 +1136,7 @@ Resources:
   ExternalZoneSSLCertLocalIfNonEast:
     Type: Custom::DNSCertificate
     Condition: HasManagedDomainNonEast
-    Properties: 
+    Properties:
       DomainName: !Ref DomainName
       DomainValidationOptions:
         - DomainName: !Ref DomainName
@@ -1149,7 +1149,7 @@ Resources:
   ExternalZoneSSLCertLocalIfEast:
     Type: Custom::DNSCertificate
     Condition: HasManagedDomainEast
-    Properties: 
+    Properties:
       DomainName: !Ref DomainName
       DomainValidationOptions:
         - DomainName: !Ref DomainName
@@ -1162,7 +1162,7 @@ Resources:
   ExternalZoneSSLCertEast:
     Type: Custom::DNSCertificate
     Condition: HasManagedDomainNonEast
-    Properties: 
+    Properties:
       DomainName: !Ref DomainName
       DomainValidationOptions:
         - DomainName: !Ref DomainName
@@ -1174,7 +1174,7 @@ Resources:
 
   ShortlinkZoneSSLCertEast:
     Type: Custom::DNSCertificate
-    Properties: 
+    Properties:
       DomainName: !GetAtt ShortlinkZoneInfo.Name
       DomainValidationOptions:
         - DomainName: !GetAtt ShortlinkZoneInfo.Name
@@ -1186,7 +1186,7 @@ Resources:
 
   InternalZoneSSLCert:
     Type: Custom::DNSCertificate
-    Properties: 
+    Properties:
       DomainName: !Sub '*.${InternalZoneInfo.Name}'
       SubjectAlternativeNames:
         - !Sub '${LowerStackName.Value}-cors-proxy.${InternalZoneInfo.Name}'
@@ -1200,7 +1200,7 @@ Resources:
   InternalZoneSSLCertEast:
     Type: Custom::DNSCertificate
     Condition: IsNonEast
-    Properties: 
+    Properties:
       DomainName: !Sub '*.${InternalZoneInfo.Name}'
       SubjectAlternativeNames:
         - !Sub '${LowerStackName.Value}-cors-proxy.${InternalZoneInfo.Name}'
@@ -1411,11 +1411,11 @@ Resources:
           import boto3
           from botocore.vendored import requests
           from botocore.exceptions import ClientError
-          
+
           def handler(event, context):
               try:
                   bucketNames = event['ResourceProperties']['BucketNames']
-          
+
                   if event['RequestType'] == 'Delete':
                       for bucketName in bucketNames:
                           s3 = boto3.resource('s3')
@@ -1434,8 +1434,8 @@ Resources:
               except Exception as e:
                   print(e)
                   sendResponseCfn(event, context, "FAILED")
-          
-          
+
+
           def sendResponseCfn(event, context, responseStatus):
               response_body = {'Status': responseStatus,
                                'Reason': 'Log stream name: ' + context.log_stream_name,
@@ -1444,7 +1444,7 @@ Resources:
                                'RequestId': event['RequestId'],
                                'LogicalResourceId': event['LogicalResourceId'],
                                'Data': json.loads("{}")}
-          
+
               requests.put(event['ResponseURL'], data=json.dumps(response_body))
 
 # SESPassword
@@ -1487,7 +1487,7 @@ Resources:
           MESSAGE = "SendRawEmail"
           TERMINAL = "aws4_request"
           VERSION = 0x04
-          
+
           def sign(key, msg):
               return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
 
@@ -1514,8 +1514,8 @@ Resources:
               except Exception as e:
                   print(e)
                   sendResponseCfn(event, context, "FAILED", {})
-          
-          
+
+
           def sendResponseCfn(event, context, responseStatus, data):
               response_body = {'Status': responseStatus,
                                'Reason': 'Log stream name: ' + context.log_stream_name,
@@ -1524,7 +1524,7 @@ Resources:
                                'RequestId': event['RequestId'],
                                'LogicalResourceId': event['LogicalResourceId'],
                                'Data': data}
-          
+
               requests.put(event['ResponseURL'], data=json.dumps(response_body))
 
 # StackTopicHandler
@@ -1554,55 +1554,55 @@ Resources:
                Resource:
                  - "*"
              - Effect: Allow
-               Action: 
+               Action:
                  - route53:ChangeResourceRecordSets
                  - route53:ListResourceRecordSets
                Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
              - Effect: Allow
-               Action: 
+               Action:
                  - route53:CreateHealthCheck
                  - route53:ListHealthChecks
                  - route53:DeleteHealthCheck
                  - route53:GetHostedZone
                Resource: "*"
              - Effect: Allow
-               Action: 
+               Action:
                  - route53:*
-               Resource: 
+               Resource:
                  - !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
                  - !If [HasManagedDomain, !Sub "arn:aws:route53:::hostedzone/${ExternalZoneInfo.Id}", "arn:aws:route53:::hostedzone/DEADZONE*"]
              - Effect: Allow
-               Action: 
+               Action:
                  - cloudformation:DescribeStacks
                  - cloudformation:GetTemplate
                  - cloudformation:UpdateStack
                Resource: !Ref "AWS::StackId"
              - Effect: Allow
-               Action: 
+               Action:
                  - sns:ListTagsForResource
                Resource: "*"
              - Effect: Allow
-               Action: 
+               Action:
                  - autoscaling:*
-               Resource: 
+               Resource:
                  - !Sub "arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}-app"
                  - !Sub "arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}-stream"
              - Effect: Allow
-               Action: 
+               Action:
                  - elasticloadbalancing:*
-               Resource: 
+               Resource:
                  - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:loadbalancer/app/${AWS::StackName}-app/*"
                  - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:loadbalancer/app/${AWS::StackName}-app"
                  - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:targetgroup/${AWS::StackName}-ret/*"
                  - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener/app/${AWS::StackName}-app/*"
                  - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener-rule/app/${AWS::StackName}-app/*"
              - Effect: Allow
-               Action: 
+               Action:
                  - ec2:*
-               Resource: 
+               Resource:
                  - !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*"
              - Effect: Allow
-               Action: 
+               Action:
                  - ec2:Describe*
                  - ec2:Get*
                  - route53:Get*
@@ -1610,7 +1610,7 @@ Resources:
                  - rds:Describe*
                  - elasticloadbalancing:Describe*
                  - elasticloadbalancingv2:Describe*
-               Resource: 
+               Resource:
                  - "*"
 
   # Split this policy out, so we don't block topic, ALB, and ASG creation on cloudfront
@@ -1624,7 +1624,7 @@ Resources:
        Version: '2012-10-17'
        Statement:
          - Effect: Allow
-           Action: 
+           Action:
              - cloudfront:*
            Resource: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${AppCloudfrontDistribution}"
 
@@ -1640,7 +1640,7 @@ Resources:
       Code:
         ZipFile: !Sub |
           const AWS=require("aws-sdk"),promisify=e=>t=>new Promise((a,n)=>e(t,(e,t)=>{e?(console.log(e),n(e)):a(t)})),OFFLINE_SETTING="Offline - Temporarily shut off servers";async function handleBudgetAlert(e,t){const a=e.Records[0].Sns.TopicArn,n=new AWS.SNS,s=(await promisify(n.listTagsForResource.bind(n))({ResourceArn:a})).Tags,r=s.find(e=>"stack-name"===e.Key).Value,o=s.find(e=>"stack-region"===e.Key).Value,i=new AWS.CloudFormation({region:o});await new Promise(async e=>{let t;const a=async()=>{const a=await promisify(i.describeStacks.bind(i))({StackName:r});if(a){const n=a.Stacks[0].StackStatus;if(n.endsWith("_COMPLETE")||n.endsWith("_FAILED"))return t&&clearInterval(t),e(),!0}return!1};await a()||(t=setInterval(a,3e4))});const c=(await promisify(i.describeStacks.bind(i))({StackName:r})).Stacks[0].Parameters,d=[];for(const e of c)"StackOffline"===e.ParameterKey?d.push({ParameterKey:e.ParameterKey,ParameterValue:OFFLINE_SETTING}):d.push({ParameterKey:e.ParameterKey,UsePreviousValue:!0});await promisify(i.updateStack.bind(i))({StackName:r,UsePreviousTemplate:!0,Parameters:d,Capabilities:["CAPABILITY_IAM","CAPABILITY_NAMED_IAM"]})}async function handleASGMessage(e,t){const a=e.AutoScalingGroupName,n=e.Event,s="${LowerStackName.Value}-app.${InternalZoneInfo.Name}.";if("autoscaling:EC2_INSTANCE_LAUNCH"===n||"autoscaling:EC2_INSTANCE_TERMINATE"===n||"INSTANCE_REBOOT"===n){const e=new AWS.AutoScaling({region:"${AWS::Region}"}),t=new AWS.EC2({region:"${AWS::Region}"}),n=new AWS.Route53,r=await promisify(e.describeAutoScalingGroups.bind(e))({AutoScalingGroupNames:[a],MaxRecords:1}),o=(await promisify(n.listResourceRecordSets.bind(n))({StartRecordName:s,StartRecordType:"A",HostedZoneId:"${InternalZoneInfo.Id}",MaxItems:"100"})).ResourceRecordSets,i=r.AutoScalingGroups[0].Instances.map(e=>e.InstanceId),c=await promisify(t.describeInstances.bind(t))({DryRun:!1,InstanceIds:i}),d=[];for(let e=0;e<c.Reservations.length;e++){const t=c.Reservations[e];for(let e=0;e<t.Instances.length;e++){const a=t.Instances[e].NetworkInterfaces[0].Association.PublicIp;a&&d.indexOf(a)<0&&d.push(a)}}for(let e=0,t=o.length;e<t;e++){const t=o[e];if(t.Name!==s||"A"!==t.Type)continue;const a=t.ResourceRecords.length>0&&t.ResourceRecords[0].Value;if(a&&!d.find(e=>e===a))try{await promisify(n.changeResourceRecordSets.bind(n))({ChangeBatch:{Changes:[{Action:"DELETE",ResourceRecordSet:{MultiValueAnswer:!0,Name:t.Name,Type:t.Type,TTL:t.TTL,SetIdentifier:t.SetIdentifier,ResourceRecords:t.ResourceRecords,HealthCheckId:t.HealthCheckId}}]},HostedZoneId:"${InternalZoneInfo.Id}"})}catch(e){}}let l=(await promisify(n.listHealthChecks.bind(n))({MaxItems:"100"})).HealthChecks;if(d.length>1)for(let e=0,t=d.length;e<t;e++){const t=d[e];if(!l.find(e=>e.HealthCheckConfig.IPAddress===t))try{await promisify(n.createHealthCheck.bind(n))({CallerReference:Math.floor(1e9*Math.random()).toString(),HealthCheckConfig:{EnableSNI:!0,FailureThreshold:2,FullyQualifiedDomainName:s,IPAddress:t,Port:443,RequestInterval:10,ResourcePath:"/health",Type:"HTTPS"}})}catch(e){}}l=(await promisify(n.listHealthChecks.bind(n))({})).HealthChecks;for(let e=0,t=d.length;e<t;e++){const t=d[e];if(!o.find(e=>e.Name===s&&e.ResourceRecords&&e.ResourceRecords.length&&e.ResourceRecords[0].Value===t)){const e=l.find(e=>e.HealthCheckConfig.IPAddress===t);try{await promisify(n.changeResourceRecordSets.bind(n))({ChangeBatch:{Changes:[{Action:"UPSERT",ResourceRecordSet:{MultiValueAnswer:!0,Name:s,Type:"A",HealthCheckId:e?e.Id:null,TTL:15,SetIdentifier:t,ResourceRecords:[{Value:t}]}}]},HostedZoneId:"${InternalZoneInfo.Id}"})}catch(e){}}}for(let e=0,t=l.length;e<t;e++){const t=l[e];if(1===d.length||!d.find(e=>t.HealthCheckConfig.IPAddress===e))try{await promisify(n.deleteHealthCheck.bind(n))({HealthCheckId:t.Id})}catch(e){}}}else console.log("Unsupported ASG event: "+a+" "+n),t.done("Unsupported ASG event: "+a+" "+n)}exports.handler=async function(e,t){if(e.Records[0].Sns.Message.indexOf("Budget Name")>=0)return handleBudgetAlert(e,t);return handleASGMessage(JSON.parse(e.Records[0].Sns.Message),t)};
-  
+
   InvokeStackTopicHandlerPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -1657,7 +1657,7 @@ Resources:
         Version: '2012-10-17'
         Statement: !If
           -  HasDbMonthlyBudget
-          - 
+          -
             - Effect: Allow
               Sid: !Sub "${AWS::StackName}-topic-policy-stmt-asg"
               Action: 'sns:Publish'
@@ -1673,7 +1673,7 @@ Resources:
               Resource: !Ref StackTopic
               Principal:
                 Service: "budgets.amazonaws.com"
-          - 
+          -
             - Effect: Allow
               Sid: !Sub "${AWS::StackName}-topic-policy-stmt-asg"
               Action: 'sns:Publish'
@@ -1752,7 +1752,7 @@ Resources:
     Type: Custom::EmptyBuckets
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
-      BucketNames: 
+      BucketNames:
         - !Ref BoxKeysBucket
         - !Ref SpeelycaptorScratchBucket
         - !Ref AssetsBucket
@@ -1871,7 +1871,7 @@ Resources:
             Action: s3:ListBucket
             Resource: !Sub "${SpeelycaptorScratchBucket.Arn}"
           - Effect: Allow
-            Action: 
+            Action:
               - ec2:DescribeInstances
               - ec2:CreateNetworkInterface
               - ec2:AttachNetworkInterface
@@ -1979,7 +1979,7 @@ Resources:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
-            Action: 
+            Action:
               - ec2:DescribeInstances
               - ec2:CreateNetworkInterface
               - ec2:AttachNetworkInterface
@@ -2062,7 +2062,7 @@ Resources:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
-            Action: 
+            Action:
               - ec2:DescribeInstances
               - ec2:CreateNetworkInterface
               - ec2:AttachNetworkInterface
@@ -2474,36 +2474,36 @@ Resources:
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, RetExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, RetExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, RetExternalAH, Port]
+          ToPort: !FindInMap [ServicesMeta, RetExternalAH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, RetTurnExternalH, Port]
+          ToPort: !FindInMap [ServicesMeta, RetTurnExternalH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, RetTurnExternalH, Port]
+          ToPort: !FindInMap [ServicesMeta, RetTurnExternalH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogExternalSH, Port]
+          ToPort: !FindInMap [ServicesMeta, DialogExternalSH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
+          ToPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
+          ToPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
-          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogWebRTCFromSH, Port]
+          ToPort: !FindInMap [ServicesMeta, DialogWebRTCToSH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
-          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogWebRTCFromSH, Port]
+          ToPort: !FindInMap [ServicesMeta, DialogWebRTCToSH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
@@ -2565,8 +2565,8 @@ Resources:
     Properties:
       GroupId: !Ref AppSecurityGroup
       IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
-      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      FromPort: !FindInMap [ServicesMeta, RetInternalAH, Port]
+      ToPort: !FindInMap [ServicesMeta, RetInternalAH, Port]
       SourceSecurityGroupId: !Ref AppALBSecurityGroup
 
   AppALBReticulumEgress:
@@ -2575,8 +2575,8 @@ Resources:
     Properties:
       GroupId: !Ref AppALBSecurityGroup
       IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
-      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      FromPort: !FindInMap [ServicesMeta, RetInternalAH, Port]
+      ToPort: !FindInMap [ServicesMeta, RetInternalAH, Port]
       DestinationSecurityGroupId: !Ref AppSecurityGroup
 
   AppJanusAdminAppIngress:
@@ -2584,8 +2584,8 @@ Resources:
     Properties:
       GroupId: !Ref AppSecurityGroup
       IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
-      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      FromPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
+      ToPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
       SourceSecurityGroupId: !Ref AppSecurityGroup
 
   AppJanusAdminStreamEgress:
@@ -2593,8 +2593,8 @@ Resources:
     Properties:
       GroupId: !Ref AppSecurityGroup
       IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
-      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      FromPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
+      ToPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
       DestinationSecurityGroupId: !Ref StreamSecurityGroup
 
   AppEPMDAppIngress:
@@ -2679,15 +2679,15 @@ Resources:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Action: 
+            Action:
               - ec2:DescribeInstances
             Resource: "*"
           - Effect: Allow
-            Action: 
+            Action:
               - ec2:CreateTags
             Resource: "*"
           - Effect: Allow
-            Action: 
+            Action:
               - ec2:DescribeTags
             Resource: "*"
           - Effect: Allow
@@ -2728,11 +2728,11 @@ Resources:
               - ec2messages:SendReply
             Resource: "*"
           - Effect: Allow
-            Action: 
+            Action:
               - route53:ChangeResourceRecordSets
             Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
           - Effect: Allow
-            Action: 
+            Action:
               - route53:ListHostedZones
               - route53:GetChange
             Resource: "*"
@@ -2829,7 +2829,7 @@ Resources:
     Properties:
       Name: !Sub "${AWS::StackName}-ret"
       VpcId: !Ref VPC
-      Port: !FindInMap [ServicesMeta, RetInternal, Port]
+      Port: !FindInMap [ServicesMeta, RetInternalAH, Port]
       Protocol: HTTPS
       TargetGroupAttributes:
       - Key: deregistration_delay.timeout_seconds
@@ -3158,24 +3158,24 @@ Resources:
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogExternalSH, Port]
+          ToPort: !FindInMap [ServicesMeta, DialogExternalSH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
+          ToPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
+          ToPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
-          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogWebRTCFromSH, Port]
+          ToPort: !FindInMap [ServicesMeta, DialogWebRTCToSH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
-          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogWebRTCFromSH, Port]
+          ToPort: !FindInMap [ServicesMeta, DialogWebRTCToSH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
@@ -3221,8 +3221,8 @@ Resources:
     Properties:
       GroupId: !Ref StreamSecurityGroup
       IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
-      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      FromPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
+      ToPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
       SourceSecurityGroupId: !Ref AppSecurityGroup
 
   StreamFullSelfEgress:
@@ -3401,10 +3401,10 @@ Resources:
       LifecyclePolicies:
         - TransitionToIA: AFTER_30_DAYS
       FileSystemTags:
-        - 
+        -
           Key: backup
           Value: daily
-        - 
+        -
           Key: Name
           Value: !Sub "${AWS::StackName}-storage"
       RestoreBackupVaultName: !Ref RestoreBackupVaultName
@@ -3605,7 +3605,7 @@ Resources:
 
   AppDbSecretResourcePolicy:
     Type: AWS::SecretsManager::ResourcePolicy
-    Properties: 
+    Properties:
       SecretId: !Ref AppDbSecret
       ResourcePolicy:
         Version: 2012-10-17
@@ -3668,13 +3668,13 @@ Resources:
     DependsOn: StackTopicHandlerTopicPolicy
     Properties:
       Budget:
-        BudgetLimit: 
+        BudgetLimit:
           Amount: !Ref DatabaseMonthlyBudget
           Unit: USD
         BudgetType: COST
         TimeUnit: MONTHLY
-        CostFilters: 
-          UsageType: 
+        CostFilters:
+          UsageType:
             - !Join [ "-", [!FindInMap [Regions, !Ref "AWS::Region", Abbreviation], "Aurora:ServerlessUsage" ]]
       NotificationsWithSubscribers:
         - Notification:
@@ -3785,7 +3785,7 @@ Outputs:
 
   JanusMediaRtpPortRange:
     Description: Janus WebRTC Port Range [janus-gateway/media/rtp_port_range]
-    Value: !Join ["-", [!FindInMap [ServicesMeta, JanusWebRTCFrom, Port], !FindInMap [ServicesMeta, JanusWebRTCTo, Port] ] ]
+    Value: !Join ["-", [!FindInMap [ServicesMeta, DialogWebRTCFromSH, Port], !FindInMap [ServicesMeta, DialogWebRTCToSH, Port] ] ]
 
   JanusNatIceIgnoreList:
     Description: Janus ICE Ignore List [janus-gateway/nat/ice_ignore_list]
@@ -3793,15 +3793,15 @@ Outputs:
 
   JanusInternalPort:
     Description: Janus Internal Port [janus-gateway/transports.websockets/wss_port]
-    Value: !FindInMap [ServicesMeta, JanusInternal, Port]
+    Value: !FindInMap [ServicesMeta, DialogInternalSH, Port]
 
   JanusExternalPort:
     Description: Janus External Port [reticulum/janus/janus_port]
-    Value: !FindInMap [ServicesMeta, JanusExternal, Port]
+    Value: !FindInMap [ServicesMeta, DialogExternalSH, Port]
 
   JanusAdminPort:
     Description: Janus Admin Port [janus-gateway/transports.http/admin_port,reticulum/janus/admin_port]
-    Value: !FindInMap [ServicesMeta, JanusAdmin, Port]
+    Value: !FindInMap [ServicesMeta, DialogAdminSH, Port]
 
   JanusServiceName:
     Description: Janus Service Name [reticulum/janus/service_name]
@@ -3809,7 +3809,7 @@ Outputs:
 
   RetInternalPort:
     Description: Reticulum Internal Port [reticulum/phx/port]
-    Value: !FindInMap [ServicesMeta, RetInternal, Port]
+    Value: !FindInMap [ServicesMeta, RetInternalAH, Port]
 
   RetPhoenixSecretKey:
     Description: Reticulum Phoenix Secret Key [reticulum/phx/secret_key!read-keymaster-secret]
@@ -3817,7 +3817,7 @@ Outputs:
 
   RetExternalPort:
     Description: Reticulum URL Port [reticulum/phx/url_port]
-    Value: !FindInMap [ServicesMeta, RetExternal, Port]
+    Value: !FindInMap [ServicesMeta, RetExternalAH, Port]
 
   CorsProxyDNS:
     Description: CORS Proxy Domain Name [reticulum/phx/cors_proxy_url_host,hubs/general/cors_proxy_server,spoke/general/cors_proxy_server]
