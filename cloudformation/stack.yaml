@@ -361,23 +361,23 @@ Mappings:
       Abbreviation: EU
 
   ServicesMeta:
-    RetExternalAH:
+    RetExternal:
       Port: 443
-    RetInternalAH:
+    RetInternal:
       Port: 4000
-    TurnExternalSH:
+    RetTurnExternal:
       Port: 5349
-    DialogInternalSH:
+    JanusInternal:
       Port: 8443
-    DialogExternalH:
+    JanusExternal:
       Port: 8443
-    DialogExternalS:
+    JanusTurnExternal:
       Port: 443
-    DialogAdminSH:
+    JanusAdmin:
       Port: 7000
-    DialogWebRTCFromSH:
+    JanusWebRTCFrom:
       Port: 51610
-    DialogWebRTCToSH:
+    JanusWebRTCTo:
       Port: 60999
     YTDL:
       Port: 8080
@@ -2474,28 +2474,36 @@ Resources:
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, RetExternalAH, Port]
-          ToPort: !FindInMap [ServicesMeta, RetExternalAH, Port]
+          FromPort: !FindInMap [ServicesMeta, RetExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogExternalH, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogExternalH, Port]
-          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
-        - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, TurnExternalSH, Port]
-          ToPort: !FindInMap [ServicesMeta, TurnExternalSH, Port]
+          FromPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, TurnExternalSH, Port]
-          ToPort: !FindInMap [ServicesMeta, TurnExternalSH, Port]
-          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
-        - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, DialogWebRTCFromSH, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogWebRTCToSH, Port]
+          FromPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogWebRTCFromSH, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogWebRTCToSH, Port]
+          FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: udp
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: udp
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
+          CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
+        - IpProtocol: tcp
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
@@ -2557,8 +2565,8 @@ Resources:
     Properties:
       GroupId: !Ref AppSecurityGroup
       IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, RetInternalAH, Port]
-      ToPort: !FindInMap [ServicesMeta, RetInternalAH, Port]
+      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
       SourceSecurityGroupId: !Ref AppALBSecurityGroup
 
   AppALBReticulumEgress:
@@ -2567,8 +2575,8 @@ Resources:
     Properties:
       GroupId: !Ref AppALBSecurityGroup
       IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, RetInternalAH, Port]
-      ToPort: !FindInMap [ServicesMeta, RetInternalAH, Port]
+      FromPort: !FindInMap [ServicesMeta, RetInternal, Port]
+      ToPort: !FindInMap [ServicesMeta, RetInternal, Port]
       DestinationSecurityGroupId: !Ref AppSecurityGroup
 
   AppJanusAdminAppIngress:
@@ -2576,8 +2584,8 @@ Resources:
     Properties:
       GroupId: !Ref AppSecurityGroup
       IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
-      ToPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
+      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
       SourceSecurityGroupId: !Ref AppSecurityGroup
 
   AppJanusAdminStreamEgress:
@@ -2585,8 +2593,8 @@ Resources:
     Properties:
       GroupId: !Ref AppSecurityGroup
       IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
-      ToPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
+      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
       DestinationSecurityGroupId: !Ref StreamSecurityGroup
 
   AppEPMDAppIngress:
@@ -2821,7 +2829,7 @@ Resources:
     Properties:
       Name: !Sub "${AWS::StackName}-ret"
       VpcId: !Ref VPC
-      Port: !FindInMap [ServicesMeta, RetInternalAH, Port]
+      Port: !FindInMap [ServicesMeta, RetInternal, Port]
       Protocol: HTTPS
       TargetGroupAttributes:
       - Key: deregistration_delay.timeout_seconds
@@ -3150,24 +3158,24 @@ Resources:
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogExternalS, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogExternalS, Port]
+          FromPort: !FindInMap [ServicesMeta, JanusExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, TurnExternalSH, Port]
-          ToPort: !FindInMap [ServicesMeta, TurnExternalSH, Port]
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, TurnExternalSH, Port]
-          ToPort: !FindInMap [ServicesMeta, TurnExternalSH, Port]
+          FromPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, DialogWebRTCFromSH, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogWebRTCToSH, Port]
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogWebRTCFromSH, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogWebRTCToSH, Port]
+          FromPort: !FindInMap [ServicesMeta, JanusWebRTCFrom, Port]
+          ToPort: !FindInMap [ServicesMeta, JanusWebRTCTo, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, Ssh, Port]
@@ -3213,8 +3221,8 @@ Resources:
     Properties:
       GroupId: !Ref StreamSecurityGroup
       IpProtocol: tcp
-      FromPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
-      ToPort: !FindInMap [ServicesMeta, DialogAdminSH, Port]
+      FromPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
+      ToPort: !FindInMap [ServicesMeta, JanusAdmin, Port]
       SourceSecurityGroupId: !Ref AppSecurityGroup
 
   StreamFullSelfEgress:
@@ -3777,7 +3785,7 @@ Outputs:
 
   JanusMediaRtpPortRange:
     Description: Janus WebRTC Port Range [janus-gateway/media/rtp_port_range]
-    Value: !Join ["-", [!FindInMap [ServicesMeta, DialogWebRTCFromSH, Port], !FindInMap [ServicesMeta, DialogWebRTCToSH, Port] ] ]
+    Value: !Join ["-", [!FindInMap [ServicesMeta, JanusWebRTCFrom, Port], !FindInMap [ServicesMeta, JanusWebRTCTo, Port] ] ]
 
   JanusNatIceIgnoreList:
     Description: Janus ICE Ignore List [janus-gateway/nat/ice_ignore_list]
@@ -3785,15 +3793,15 @@ Outputs:
 
   JanusInternalPort:
     Description: Janus Internal Port [janus-gateway/transports.websockets/wss_port]
-    Value: !FindInMap [ServicesMeta, DialogInternalSH, Port]
+    Value: !FindInMap [ServicesMeta, JanusInternal, Port]
 
   JanusExternalPort:
     Description: Janus External Port [reticulum/janus/janus_port]
-    Value: !FindInMap [ServicesMeta, DialogExternalH, Port]
+    Value: !FindInMap [ServicesMeta, JanusExternal, Port]
 
   JanusAdminPort:
     Description: Janus Admin Port [janus-gateway/transports.http/admin_port,reticulum/janus/admin_port]
-    Value: !FindInMap [ServicesMeta, DialogAdminSH, Port]
+    Value: !FindInMap [ServicesMeta, JanusAdmin, Port]
 
   JanusServiceName:
     Description: Janus Service Name [reticulum/janus/service_name]
@@ -3801,7 +3809,7 @@ Outputs:
 
   RetInternalPort:
     Description: Reticulum Internal Port [reticulum/phx/port]
-    Value: !FindInMap [ServicesMeta, RetInternalAH, Port]
+    Value: !FindInMap [ServicesMeta, RetInternal, Port]
 
   RetPhoenixSecretKey:
     Description: Reticulum Phoenix Secret Key [reticulum/phx/secret_key!read-keymaster-secret]
@@ -3809,7 +3817,7 @@ Outputs:
 
   RetExternalPort:
     Description: Reticulum URL Port [reticulum/phx/url_port]
-    Value: !FindInMap [ServicesMeta, RetExternalAH, Port]
+    Value: !FindInMap [ServicesMeta, RetExternal, Port]
 
   CorsProxyDNS:
     Description: CORS Proxy Domain Name [reticulum/phx/cors_proxy_url_host,hubs/general/cors_proxy_server,spoke/general/cors_proxy_server]
