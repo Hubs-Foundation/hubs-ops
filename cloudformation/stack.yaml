@@ -372,7 +372,7 @@ Mappings:
     DialogInternalSH:
       Port: 8443
     DialogExternalSH: # To be changed to DialogExternalH 8443 + DialogExternalS 443
-      Port: 8443
+      Port: 80
     TurnExternalS: # To be combined into TurnExternalSH 5349
       Port: 443
     DialogAdminSH:
