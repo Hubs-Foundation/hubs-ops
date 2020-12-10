@@ -361,17 +361,19 @@ Mappings:
       Abbreviation: EU
 
   ServicesMeta:
+    # Variables are suffixed with the instance types they apply to:
+    # A = App, S = Streaming, H = Hybrid
     RetExternalAH:
       Port: 443
     RetInternalAH:
       Port: 4000
-    RetTurnExternalH: # To be combined into TurnExternalSH 5349
+    TurnExternalH: # To be combined into TurnExternalSH 5349
       Port: 5349
     DialogInternalSH:
       Port: 8443
     DialogExternalSH: # To be changed to DialogExternalH 8443 + DialogExternalS 443
       Port: 8443
-    DialogTurnExternalS: # To be combined into TurnExternalSH 5349
+    TurnExternalS: # To be combined into TurnExternalSH 5349
       Port: 443
     DialogAdminSH:
       Port: 7000
