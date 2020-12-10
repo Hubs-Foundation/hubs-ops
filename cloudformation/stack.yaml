@@ -2480,24 +2480,24 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, RetExternalAH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, RetTurnExternalH, Port]
-          ToPort: !FindInMap [ServicesMeta, RetTurnExternalH, Port]
+          FromPort: !FindInMap [ServicesMeta, TurnExternalH, Port]
+          ToPort: !FindInMap [ServicesMeta, TurnExternalH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, RetTurnExternalH, Port]
-          ToPort: !FindInMap [ServicesMeta, RetTurnExternalH, Port]
+          FromPort: !FindInMap [ServicesMeta, TurnExternalH, Port]
+          ToPort: !FindInMap [ServicesMeta, TurnExternalH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, DialogExternalSH, Port]
           ToPort: !FindInMap [ServicesMeta, DialogExternalSH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
+          FromPort: !FindInMap [ServicesMeta, TurnExternalS, Port]
+          ToPort: !FindInMap [ServicesMeta, TurnExternalS, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
+          FromPort: !FindInMap [ServicesMeta, TurnExternalS, Port]
+          ToPort: !FindInMap [ServicesMeta, TurnExternalS, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, DialogWebRTCFromSH, Port]
@@ -3164,12 +3164,12 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, DialogExternalSH, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
+          FromPort: !FindInMap [ServicesMeta, TurnExternalS, Port]
+          ToPort: !FindInMap [ServicesMeta, TurnExternalS, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
-          FromPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogTurnExternalS, Port]
+          FromPort: !FindInMap [ServicesMeta, TurnExternalS, Port]
+          ToPort: !FindInMap [ServicesMeta, TurnExternalS, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: udp
           FromPort: !FindInMap [ServicesMeta, DialogWebRTCFromSH, Port]
