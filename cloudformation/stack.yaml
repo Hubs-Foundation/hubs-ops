@@ -370,7 +370,7 @@ Mappings:
     DialogInternal:
       Port: 8443
     DialogExternal:
-      Port: 80
+      Port: 8443
     DialogTurnExternal:
       Port: 443
     DialogAdmin:
