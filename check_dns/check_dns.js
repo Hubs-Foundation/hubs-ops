@@ -311,7 +311,7 @@ function prompt_for_continue() {
 
 function delete_records_with_confirmation_prompt(records) {
   return new Promise(function (resolve, reject) {
-    logger.log(records);
+    logger.log(JSON.stringify(records, null, 2));
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
