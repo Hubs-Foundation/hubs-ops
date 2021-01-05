@@ -213,7 +213,7 @@ function matches_dns_record({ ResourceRecords, Name }) {
   return function match(ec2_instance) {
     name_matches =
       Name === `${ec2_instance.Name}.reticulum.io.` ||
-      Name === `${ec2_instance.Name}-local.reticulum.io`;
+      Name === `${ec2_instance.Name}-local.reticulum.io.`;
     ip_matches = check_match_ip(ec2_instance); // Not needed. I just used this to find anomalies
 
     return !!record_ip && name_matches;
@@ -370,7 +370,7 @@ async function delete_dns_record() {
   }
   const dns_records = load_json("dns_records.json");
   const record = dns_records.find(function ({ Name }) {
-    return Name === `${argv.record_name}.reticulum.io.`;
+    return Name === `${argv.record_name}`;
   });
   if (!record) {
     logger.log(
