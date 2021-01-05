@@ -4,6 +4,10 @@ const path = require("path");
 const yargs = require("yargs");
 
 const argv = yargs
+  .usage("Usage: node $0 <command> [options]")
+  .epilog(
+    "You need to run $(maws) in your shell to have the correct AWS credentials"
+  )
   .command(
     "fetch",
     "Fetches ec2 and route53 data from AWS, and saves that info to json files in this directory."
@@ -270,6 +274,3 @@ function main() {
   }
 }
 main();
-
-logger.log(argv);
-logger.log(argv["$0"]);

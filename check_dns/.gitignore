@@ -1,1 +1,4 @@
 node_modules/
+dns_records.json
+ec2_instances.json
+unmatched_dns_records.json
