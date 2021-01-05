@@ -1,0 +1,18 @@
+{
+  "name": "check_dns",
+  "version": "1.0.0",
+  "description": "",
+  "main": "check_dns.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MPL-2.0",
+  "dependencies": {
+    "aws-sdk": "^2.821.0",
+    "fs": "0.0.1-security",
+    "path": "^0.12.7",
+    "readline": "^1.3.0",
+    "yargs": "^16.2.0"
+  }
+}
