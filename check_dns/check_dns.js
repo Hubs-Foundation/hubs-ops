@@ -2,6 +2,7 @@ const AWS = require("aws-sdk");
 const fs = require("fs");
 const path = require("path");
 const yargs = require("yargs");
+const readline = require("readline");
 
 const argv = yargs
   .usage("Usage: node $0 <command> [options]")
@@ -24,10 +25,33 @@ const argv = yargs
     "$0 filter",
     "Identifies the DNS records that should be deleted and writes that to unmatched_dns_records.json"
   )
+  .command("delete", "Delete a DNS record by the given name.")
+  .example(
+    "$0 delete -n some-subdomain -z MY_HOSTED_ZONE_ID",
+    "Finds the Route53 DNS record with name some-subdomain.my-hosted-zone"
+  )
+  .command(
+    "delete-unmatched",
+    "Delete the DNS records that do not match an EC2 node."
+  )
+  .example(
+    "$0 delete-unmatched -z MY_HOSTED_ZONE_ID",
+    "Deletes the unmatched DNS records (asks for confirmation in batches)."
+  )
   .options("hosted_zone_id", {
     alias: "z",
     description: "The Route53 HostedZoneId",
     type: "string",
+  })
+  .options("record_name", {
+    alias: "n",
+    description: "A record name to delete",
+    type: "string",
+  })
+  .options("dry", {
+    alias: "d",
+    description: "Dry run. Will not execute deletes.",
+    type: "boolean",
   })
   .options("quiet", {
     alias: "q",
@@ -53,7 +77,7 @@ const promisify = (f) => (arg) =>
   new Promise((res, rej) =>
     f(arg, (err, data) => {
       if (err) {
-        logger.log(err);
+        logger.error(err);
         rej(err);
       } else {
         res(data);
@@ -205,7 +229,7 @@ function filter_by_ec2_instances(dns_records, ec2_instances) {
 async function fetch_aws_info() {
   if (!argv.hosted_zone_id) {
     logger.error(
-      "Must set the hosted_zone_id.\n  node ./index.js fetch --hosted_zone_id <your_hosted_zone_id>\n  node ./index.js fetch -z <your_hosted_zone_id>"
+      `Must set the hosted_zone_id.\n  node ${argv["$0"]} fetch --hosted_zone_id <your_hosted_zone_id>\n  node ${argv["$0"]} fetch -z <your_hosted_zone_id>`
     );
     return 0;
   }
@@ -235,32 +259,127 @@ async function filter_dns_records() {
   logger.log(`Matched ${records.length} records. See ${output_filename}.json`);
 }
 
-// I have not tested this yet.
-async function remove_record(record) {
+async function batch_delete_dns_records(records) {
+  if (argv.dry) {
+    logger.log("Not deleting any records. This is a dry run...");
+    return 0;
+  }
+  changes = records.map(function (record) {
+    return {
+      Action: "DELETE",
+      ResourceRecordSet: {
+        Name: record.Name,
+        Type: record.Type,
+        ResourceRecords: record.ResourceRecords,
+        TTL: record.TTL,
+        // MultiValueAnswer: true,
+        // SetIdentifier: record.SetIdentifier,
+        // HealthCheckId: record.HealthCheckId,
+      },
+    };
+  });
+
   const route53 = new AWS.Route53();
   try {
-    await promisify(route53.changeResourceRecordSets.bind(route53))({
-      ChangeBatch: {
-        Changes: [
-          {
-            Action: "DELETE",
-            ResourceRecordSet: {
-              Name: record.Name,
-              Type: record.Type,
-              TTL: record.TTL,
-              ResourceRecords: record.ResourceRecords,
-              // MultiValueAnswer: true,
-              // SetIdentifier: record.SetIdentifier,
-              // HealthCheckId: record.HealthCheckId,
-            },
-          },
-        ],
-      },
+    const result = await promisify(
+      route53.changeResourceRecordSets.bind(route53)
+    )({
+      ChangeBatch: { Changes: changes },
       HostedZoneId: argv.hosted_zone_id,
     });
+    logger.log(result);
   } catch (e) {
-    logger.error(e);
+    // logger.error(e); // Already logged by promisify
+    logger.error("Batch delete request failed. Did not delete records:");
+    logger.error(records);
   }
+}
+
+function prompt_for_continue() {
+  return new Promise(function (resolve, reject) {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    rl.question("Press any key to continue...", function (anything) {
+      rl.close();
+      resolve();
+    });
+  });
+}
+
+function delete_records_with_confirmation_prompt(records) {
+  return new Promise(function (resolve, reject) {
+    logger.log(records);
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    const message = argv.dry
+      ? "(This is a dry run. Records will NOT be deleted.)\n"
+      : "(CAUTION: THIS IS NOT A DRY RUN. Records WILL be deleted.)\n";
+    rl.question(
+      `Are you sure you want to delete these records? (Type "delete" to confirm.)\n${message}`,
+      async function (answer) {
+        rl.close();
+        if (answer === "delete") {
+          logger.log("Attempting to delete records...");
+          await batch_delete_dns_records(records);
+          await prompt_for_continue();
+        } else {
+          logger.log("You chose not to delete these records. Exiting...");
+          process.exit(0);
+        }
+        resolve();
+      }
+    );
+  });
+}
+
+async function delete_unmatched_dns_records() {
+  if (!argv.hosted_zone_id) {
+    logger.error(
+      `Must set the hosted_zone_id.\n  node ${argv["$0"]} delete --record_name <your_record_name> --hosted_zone_id <your_hosted_zone_id> \n  node ${argv["$0"]} delete -n <your_record_name> -z <your_hosted_zone_id>`
+    );
+    return 0;
+  }
+  const unmatched_dns_records = load_json("unmatched_dns_records.json");
+
+  const BATCH_SIZE = 100;
+  let records_to_delete = unmatched_dns_records.splice(0, BATCH_SIZE);
+  while (records_to_delete.length) {
+    await delete_records_with_confirmation_prompt(records_to_delete);
+    records_to_delete = unmatched_dns_records.splice(0, BATCH_SIZE);
+  }
+  logger.log("Finished.");
+}
+
+async function delete_dns_record() {
+  if (!argv.hosted_zone_id) {
+    logger.error(
+      `Must set the hosted_zone_id.\n  node ${argv["$0"]} delete --record_name <your_record_name> --hosted_zone_id <your_hosted_zone_id> \n  node ${argv["$0"]} delete -n <your_record_name> -z <your_hosted_zone_id>`
+    );
+    return 0;
+  }
+  if (!argv.record_name) {
+    logger.error(
+      `Must set the record_name.\n  node ${argv["$0"]} delete --record_name <your_record_name> --hosted_zone_id <your_hosted_zone_id> \n  node ${argv["$0"]} delete -n <your_record_name> -z <your_hosted_zone_id>`
+    );
+    return 0;
+  }
+  const dns_records = load_json("dns_records.json");
+  const record = dns_records.find(function ({ Name }) {
+    return Name === `${argv.record_name}.reticulum.io.`;
+  });
+  if (!record) {
+    logger.log(
+      `Could not find dns record with name ${argv.record_name}. Exiting...`
+    );
+    return 0;
+  }
+  await delete_records_with_confirmation_prompt([record]);
+  logger.log("Finished.");
 }
 
 function main() {
@@ -268,6 +387,10 @@ function main() {
     fetch_aws_info();
   } else if (argv._.includes("filter")) {
     filter_dns_records();
+  } else if (argv._.includes("delete")) {
+    delete_dns_record();
+  } else if (argv._.includes("delete-unmatched")) {
+    delete_unmatched_dns_records();
   } else {
     logger.log("Unknown command.", argv._);
     logger.log("Try invoking --help");
