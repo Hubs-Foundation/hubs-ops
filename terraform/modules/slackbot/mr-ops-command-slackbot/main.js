@@ -44,6 +44,11 @@ function processEvent(event, callback) {
         const retPool = commandParts[3].trim();
         const url = `${ciBaseUrl}?job=ret-deploy&RET_VERSION=${retVersion}&RET_POOL=${retPool}&token=${jtoken}&SOURCE=${user}`;
         https.get(url, () => { callback(null, "Reticulum deploy started. See #mr-push."); });
+    } else if (commandText.startsWith("promote-ret-qa ") || commandText.startsWith("promote-hubs-qa ") || commandText.startsWith("promote-spoke-qa ")) {
+        const type = commandParts[0].trim();
+        const packageIdent = commandParts[1].trim();
+        const url = `${ciBaseUrl}?job=promote-qa&PACKAGE=${encodeURIComponent(packageIdent)}&TYPE=${type}&token=${jtoken}&SOURCE=${user}`;
+        https.get(url, () => { callback(null, "Promotion started."); });
     } else if (commandText.startsWith("test ")) {
         const msg = commandParts[2].trim();
         const url = `${ciBaseUrl}?job=bp-test&MSG=${msg}&token=${jtoken}&SOURCE=${user}`;
