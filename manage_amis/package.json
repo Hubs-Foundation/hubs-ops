@@ -1,0 +1,15 @@
+{
+  "name": "manage_amis",
+  "version": "1.0.0",
+  "description": "",
+  "main": "manage_amis.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "child_process": "^1.0.2",
+    "yargs": "^16.2.0"
+  }
+}
