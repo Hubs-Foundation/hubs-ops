@@ -91,9 +91,9 @@ async function handleBudgetAlert(event, context) {
 async function handleASGMessage(message, context) {
   const asgName = message.AutoScalingGroupName
   const asgEvent = message.Event
-  const region = '${AWS::Region}'
-  const recordName = '${LowerStackName.Value}-app.${InternalZoneInfo.Name}.'
-  const hostedZoneId = '${InternalZoneInfo.Id}'
+  const REGION = '${AWS::Region}'
+  const RECORD_NAME = '${LowerStackName.Value}-app.${InternalZoneInfo.Name}.'
+  const HOSTED_ZONE_ID = '${InternalZoneInfo.Id}'
   const ttl = 15
   const DOMAIN_URL = '${InternalZoneInfo.Name}.'
 
@@ -108,8 +108,8 @@ async function handleASGMessage(message, context) {
   ) {
     console.log('Handling Launch/Terminate Event for ' + asgName)
 
-    const autoscaling = new AWS.AutoScaling({ region })
-    const ec2 = new AWS.EC2({ region })
+    const autoscaling = new AWS.AutoScaling({ region: REGION })
+    const ec2 = new AWS.EC2({ region: REGION })
     const route53 = new AWS.Route53()
 
     const asgResponse = await promisify(
@@ -123,7 +123,7 @@ async function handleASGMessage(message, context) {
       await promisify(route53.listResourceRecordSets.bind(route53))({
         // StartRecordName: "." + DOMAIN_URL,
         // StartRecordType: 'A',
-        HostedZoneId: hostedZoneId,
+        HostedZoneId: HOSTED_ZONE_ID,
         MaxItems: '100',
       })
     ).ResourceRecordSets
@@ -139,12 +139,12 @@ async function handleASGMessage(message, context) {
     console.log(instanceIds)
     const instanceInfo = await promisify(ec2.describeInstances.bind(ec2))({
       DryRun: false,
-      InstanceIds: instanceIds,
+      // InstanceIds: instanceIds, // TODO better to get all ec2 instances if the instanceIds can fail?
     })
     console.log(instanceInfo)
 
     const ipAddresses = []
-    const generatedNames = []
+    // const generatedNames = []
     for (let i = 0; i < instanceInfo.Reservations.length; i++) {
       const reservation = instanceInfo.Reservations[i]
       for (let j = 0; j < reservation.Instances.length; j++) {
@@ -154,34 +154,33 @@ async function handleASGMessage(message, context) {
         if (ip && ipAddresses.indexOf(ip) < 0) {
           console.log('pushed ip :', ip)
           ipAddresses.push(ip)
-          // TODO
         }
         // no ip address (terminated instance) get generated name
-        console.log('get tags')
-        const curInstance = reservation.Instances[j]
-        console.log(curInstance.Tags)
+        // console.log('get tags')
+        // const curInstance = reservation.Instances[j]
+        // console.log(curInstance.Tags)
 
-        const generatedInstanceName = curInstance.Tags.filter(
-          (keyValue) => keyValue.Key === 'Name'
-        )[0] // should not be blank
+        // const generatedInstanceName = curInstance.Tags.filter(
+        //   (keyValue) => keyValue.Key === 'Name'
+        // )[0] // should not be blank
 
-        console.log('generatedInstanceName')
-        console.log(generatedInstanceName)
-        if (generatedInstanceName) {
-          const value = generatedInstanceName.Value
-          console.log('generatedInstanceName is truthy')
-          console.log(value + '.' + DOMAIN_URL)
-          console.log(value + '-local.' + DOMAIN_URL)
-          generatedNames.push(value + '.' + DOMAIN_URL)
-          generatedNames.push(value + '-local.' + DOMAIN_URL)
-        }
+        // console.log('generatedInstanceName')
+        // console.log(generatedInstanceName)
+        // if (generatedInstanceName) {
+        //   const value = generatedInstanceName.Value
+        //   console.log('generatedInstanceName is truthy')
+        //   console.log(value + '.' + DOMAIN_URL)
+        //   console.log(value + '-local.' + DOMAIN_URL)
+        //   generatedNames.push(value + '.' + DOMAIN_URL)
+        //   generatedNames.push(value + '-local.' + DOMAIN_URL)
+        // }
       }
     }
     console.log('ipAddresses')
     console.log(ipAddresses)
 
-    console.log('GENERATED NAMES')
-    console.log(generatedNames)
+    // console.log('GENERATED NAMES')
+    // console.log(generatedNames)
 
     // Go through record sets, removing records that don't have an IP
     // that are missing.
@@ -199,33 +198,54 @@ async function handleASGMessage(message, context) {
       if (record.Type !== 'A') continue
 
       console.log('is A record')
+      console.log('resourceValue /')
+      console.log(record.ResourceRecords)
+      const resourceValue =
+        record.ResourceRecords.length > 0 ? record.ResourceRecords[0].Value : ''
+      console.log('/ resourceValue')
+      const hasAssignedHostname = isAssignedHostName(record.Name, DOMAIN_URL)
 
-      const resource =
-        record.ResourceRecords.length > 0 && record.ResourceRecords[0].Value
+      console.log(
+        'record.Name: ',
+        record.Name,
+        ' ; hasAssignedHostname: ',
+        hasAssignedHostname
+      )
 
       console.log('resource is :')
-      console.log(resource)
+      console.log(resourceValue)
+      console.log('continue expression boolean: ')
+      console.log(
+        !(
+          resourceValue.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/) !== null &&
+          (hasAssignedHostname || record.Name === RECORD_NAME)
+        )
+      )
 
+      // Only delete the records that are host names we assign and the record value is an ip address
       if (
-        !resource ||
-        resource.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/) === null
+        !resourceValue ||
+        !(
+          resourceValue.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/) !== null &&
+          (hasAssignedHostname || record.Name === RECORD_NAME)
+        )
       )
         continue
 
-      if (!ipAddresses.find((ip) => ip === resource)) {
+      if (!ipAddresses.find((ip) => ip === resourceValue)) {
         console.log('Removing dead IP record, resource: ')
-        console.log(resource)
+        console.log(resourceValue)
         console.log('name ' + record.Name)
         console.log('type ' + record.Type)
         console.log('resourcerecords ' + record.ResourceRecords)
         console.log('ttl ' + record.TTL)
         console.log('setidentifier ' + record.SetIdentifier)
         console.log('healthcheckid ' + record.HealthCheckId)
-        console.log('hostedZoneId ' + hostedZoneId)
+        console.log('hostedZoneId ' + HOSTED_ZONE_ID)
 
         try {
           const obj =
-            record.Name === recordName
+            record.Name === RECORD_NAME
               ? {
                   MultiValueAnswer: true,
                   Name: record.Name,
@@ -250,7 +270,7 @@ async function handleASGMessage(message, context) {
                 },
               ],
             },
-            HostedZoneId: hostedZoneId,
+            HostedZoneId: HOSTED_ZONE_ID,
           })
         } catch (e) {
           console.log('ERROR DELETING RECORD')
@@ -281,7 +301,7 @@ async function handleASGMessage(message, context) {
               HealthCheckConfig: {
                 EnableSNI: true,
                 FailureThreshold: 2,
-                FullyQualifiedDomainName: recordName,
+                FullyQualifiedDomainName: RECORD_NAME,
                 IPAddress: ip,
                 Port: 443,
                 RequestInterval: 10,
@@ -303,7 +323,7 @@ async function handleASGMessage(message, context) {
       if (
         !recordSets.find(
           (r) =>
-            r.Name === recordName &&
+            r.Name === RECORD_NAME &&
             r.ResourceRecords &&
             r.ResourceRecords.length &&
             r.ResourceRecords[0].Value === ip
@@ -318,7 +338,7 @@ async function handleASGMessage(message, context) {
 
         console.log('check')
         console.log(check)
-        console.log(recordName)
+        console.log(RECORD_NAME)
         console.log('A')
         console.log(
           'HealthCheckId: ' + check && check !== undefined ? check.Id : null
@@ -326,7 +346,7 @@ async function handleASGMessage(message, context) {
         console.log('TTL ' + ttl)
         console.log('setIdentifier ' + ip)
         console.log('resourcerecords: ' + [{ Value: ip }])
-        console.log(hostedZoneId)
+        console.log(HOSTED_ZONE_ID)
 
         try {
           await promisify(route53.changeResourceRecordSets.bind(route53))({
@@ -336,7 +356,7 @@ async function handleASGMessage(message, context) {
                   Action: 'UPSERT',
                   ResourceRecordSet: {
                     MultiValueAnswer: true,
-                    Name: recordName,
+                    Name: RECORD_NAME,
                     Type: 'A',
                     HealthCheckId: check ? check.Id : null,
                     TTL: ttl,
@@ -346,7 +366,7 @@ async function handleASGMessage(message, context) {
                 },
               ],
             },
-            HostedZoneId: hostedZoneId,
+            HostedZoneId: HOSTED_ZONE_ID,
           })
         } catch (e) {}
       }
@@ -376,6 +396,26 @@ async function handleASGMessage(message, context) {
   }
 }
 
+/**
+ * Takes a recordName and checks it against the assigned hostname adjectives/nouns
+ * returns boolean whether the recordName is an assigned hostname
+ */
+function isAssignedHostName(recordName, domainUrl) {
+  if (!recordName) return false
+
+  const splitRecordName = recordName.split('-')
+  if (splitRecordName.length >= 2) {
+    // ["adjective","noun" || "noun.url.com", ?"local.url.com"]
+    const adjective = splitRecordName[0]
+    const noun = splitRecordName[1].includes('.' + domainUrl)
+      ? splitRecordName[1].replace('.' + domainUrl, '')
+      : splitRecordName[1]
+
+    return ADJECTIVES.includes(adjective) && NOUNS.includes(noun)
+  }
+  return false
+}
+
 exports.handler = async function (event, context) {
   if (event.Records[0].Sns.Message.indexOf('Budget Name') >= 0) {
     return handleBudgetAlert(event, context)
@@ -384,3 +424,135 @@ exports.handler = async function (event, context) {
     return handleASGMessage(message, context)
   }
 }
+
+const ADJECTIVES = [
+  'admiring',
+  'adoring',
+  'affectionate',
+  'agitated',
+  'amazing',
+  'angry',
+  'awesome',
+  'blissful',
+  'boring',
+  'brave',
+  'clever',
+  'cocky',
+  'compassionate',
+  'competent',
+  'condescending',
+  'confident',
+  'cranky',
+  'dazzling',
+  'determined',
+  'distracted',
+  'dreamy',
+  'eager',
+  'ecstatic',
+  'elastic',
+  'elated',
+  'elegant',
+  'eloquent',
+  'epic',
+  'fervent',
+  'festive',
+  'flamboyant',
+  'focused',
+  'friendly',
+  'frosty',
+  'gallant',
+  'gifted',
+  'goofy',
+  'gracious',
+  'happy',
+  'hardcore',
+  'heuristic',
+  'hopeful',
+  'hungry',
+  'infallible',
+  'inspiring',
+  'jolly',
+  'jovial',
+  'keen',
+  'kind',
+  'laughing',
+  'loving',
+  'lucid',
+  'mystifying',
+  'modest',
+  'musing',
+  'naughty',
+  'nervous',
+  'nifty',
+  'nostalgic',
+  'objective',
+  'optimistic',
+  'peaceful',
+  'pedantic',
+  'pensive',
+  'practical',
+  'priceless',
+  'quirky',
+  'quizzical',
+  'relaxed',
+  'reverent',
+  'romantic',
+  'sad',
+  'serene',
+  'sharp',
+  'silly',
+  'sleepy',
+  'stoic',
+  'stupefied',
+  'suspicious',
+  'tender',
+  'thirsty',
+  'trusting',
+  'unruffled',
+  'upbeat',
+  'vibrant',
+  'vigilant',
+  'vigorous',
+  'wizardly',
+  'wonderful',
+  'xenodochial',
+  'youthful',
+  'zealous',
+  'zen',
+]
+
+const NOUNS = [
+  'ardent',
+  'artificer',
+  'balrog',
+  'barbarian',
+  'bard',
+  'cleric',
+  'druid',
+  'dwarf',
+  'elf',
+  'ent',
+  'fighter',
+  'giant',
+  'goblin',
+  'halfling',
+  'hobbit',
+  'illusionist',
+  'invoker',
+  'mage',
+  'monk',
+  'mystic',
+  'orc',
+  'paladin',
+  'psion',
+  'ranger',
+  'rogue',
+  'seeker',
+  'sorcerer',
+  'thief',
+  'troll',
+  'vampire',
+  'warlock',
+  'werewolf',
+  'wizard',
+]
