@@ -92,7 +92,8 @@ async function handleASGMessage(message, context) {
   const asgName = message.AutoScalingGroupName;
   const asgEvent = message.Event;
   const REGION = "${AWS::Region}";
-  const RECORD_NAME = "${LowerStackName.Value}-app.${InternalZoneInfo.Name}.";
+  const INTERNAL_APP_RECORD_NAME =
+    "${LowerStackName.Value}-app.${InternalZoneInfo.Name}.";
   const HOSTED_ZONE_ID = "${InternalZoneInfo.Id}";
   const ttl = 15;
   const DOMAIN_URL = "${InternalZoneInfo.Name}.";
@@ -129,13 +130,12 @@ async function handleASGMessage(message, context) {
     // Sometimes instanceIds is an empty array
     // Will cause an error on the ec2 describe instances
     if (!instanceIds.length) {
-      console.log(message.EC2InstanceId);
       instanceIds.push(message.EC2InstanceId);
     }
 
     const instanceInfo = await promisify(ec2.describeInstances.bind(ec2))({
       DryRun: false,
-      InstanceIds: instanceIds, // Can conflict with other ec2 instances. Only get the ones in the asg.
+      InstanceIds: instanceIds,
     });
 
     const ipAddresses = [];
@@ -144,9 +144,9 @@ async function handleASGMessage(message, context) {
       for (let j = 0; j < reservation.Instances.length; j++) {
         const ip =
           reservation.Instances[j].NetworkInterfaces.length &&
+          reservation.Instances[j].NetworkInterfaces[0].Association &&
           reservation.Instances[j].NetworkInterfaces[0].Association.PublicIp;
         if (ip && ipAddresses.indexOf(ip) < 0) {
-          console.log("pushed ip :", ip);
           ipAddresses.push(ip);
         }
       }
@@ -164,19 +164,20 @@ async function handleASGMessage(message, context) {
           ? record.ResourceRecords[0].Value
           : "";
       const hasAssignedHostname = isAssignedHostName(record.Name, DOMAIN_URL);
+      const isIpAddress =
+        resourceValue.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/) !== null;
+      const isInternalAppRecord = record.Name === INTERNAL_APP_RECORD_NAME;
 
       // Only delete the records that are host names we assign and the record value is an ip address
       if (
         !resourceValue ||
-        !(
-          resourceValue.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/) !== null &&
-          (hasAssignedHostname || record.Name === RECORD_NAME)
-        )
+        !isIpAddress ||
+        (!hasAssignedHostname && !isInternalAppRecord)
       )
         continue;
 
       if (!ipAddresses.find((ip) => ip === resourceValue)) {
-        // console.log('Removing dead IP record, resource: ')
+        // console.log('Removing dead IP record')
         // console.log(JSON.stringify(resourceValue))
         // console.log('name ' + record.Name)
         // console.log('type ' + record.Type)
@@ -187,8 +188,8 @@ async function handleASGMessage(message, context) {
         // console.log('hostedZoneId ' + HOSTED_ZONE_ID)
 
         try {
-          const obj =
-            record.Name === RECORD_NAME
+          const recordSetToDelete =
+            record.Name === INTERNAL_APP_RECORD_NAME
               ? {
                   MultiValueAnswer: true,
                   Name: record.Name,
@@ -209,7 +210,7 @@ async function handleASGMessage(message, context) {
               Changes: [
                 {
                   Action: "DELETE",
-                  ResourceRecordSet: obj,
+                  ResourceRecordSet: recordSetToDelete,
                 },
               ],
             },
@@ -244,7 +245,7 @@ async function handleASGMessage(message, context) {
               HealthCheckConfig: {
                 EnableSNI: true,
                 FailureThreshold: 2,
-                FullyQualifiedDomainName: RECORD_NAME,
+                FullyQualifiedDomainName: INTERNAL_APP_RECORD_NAME,
                 IPAddress: ip,
                 Port: 443,
                 RequestInterval: 10,
@@ -266,7 +267,7 @@ async function handleASGMessage(message, context) {
       if (
         !recordSets.find(
           (r) =>
-            r.Name === RECORD_NAME &&
+            r.Name === INTERNAL_APP_RECORD_NAME &&
             r.ResourceRecords &&
             r.ResourceRecords.length &&
             r.ResourceRecords[0].Value === ip
@@ -276,16 +277,6 @@ async function handleASGMessage(message, context) {
           (h) => h.HealthCheckConfig.IPAddress === ip
         );
         // console.log('Adding ip ' + ip + ' with check ')
-        // console.log(RECORD_NAME)
-        // console.log('A')
-        // console.log(
-        //   'HealthCheckId: ' + check && check !== undefined ? check.Id : null
-        // )
-        // console.log('TTL ' + ttl)
-        // console.log('setIdentifier ' + ip)
-        // console.log('resourcerecords: ' + [{ Value: ip }])
-        // console.log(HOSTED_ZONE_ID)
-
         try {
           await promisify(route53.changeResourceRecordSets.bind(route53))({
             ChangeBatch: {
@@ -294,7 +285,7 @@ async function handleASGMessage(message, context) {
                   Action: "UPSERT",
                   ResourceRecordSet: {
                     MultiValueAnswer: true,
-                    Name: RECORD_NAME,
+                    Name: INTERNAL_APP_RECORD_NAME,
                     Type: "A",
                     HealthCheckId: check ? check.Id : null,
                     TTL: ttl,
@@ -319,7 +310,7 @@ async function handleASGMessage(message, context) {
         ipAddresses.length === 1 ||
         !ipAddresses.find((ip) => check.HealthCheckConfig.IPAddress === ip)
       ) {
-        console.log("deleting health check " + check.Id);
+        // console.log("deleting health check " + check.Id);
 
         try {
           await promisify(route53.deleteHealthCheck.bind(route53))({
@@ -340,13 +331,16 @@ async function handleASGMessage(message, context) {
 function isAssignedHostName(recordName, domainUrl) {
   if (!recordName) return false;
 
-  const splitRecordName = recordName.split("-");
-  if (splitRecordName.length >= 2) {
+  const hyphenSplit = recordName.split("-");
+  if (hyphenSplit.length >= 2) {
     // ["adjective","noun" || "noun.url.com", ?"local.url.com"]
-    const adjective = splitRecordName[0];
-    const noun = splitRecordName[1].includes("." + domainUrl)
-      ? splitRecordName[1].replace("." + domainUrl, "")
-      : splitRecordName[1];
+    const adjective = hyphenSplit[0];
+
+    const dotSplit = hyphenSplit.slice(1).join("-").split(".");
+    // ["noun" | "noun-local", "hyphen-do-main" | "url", "com"]
+    const noun = dotSplit[0].includes("-local")
+      ? dotSplit[0].replace("-local", "")
+      : dotSplit[0];
 
     return ADJECTIVES.includes(adjective) && NOUNS.includes(noun);
   }
