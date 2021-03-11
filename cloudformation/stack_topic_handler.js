@@ -324,29 +324,6 @@ async function handleASGMessage(message, context) {
   }
 }
 
-/**
- * Takes a recordName and checks it against the assigned hostname adjectives/nouns
- * returns boolean whether the recordName is an assigned hostname
- */
-function isAssignedHostName(recordName, domainUrl) {
-  if (!recordName) return false;
-
-  const hyphenSplit = recordName.split("-");
-  if (hyphenSplit.length >= 2) {
-    // ["adjective","noun" || "noun.url.com", ?"local.url.com"]
-    const adjective = hyphenSplit[0];
-
-    const dotSplit = hyphenSplit.slice(1).join("-").split(".");
-    // ["noun" | "noun-local", "hyphen-do-main" | "url", "com"]
-    const noun = dotSplit[0].includes("-local")
-      ? dotSplit[0].replace("-local", "")
-      : dotSplit[0];
-
-    return ADJECTIVES.includes(adjective) && NOUNS.includes(noun);
-  }
-  return false;
-}
-
 exports.handler = async function (event, context) {
   if (event.Records[0].Sns.Message.indexOf("Budget Name") >= 0) {
     return handleBudgetAlert(event, context);
@@ -356,135 +333,340 @@ exports.handler = async function (event, context) {
   }
 };
 
-// Assigned host names
-const ADJECTIVES = [
-  "admiring",
-  "adoring",
-  "affectionate",
-  "agitated",
-  "amazing",
-  "angry",
-  "awesome",
-  "blissful",
-  "boring",
-  "brave",
-  "clever",
-  "cocky",
-  "compassionate",
-  "competent",
-  "condescending",
-  "confident",
-  "cranky",
-  "dazzling",
-  "determined",
-  "distracted",
-  "dreamy",
-  "eager",
-  "ecstatic",
-  "elastic",
-  "elated",
-  "elegant",
-  "eloquent",
-  "epic",
-  "fervent",
-  "festive",
-  "flamboyant",
-  "focused",
-  "friendly",
-  "frosty",
-  "gallant",
-  "gifted",
-  "goofy",
-  "gracious",
-  "happy",
-  "hardcore",
-  "heuristic",
-  "hopeful",
-  "hungry",
-  "infallible",
-  "inspiring",
-  "jolly",
-  "jovial",
-  "keen",
-  "kind",
-  "laughing",
-  "loving",
-  "lucid",
-  "mystifying",
-  "modest",
-  "musing",
-  "naughty",
-  "nervous",
-  "nifty",
-  "nostalgic",
-  "objective",
-  "optimistic",
-  "peaceful",
-  "pedantic",
-  "pensive",
-  "practical",
-  "priceless",
-  "quirky",
-  "quizzical",
-  "relaxed",
-  "reverent",
-  "romantic",
-  "sad",
-  "serene",
-  "sharp",
-  "silly",
-  "sleepy",
-  "stoic",
-  "stupefied",
-  "suspicious",
-  "tender",
-  "thirsty",
-  "trusting",
-  "unruffled",
-  "upbeat",
-  "vibrant",
-  "vigilant",
-  "vigorous",
-  "wizardly",
-  "wonderful",
-  "xenodochial",
-  "youthful",
-  "zealous",
-  "zen",
-];
+const e = require("aws-sdk"),
+  t = (e) => (t) =>
+    new Promise((a, n) =>
+      e(t, (e, t) => {
+        e ? (console.log(e), n(e)) : a(t);
+      })
+    );
+function a(e, t) {
+  if (!e) return !1;
+  const a = e.split("-");
+  if (a.length >= 2) {
+    const e = a[0],
+      t = a.slice(1).join("-").split("."),
+      r = t[0].includes("-local") ? t[0].replace("-local", "") : t[0];
+    return n.includes(e) && s.includes(r);
+  }
+  return !1;
+}
+exports.handler = async function (n, s) {
+  if (n.Records[0].Sns.Message.indexOf("Budget Name") >= 0)
+    return (async function (a, n) {
+      const s = a.Records[0].Sns.TopicArn,
+        r = new e.SNS(),
+        i = (await t(r.listTagsForResource.bind(r))({ ResourceArn: s })).Tags,
+        o = i.find((e) => "stack-name" === e.Key).Value,
+        c = i.find((e) => "stack-region" === e.Key).Value,
+        l = new e.CloudFormation({ region: c });
+      await new Promise(async (e) => {
+        let a;
+        const n = async () => {
+          const n = await t(l.describeStacks.bind(l))({ StackName: o });
+          if (n) {
+            const t = n.Stacks[0].StackStatus;
+            if (t.endsWith("_COMPLETE") || t.endsWith("_FAILED"))
+              return a && clearInterval(a), e(), !0;
+          }
+          return !1;
+        };
+        (await n()) || (a = setInterval(n, 3e4));
+      });
+      const d = (await t(l.describeStacks.bind(l))({ StackName: o })).Stacks[0]
+          .Parameters,
+        u = [];
+      for (const e of d)
+        "StackOffline" === e.ParameterKey
+          ? u.push({
+              ParameterKey: e.ParameterKey,
+              ParameterValue: "Offline - Temporarily shut off servers",
+            })
+          : u.push({ ParameterKey: e.ParameterKey, UsePreviousValue: !0 });
+      await t(l.updateStack.bind(l))({
+        StackName: o,
+        UsePreviousTemplate: !0,
+        Parameters: u,
+        Capabilities: ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"],
+      });
+    })(n);
+  return (async function (n, s) {
+    const r = n.AutoScalingGroupName,
+      i = n.Event,
+      o = "${AWS::Region}",
+      c = "${LowerStackName.Value}-app.${InternalZoneInfo.Name}.",
+      l = "${InternalZoneInfo.Id}";
+    if (
+      "autoscaling:EC2_INSTANCE_LAUNCH" === i ||
+      "autoscaling:EC2_INSTANCE_TERMINATE" === i ||
+      "INSTANCE_REBOOT" === i
+    ) {
+      const s = new e.AutoScaling({ region: o }),
+        i = new e.EC2({ region: o }),
+        d = new e.Route53(),
+        u = await t(s.describeAutoScalingGroups.bind(s))({
+          AutoScalingGroupNames: [r],
+          MaxRecords: 1,
+        }),
+        h = (
+          await t(d.listResourceRecordSets.bind(d))({
+            HostedZoneId: l,
+            MaxItems: "100",
+          })
+        ).ResourceRecordSets,
+        f = u.AutoScalingGroups[0].Instances.map((e) => e.InstanceId);
+      f.length || f.push(n.EC2InstanceId);
+      const g = await t(i.describeInstances.bind(i))({
+          DryRun: !1,
+          InstanceIds: f,
+        }),
+        m = [];
+      for (let e = 0; e < g.Reservations.length; e++) {
+        const t = g.Reservations[e];
+        for (let e = 0; e < t.Instances.length; e++) {
+          const a =
+            t.Instances[e].NetworkInterfaces.length &&
+            t.Instances[e].NetworkInterfaces[0].Association &&
+            t.Instances[e].NetworkInterfaces[0].Association.PublicIp;
+          a && m.indexOf(a) < 0 && m.push(a);
+        }
+      }
+      for (let e = 0, n = h.length; e < n; e++) {
+        const n = h[e];
+        if ("A" !== n.Type) continue;
+        const s =
+            n.ResourceRecords.length > 0 ? n.ResourceRecords[0].Value : "",
+          r = a(n.Name),
+          i = null !== s.match(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/),
+          o = n.Name === c;
+        if (s && i && (r || o) && !m.find((e) => e === s))
+          try {
+            const e =
+              n.Name === c
+                ? {
+                    MultiValueAnswer: !0,
+                    Name: n.Name,
+                    Type: n.Type,
+                    TTL: n.TTL,
+                    SetIdentifier: n.SetIdentifier,
+                    ResourceRecords: n.ResourceRecords,
+                    HealthCheckId: n.HealthCheckId,
+                  }
+                : {
+                    Name: n.Name,
+                    Type: n.Type,
+                    TTL: n.TTL,
+                    ResourceRecords: n.ResourceRecords,
+                  };
+            await t(d.changeResourceRecordSets.bind(d))({
+              ChangeBatch: {
+                Changes: [{ Action: "DELETE", ResourceRecordSet: e }],
+              },
+              HostedZoneId: l,
+            });
+          } catch (e) {
+            console.log("ERROR DELETING RECORD"), console.log(e);
+          }
+      }
+      let I = (await t(d.listHealthChecks.bind(d))({ MaxItems: "100" }))
+        .HealthChecks;
+      if (m.length > 1)
+        for (let e = 0, a = m.length; e < a; e++) {
+          const a = m[e];
+          if (!I.find((e) => e.HealthCheckConfig.IPAddress === a))
+            try {
+              await t(d.createHealthCheck.bind(d))({
+                CallerReference: Math.floor(1e9 * Math.random()).toString(),
+                HealthCheckConfig: {
+                  EnableSNI: !0,
+                  FailureThreshold: 2,
+                  FullyQualifiedDomainName: c,
+                  IPAddress: a,
+                  Port: 443,
+                  RequestInterval: 10,
+                  ResourcePath: "/health",
+                  Type: "HTTPS",
+                },
+              });
+            } catch (e) {}
+        }
+      I = (await t(d.listHealthChecks.bind(d))({})).HealthChecks;
+      for (let e = 0, a = m.length; e < a; e++) {
+        const a = m[e];
+        if (
+          !h.find(
+            (e) =>
+              e.Name === c &&
+              e.ResourceRecords &&
+              e.ResourceRecords.length &&
+              e.ResourceRecords[0].Value === a
+          )
+        ) {
+          const e = I.find((e) => e.HealthCheckConfig.IPAddress === a);
+          try {
+            await t(d.changeResourceRecordSets.bind(d))({
+              ChangeBatch: {
+                Changes: [
+                  {
+                    Action: "UPSERT",
+                    ResourceRecordSet: {
+                      MultiValueAnswer: !0,
+                      Name: c,
+                      Type: "A",
+                      HealthCheckId: e ? e.Id : null,
+                      TTL: 15,
+                      SetIdentifier: a,
+                      ResourceRecords: [{ Value: a }],
+                    },
+                  },
+                ],
+              },
+              HostedZoneId: l,
+            });
+          } catch (e) {}
+        }
+      }
+      for (let e = 0, a = I.length; e < a; e++) {
+        const a = I[e];
+        if (
+          1 === m.length ||
+          !m.find((e) => a.HealthCheckConfig.IPAddress === e)
+        )
+          try {
+            await t(d.deleteHealthCheck.bind(d))({ HealthCheckId: a.Id });
+          } catch (e) {}
+      }
+    } else s.done("Unsupported ASG event: " + r + " " + i);
+  })(JSON.parse(n.Records[0].Sns.Message), s);
+};
 
-const NOUNS = [
-  "ardent",
-  "artificer",
-  "balrog",
-  "barbarian",
-  "bard",
-  "cleric",
-  "druid",
-  "dwarf",
-  "elf",
-  "ent",
-  "fighter",
-  "giant",
-  "goblin",
-  "halfling",
-  "hobbit",
-  "illusionist",
-  "invoker",
-  "mage",
-  "monk",
-  "mystic",
-  "orc",
-  "paladin",
-  "psion",
-  "ranger",
-  "rogue",
-  "seeker",
-  "sorcerer",
-  "thief",
-  "troll",
-  "vampire",
-  "warlock",
-  "werewolf",
-  "wizard",
-];
+const n = [
+    "admiring",
+    "adoring",
+    "affectionate",
+    "agitated",
+    "amazing",
+    "angry",
+    "awesome",
+    "blissful",
+    "boring",
+    "brave",
+    "clever",
+    "cocky",
+    "compassionate",
+    "competent",
+    "condescending",
+    "confident",
+    "cranky",
+    "dazzling",
+    "determined",
+    "distracted",
+    "dreamy",
+    "eager",
+    "ecstatic",
+    "elastic",
+    "elated",
+    "elegant",
+    "eloquent",
+    "epic",
+    "fervent",
+    "festive",
+    "flamboyant",
+    "focused",
+    "friendly",
+    "frosty",
+    "gallant",
+    "gifted",
+    "goofy",
+    "gracious",
+    "happy",
+    "hardcore",
+    "heuristic",
+    "hopeful",
+    "hungry",
+    "infallible",
+    "inspiring",
+    "jolly",
+    "jovial",
+    "keen",
+    "kind",
+    "laughing",
+    "loving",
+    "lucid",
+    "mystifying",
+    "modest",
+    "musing",
+    "naughty",
+    "nervous",
+    "nifty",
+    "nostalgic",
+    "objective",
+    "optimistic",
+    "peaceful",
+    "pedantic",
+    "pensive",
+    "practical",
+    "priceless",
+    "quirky",
+    "quizzical",
+    "relaxed",
+    "reverent",
+    "romantic",
+    "sad",
+    "serene",
+    "sharp",
+    "silly",
+    "sleepy",
+    "stoic",
+    "stupefied",
+    "suspicious",
+    "tender",
+    "thirsty",
+    "trusting",
+    "unruffled",
+    "upbeat",
+    "vibrant",
+    "vigilant",
+    "vigorous",
+    "wizardly",
+    "wonderful",
+    "xenodochial",
+    "youthful",
+    "zealous",
+    "zen",
+  ],
+  s = [
+    "ardent",
+    "artificer",
+    "balrog",
+    "barbarian",
+    "bard",
+    "cleric",
+    "druid",
+    "dwarf",
+    "elf",
+    "ent",
+    "fighter",
+    "giant",
+    "goblin",
+    "halfling",
+    "hobbit",
+    "illusionist",
+    "invoker",
+    "mage",
+    "monk",
+    "mystic",
+    "orc",
+    "paladin",
+    "psion",
+    "ranger",
+    "rogue",
+    "seeker",
+    "sorcerer",
+    "thief",
+    "troll",
+    "vampire",
+    "warlock",
+    "werewolf",
+    "wizard",
+  ];
