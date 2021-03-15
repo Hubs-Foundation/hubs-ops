@@ -2656,6 +2656,7 @@ Resources:
         Version: '2012-10-17'
       ManagedPolicyArns:
         - !Ref BasePolicy
+        - !Ref CleanupRecordsEC2AppPolicy
 
   StreamRole:
     Type: AWS::IAM::Role
@@ -2671,6 +2672,44 @@ Resources:
         Version: '2012-10-17'
       ManagedPolicyArns:
         - !Ref BasePolicy
+
+# CleanupRecordsEC2AppPolicy
+# Used for the cron job on app role and app,stream role instances that removes extra A records
+  CleanupRecordsEC2AppPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - autoscaling:DescribeAutoScalingGroups
+              - ec2:DescribeInstances
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
+              - route53:ChangeResourceRecordSets
+              - route53:ListResourceRecordSets
+            Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+          - Effect: Allow
+            Action:
+              - route53:*
+            Resource:
+              - !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+              - !If [HasManagedDomain, !Sub "arn:aws:route53:::hostedzone/${ExternalZoneInfo.Id}", "arn:aws:route53:::hostedzone/DEADZONE*"]
+          - Effect: Allow
+            Action:
+              - autoscaling:DescribeAutoScalingGroups
+              - ec2:DescribeInstances
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
+              - route53:ChangeResourceRecordSets
+              - route53:ListResourceRecordSets
+            Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+
 
   BasePolicy:
     Type: AWS::IAM::ManagedPolicy
