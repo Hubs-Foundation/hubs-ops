@@ -935,7 +935,7 @@ Resources:
             return Buffer.from(s).toString('base64');
           };
 
-{
+          function getReason(err) {
             if (err)
               return err.message;
             else
@@ -2658,7 +2658,6 @@ Resources:
         Version: '2012-10-17'
       ManagedPolicyArns:
         - !Ref BasePolicy
-        - !Ref CleanupRecordsEC2AppPolicy
 
   StreamRole:
     Type: AWS::IAM::Role
