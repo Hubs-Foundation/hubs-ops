@@ -1409,8 +1409,8 @@ Resources:
         ZipFile: |
           import json
           import boto3
-          from botocore.vendored import requests
-          from botocore.exceptions import ClientError
+          import urllib3
+          http = urllib3.PoolManager()
 
           def handler(event, context):
               try:
@@ -1445,7 +1445,7 @@ Resources:
                                'LogicalResourceId': event['LogicalResourceId'],
                                'Data': json.loads("{}")}
 
-              requests.put(event['ResponseURL'], data=json.dumps(response_body))
+              http.request('PUT', event['ResponseURL'], body=json.dumps(response_body))
 
 # SESPassword
   SESPasswordRole:
@@ -1480,13 +1480,14 @@ Resources:
           import hashlib
           import base64
           import argparse
-          from botocore.vendored import requests
+          import urllib3
 
           DATE = "11111111"
           SERVICE = "ses"
           MESSAGE = "SendRawEmail"
           TERMINAL = "aws4_request"
           VERSION = 0x04
+          http = urllib3.PoolManager()
 
           def sign(key, msg):
               return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
@@ -1525,7 +1526,7 @@ Resources:
                                'LogicalResourceId': event['LogicalResourceId'],
                                'Data': data}
 
-              requests.put(event['ResponseURL'], data=json.dumps(response_body))
+              http.request('PUT', event['ResponseURL'], body=json.dumps(response_body))
 
 # StackTopicHandler
   StackTopicHandlerRole:
@@ -2656,6 +2657,7 @@ Resources:
         Version: '2012-10-17'
       ManagedPolicyArns:
         - !Ref BasePolicy
+        - !Ref CleanupRecordsEC2AppPolicy
 
   StreamRole:
     Type: AWS::IAM::Role
