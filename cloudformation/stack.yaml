@@ -935,7 +935,7 @@ Resources:
             return Buffer.from(s).toString('base64');
           };
 
-          function getReason(err) {
+{
             if (err)
               return err.message;
             else
@@ -1410,6 +1410,7 @@ Resources:
           import json
           import boto3
           import urllib3
+          from botocore.exceptions import ClientError
           http = urllib3.PoolManager()
 
           def handler(event, context):
