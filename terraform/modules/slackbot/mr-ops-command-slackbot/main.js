@@ -6,13 +6,19 @@ const https = require('https');
 
 const slackToken = process.env.slackToken;
 const jenkinsToken = process.env.jenkinsToken;
-const reticulumToken = process.env.reticulumToken;
+const allowedChannels = (process.env.allowedChannels || "").split(",").map(s => s.trim());
 
 let token;
 let jtoken;
 
 function processEvent(event, callback) {
     const params = qs.parse(event.body);
+
+    if (!allowedChannels.includes(params.channel_id)) {
+        console.error(`Channel id ${params.channel_id} is not in the allowed channel list.`);
+        return callback('Invalid channel id');
+    }
+
     const requestToken = params.token;
     if (requestToken !== token) {
         console.error(`Request token (${requestToken}) does not match expected`);
