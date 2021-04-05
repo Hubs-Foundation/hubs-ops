@@ -370,9 +370,10 @@ Mappings:
     DialogInternal:
       Port: 8443
     DialogExternal:
-      Port: 80
+      AppPort: 8443
+      StreamPort: 443
     DialogTurnExternal:
-      Port: 443
+      Port: 5349
     DialogAdmin:
       Port: 7000
     DialogWebRTCFrom:
@@ -2488,8 +2489,8 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogExternal, AppPort]
+          ToPort: !FindInMap [ServicesMeta, DialogExternal, AppPort]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, DialogTurnExternal, Port]
@@ -3160,8 +3161,8 @@ Resources:
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogExternal, StreamPort]
+          ToPort: !FindInMap [ServicesMeta, DialogExternal, StreamPort]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, DialogTurnExternal, Port]
@@ -3799,7 +3800,7 @@ Outputs:
 
   JanusExternalPort:
     Description: Janus External Port [reticulum/janus/janus_port]
-    Value: !FindInMap [ServicesMeta, DialogExternal, Port]
+    Value: !If [HasStreamingServers, !FindInMap [ServicesMeta, DialogExternal, StreamPort], !FindInMap [ServicesMeta, DialogExternal, AppPort] ]
 
   JanusAdminPort:
     Description: Janus Admin Port [janus-gateway/transports.http/admin_port,reticulum/janus/admin_port]
