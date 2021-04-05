@@ -3046,7 +3046,7 @@ Resources:
             S3OriginConfig:
               OriginAccessIdentity: ""
           - Id: !Sub "${AWS::StackName}-app"
-            DomainName: !Sub '${LowerStackName.Value}-app.${InternalZoneInfo.Name}'
+            DomainName: !If [ RequestedALB, !Sub "${LowerStackName.Value}-app-alb.${InternalZoneInfo.Name}", !Sub "${LowerStackName.Value}-app.${InternalZoneInfo.Name}"]
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
