@@ -305,6 +305,10 @@ sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-ret-pkg-upload
 sudo echo 'hab pkg upload -u https://dev-builder-alb.reticulum.io -z $(cat /hab/cache/keys/mozillareality-reticulum.token) $1' >> /usr/bin/hab-ret-pkg-upload
 sudo chmod +x /usr/bin/hab-ret-pkg-upload
 
+sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-user-toml-install
+sudo echo 'cp "$2" "/hab/svc/$1/user.toml"' >> /usr/bin/hab-user-toml-install
+sudo chmod +x /usr/bin/hab-user-toml-install
+
 sudo echo '#!/usr/bin/env bash' > /usr/bin/hab-ret-pkg-promote
 sudo echo 'hab pkg promote -u https://dev-builder-alb.reticulum.io -z $(cat /hab/cache/keys/mozillareality-reticulum.token) $1 $2' >> /usr/bin/hab-ret-pkg-promote
 sudo chmod +x /usr/bin/hab-ret-pkg-promote
