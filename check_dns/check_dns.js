@@ -456,9 +456,12 @@ async function generate_report({
     [
       `Report with id ${report_id} generated successfully.`,
       ``,
-      `    ${hosted_zones_filename}`,
-      `    ${ec2_instances_filename}`,
-      `    ${summary_filename}`,
+      `    ${report_directory}`,
+      `    ./${hosted_zones_filename}.json`,
+      `    ./${ec2_instances_filename}.json`,
+      `    ./${summary_filename}.json`,
+      `    ${report_directory}<HOSTED_ZONE_ID>/dns_records.json`,
+      `    ${report_directory}<HOSTED_ZONE_ID>/unmatched_dns_records.json`,
       ``,
       `Report Summary:`,
       ...summary
@@ -548,7 +551,7 @@ function init() {
 
 function timestamp_for_date(date) {
   return [
-    [date.getFullYear(), date.getMonth(), date.getDate()].join("-"),
+    [date.getFullYear(), date.getMonth() + 1, date.getDate()].join("-"),
     [date.getHours(), date.getMinutes(), date.getSeconds()].join("-"),
   ].join("_");
 }
