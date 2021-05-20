@@ -219,15 +219,7 @@ async function batch_delete_dns_records({ dry, records, hosted_zone_id }) {
   changes = records.map(function (record) {
     return {
       Action: "DELETE",
-      ResourceRecordSet: {
-        Name: record.Name,
-        Type: record.Type,
-        ResourceRecords: record.ResourceRecords,
-        TTL: record.TTL,
-        // MultiValueAnswer: true,
-        // SetIdentifier: record.SetIdentifier,
-        // HealthCheckId: record.HealthCheckId,
-      },
+      ResourceRecordSet: record,
     };
   });
 
@@ -502,6 +494,17 @@ async function generate_report({
   const summary_filename = path.join(report_directory, "summary");
   write_json(summary_filename, summary);
 
+  const report_summary = summary.some((info) => info.num_unmatched_dns_records)
+    ? summary
+        .filter((info) => info.num_unmatched_dns_records)
+        .map(
+          ({ hosted_zone_name, hosted_zone_id, num_unmatched_dns_records }) =>
+            `    ${String(num_unmatched_dns_records).padStart(
+              2
+            )} unmatched DNS records found for hosted zone ${hosted_zone_name} (${hosted_zone_id}).`
+        )
+    : ["    No unmatched DNS records found. You're all good!"];
+
   logger.log(
     [
       `Report with id ${report_id} generated successfully.`,
@@ -517,14 +520,7 @@ async function generate_report({
       ...disallowed_hosted_zones.map((zone) => `    ${zone.Name}`),
       "",
       `Report Summary:`,
-      ...summary
-        .filter((info) => info.num_unmatched_dns_records)
-        .map(
-          ({ hosted_zone_name, hosted_zone_id, num_unmatched_dns_records }) =>
-            `    ${String(num_unmatched_dns_records).padStart(
-              2
-            )} unmatched DNS records found for hosted zone ${hosted_zone_name} (${hosted_zone_id}).`
-        ),
+      ...report_summary,
       ``,
       `See ${report_directory}<HOSTED_ZONE_ID> for details about a particular hosted zone.`,
       ``,
