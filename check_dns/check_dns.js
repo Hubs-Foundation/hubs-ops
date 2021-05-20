@@ -37,9 +37,9 @@ const promisify = (f) => (arg) =>
     })
   );
 
-function load_array(name) {
-  return load_string(name).split("\n");
-}
+// function load_array(name) {
+//   return load_string(name).split("\n");
+// }
 
 function load_string(name) {
   const filename = path.join(__dirname, `${name}`);
@@ -138,22 +138,24 @@ function filter_by_type(dns_records, type) {
   });
 }
 
-const has_valid_hostname = (function () {
-  const adjectives = load_array("../packer/shared/files/hostname-adjectives");
-  const nouns = load_array("../packer/shared/files/hostname-nouns");
-  return function has_valid_hostname({ Name }) {
-    names = Name.split(/[-\.]/); // split on hyphen (-) and dot (.)
-    return (
-      names.length >= 2 &&
-      adjectives.indexOf(names[0]) !== -1 &&
-      nouns.indexOf(names[1]) !== -1
-    );
-  };
-})();
+// This is only relevant for reticulum nodes
+// const has_valid_hostname = (function () {
+//   const adjectives = load_array("../packer/shared/files/hostname-adjectives");
+//   const nouns = load_array("../packer/shared/files/hostname-nouns");
+//   return function has_valid_hostname({ Name }) {
+//     names = Name.split(/[-\.]/); // split on hyphen (-) and dot (.)
+//     return (
+//       names.length >= 2 &&
+//       adjectives.indexOf(names[0]) !== -1 &&
+//       nouns.indexOf(names[1]) !== -1
+//     );
+//   };
+// })();
 
-function filter_by_hostname(dns_records) {
-  return dns_records.filter(has_valid_hostname);
-}
+// This is only relevant for reticulum nodes
+// function filter_by_hostname(dns_records) {
+//   return dns_records.filter(has_valid_hostname);
+// }
 
 function filter_by_has_ip(dns_records) {
   return dns_records.filter(function ({ ResourceRecords }) {
@@ -191,19 +193,7 @@ function filter_by_no_matching_ec2_instance(dns_records, ec2_instances) {
   });
 }
 
-async function fetch_aws_info({ program_name, hosted_zone_id }) {
-  logger.log("Fetching ec2 data...");
-  // const ec2_instances = await ec2_describe_instances({ region: "us-west-1" });
-  const ec2_instances = await fetch_all_ec2_instances();
-  logger.log("Writing ec2 data to ec2_instances.json");
-  write_json(`ec2_instances`, ec2_instances);
-  logger.log("Fetching route53 data...");
-  const dns_records = await fetch_all_resource_record_sets(hosted_zone_id);
-  write_json(`data/${hosted_zone_id}_dns_records`, dns_records);
-  logger.log("Writing dns record data to dns_records.json");
-}
-
-function filter_dns_records({ hosted_zone_id, ec2_instances, dns_records }) {
+function filter_dns_records({ ec2_instances, dns_records }) {
   let unmatched_records = dns_records;
   unmatched_records = filter_by_type(unmatched_records, "A");
   unmatched_records = filter_by_has_ip(unmatched_records);
@@ -263,7 +253,7 @@ function prompt_for_continue() {
       output: process.stdout,
     });
 
-    rl.question("Press any key to continue...", function (anything) {
+    rl.question("Press any key to continue...", function () {
       rl.close();
       resolve();
     });
@@ -276,10 +266,10 @@ function delete_records_with_confirmation_prompt({
   hosted_zone_id,
   hosted_zone_name,
 }) {
-  return new Promise(function (resolve, reject) {
-    logger.log(
-      "\n\n---------------------------------------------------------------------------------------\n"
-    );
+  return new Promise(function (resolve) {
+    const separator =
+      "---------------------------------------------------------------------------------------";
+    logger.log(`\n${separator}\n`);
     logger.log("Records to be deleted:");
     logger.log(JSON.stringify(records, null, 2));
     const rl = readline.createInterface({
@@ -334,11 +324,10 @@ async function delete_records({
     return 0;
   }
 
-  const { report_directory, hosted_zones_filename, ec2_instances_filename } =
+  const { report_directory, hosted_zones_filename } =
     files_for_report_id(target_report_id);
 
   const hosted_zones = load_json(hosted_zones_filename);
-
   for (const zone of hosted_zones) {
     const hosted_zone_name = zone.Name;
     const hosted_zone_id = zone.Id.match(/\/hostedzone\/(.*)/)[1];
@@ -442,7 +431,6 @@ async function generate_report({
       write_json(dns_records_filename, dns_records);
 
       unmatched_dns_records = filter_dns_records({
-        hosted_zone_id,
         ec2_instances,
         dns_records,
       });
