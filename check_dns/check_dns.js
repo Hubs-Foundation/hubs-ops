@@ -15,11 +15,12 @@ const logger = (function () {
     setQuiet: (q) => {
       quiet = q;
     },
-    log: (msg) => {
-      if (!quiet) {
-        console.log(msg, ...arguments);
-      }
-    },
+    // log: (msg) => {
+    //   if (!quiet) {
+    //     console.log(msg, ...arguments);
+    //   }
+    // },
+    log: console.log,
     warn: console.warn,
     error: console.error,
   };
@@ -400,6 +401,49 @@ function files_for_report_id(report_id) {
   };
 }
 
+const allow_list = [
+  "reticulum.io.",
+  "hubs.social.",
+  "hubs.link.",
+  "hub.link.",
+  "fxr.zone.",
+  "hubs-proxy.com.",
+  "mozillareality.com.",
+  "hubs-login.com.",
+  "ducksandrobots.com.",
+  "robotsandducks.com.",
+  "tryhubs.com.",
+  "quackstack.net.",
+  "quak.me.",
+  "polycosm.net.",
+  "polycosm2.net.",
+  "quackstack2.net.",
+  "quak2.me.",
+  "hubs-cloud.com.",
+  "quak.link.",
+  "jasonsvirtualworld.com.",
+  "hubsloadtesting.com.",
+  "mozillatubs.com.",
+  "hihc.link.",
+  "hellohubscloud.com.",
+  "hubs.club.",
+  "hubsloadtesting.link.",
+  "tubbs.link.",
+  "hello-hubs-cloud.com.",
+  "hubs.today.",
+  "hubs.chat.",
+  "hubs.wtf.",
+  "hubs.fun.",
+];
+
+function filter_by_allow_list({ hosted_zones, allow_list }) {
+  const in_list = hosted_zones.filter((zone) => allow_list.includes(zone.Name));
+  const not_in_list = hosted_zones.filter(
+    (zone) => !allow_list.includes(zone.Name)
+  );
+  return { in_list, not_in_list };
+}
+
 async function generate_report({
   command_delete_records,
   option_report_id,
@@ -411,7 +455,13 @@ async function generate_report({
     files_for_report_id(report_id);
   make_directory(report_directory);
 
-  const hosted_zones = await fetch_all_route53_hosted_zones();
+  const all_hosted_zones = await fetch_all_route53_hosted_zones();
+  hosted_zones = all_hosted_zones.filter((zone) =>
+    allow_list.includes(zone.Name)
+  );
+  disallowed_hosted_zones = all_hosted_zones.filter(
+    (zone) => !allow_list.includes(zone.Name)
+  );
   write_json(hosted_zones_filename, hosted_zones);
 
   const ec2_instances = await fetch_all_ec2_instances();
@@ -463,6 +513,9 @@ async function generate_report({
       `    ${report_directory}<HOSTED_ZONE_ID>/dns_records.json`,
       `    ${report_directory}<HOSTED_ZONE_ID>/unmatched_dns_records.json`,
       ``,
+      "Ignoring these hosted zones:",
+      ...disallowed_hosted_zones.map((zone) => `    ${zone.Name}`),
+      "",
       `Report Summary:`,
       ...summary
         .filter((info) => info.num_unmatched_dns_records)
