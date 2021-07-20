@@ -88,13 +88,15 @@ async function ec2_describe_instances({ region }) {
       PublicIpAddress,
       Tags,
     }) {
+      const NameTags = Tags.filter(function ({ Key }) {
+        return Key === "Name";
+      });
+      const Name = (NameTags.length && NameTags[0].Value) || "";
       instances.push({
         InstanceId,
         PrivateIpAddress,
         PublicIpAddress,
-        Name: Tags.filter(function ({ Key }) {
-          return Key === "Name";
-        })[0].Value,
+        Name,
       });
     });
   });
@@ -426,6 +428,14 @@ const allow_list = [
   "hubs.chat.",
   "hubs.wtf.",
   "hubs.fun.",
+  "svtesthub.com.",
+  "svtesthub.link.",
+  "svtesthub2.com.",
+  "svtesthub2.link.",
+  "svtesthub3.com.",
+  "svtesthub3.link.",
+  "svtesthub4.com.",
+  "svtesthub4.link.",
 ];
 
 function filter_by_allow_list({ hosted_zones, allow_list }) {
