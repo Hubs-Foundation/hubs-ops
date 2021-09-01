@@ -14,5 +14,5 @@ terragrunt = {
 
 enabled = true
 bots_test_instance_type = "c4.xlarge"
-min_bots_test_servers = 5
-max_bots_test_servers = 5
+min_bots_test_servers = 1
+max_bots_test_servers = 1
