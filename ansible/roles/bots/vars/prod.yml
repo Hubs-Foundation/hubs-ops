@@ -4,3 +4,4 @@ host: https://smoke-hubs.mozilla.com
 num_squawker_processes: 4
 hub_sids:
   smoke: 0zuesf6c6mf
+  smoke2: enNzPbw
