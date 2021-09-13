@@ -370,9 +370,10 @@ Mappings:
     DialogInternal:
       Port: 8443
     DialogExternal:
-      Port: 80
+      AppPort: 8443
+      StreamPort: 443
     DialogTurnExternal:
-      Port: 443
+      Port: 5349
     DialogAdmin:
       Port: 7000
     DialogWebRTCFrom:
@@ -2488,8 +2489,8 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogExternal, AppPort]
+          ToPort: !FindInMap [ServicesMeta, DialogExternal, AppPort]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, DialogTurnExternal, Port]
@@ -2658,6 +2659,7 @@ Resources:
         Version: '2012-10-17'
       ManagedPolicyArns:
         - !Ref BasePolicy
+        - !Ref CleanupRecordsEC2AppPolicy
 
   StreamRole:
     Type: AWS::IAM::Role
@@ -2673,6 +2675,44 @@ Resources:
         Version: '2012-10-17'
       ManagedPolicyArns:
         - !Ref BasePolicy
+
+# CleanupRecordsEC2AppPolicy
+# Used for the cron job on app role and app,stream role instances that removes extra A records
+  CleanupRecordsEC2AppPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - autoscaling:DescribeAutoScalingGroups
+              - ec2:DescribeInstances
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
+              - route53:ChangeResourceRecordSets
+              - route53:ListResourceRecordSets
+            Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+          - Effect: Allow
+            Action:
+              - route53:*
+            Resource:
+              - !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+              - !If [HasManagedDomain, !Sub "arn:aws:route53:::hostedzone/${ExternalZoneInfo.Id}", "arn:aws:route53:::hostedzone/DEADZONE*"]
+          - Effect: Allow
+            Action:
+              - autoscaling:DescribeAutoScalingGroups
+              - ec2:DescribeInstances
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
+              - route53:ChangeResourceRecordSets
+              - route53:ListResourceRecordSets
+            Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+
 
   BasePolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -3046,7 +3086,7 @@ Resources:
             S3OriginConfig:
               OriginAccessIdentity: ""
           - Id: !Sub "${AWS::StackName}-app"
-            DomainName: !Sub '${LowerStackName.Value}-app.${InternalZoneInfo.Name}'
+            DomainName: !If [ RequestedALB, !Sub "${LowerStackName.Value}-app-alb.${InternalZoneInfo.Name}", !Sub "${LowerStackName.Value}-app.${InternalZoneInfo.Name}"]
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -3160,8 +3200,8 @@ Resources:
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogExternal, StreamPort]
+          ToPort: !FindInMap [ServicesMeta, DialogExternal, StreamPort]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, DialogTurnExternal, Port]
@@ -3799,7 +3839,7 @@ Outputs:
 
   JanusExternalPort:
     Description: Janus External Port [reticulum/janus/janus_port]
-    Value: !FindInMap [ServicesMeta, DialogExternal, Port]
+    Value: !If [HasStreamingServers, !FindInMap [ServicesMeta, DialogExternal, StreamPort], !FindInMap [ServicesMeta, DialogExternal, AppPort] ]
 
   JanusAdminPort:
     Description: Janus Admin Port [janus-gateway/transports.http/admin_port,reticulum/janus/admin_port]
