@@ -671,7 +671,7 @@ Resources:
       Description: Lookup Route 53 info
       Handler: index.handler
       Role: !GetAtt Route53DependencyRole.Arn
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Timeout: 900
       Code:
         ZipFile: |
@@ -814,7 +814,7 @@ Resources:
       Description: Parse a URL into its constituent parts for redirector
       Handler: index.handler
       Role: !GetAtt ParseURLRole.Arn
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Timeout: 900
       Code:
         ZipFile: |
@@ -926,7 +926,7 @@ Resources:
       Description: Convert a string to lower
       Handler: index.handler
       Role: !GetAtt ToLowerRole.Arn
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Timeout: 900
       Code:
         ZipFile: |
@@ -1637,7 +1637,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-stack-topic-handler"
       Description: Registers Node IPs into Round Robin DNS and manages stack if budgets are hit
       Handler: index.handler
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Role: !GetAtt StackTopicHandlerRole.Arn
       Timeout: 900
       Code:
@@ -1731,7 +1731,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-efs-create-or-restore"
       Description: Creates or restores EFS volumes
       Handler: index.handler
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Role: !GetAtt EFSCreateOrRestoreRole.Arn
       Timeout: 900
       Code:
