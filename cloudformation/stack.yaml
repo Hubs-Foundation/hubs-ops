@@ -3976,6 +3976,10 @@ Outputs:
   AppAssetsDNS:
     Description: Storage URL Host [reticulum/uploads/host]
     Value: !Sub "https://${AppAssetsDNS}"
+  
+  AppAssetsHost:
+    Description: Storage Host [hubs/general/uploads_host]
+    Value: !Sub "${AppAssetsDNS}"
 
   SmtpSendAccessKey:
     Description: SMTP send access key for email zone [reticulum/email/username]
