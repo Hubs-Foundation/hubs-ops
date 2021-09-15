@@ -2091,7 +2091,7 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location:
-        ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/keymaster
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/keymaster-public
         SemanticVersion: 0.1.13
       Parameters:
         KeymasterRoleArn: !GetAtt KeymasterRole.Arn
