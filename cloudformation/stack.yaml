@@ -370,9 +370,10 @@ Mappings:
     DialogInternal:
       Port: 8443
     DialogExternal:
-      Port: 80
+      AppPort: 8443
+      StreamPort: 443
     DialogTurnExternal:
-      Port: 443
+      Port: 5349
     DialogAdmin:
       Port: 7000
     DialogWebRTCFrom:
@@ -670,7 +671,7 @@ Resources:
       Description: Lookup Route 53 info
       Handler: index.handler
       Role: !GetAtt Route53DependencyRole.Arn
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Timeout: 900
       Code:
         ZipFile: |
@@ -811,7 +812,7 @@ Resources:
       Description: Parse a URL into its constituent parts for redirector
       Handler: index.handler
       Role: !GetAtt ParseURLRole.Arn
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Timeout: 900
       Code:
         ZipFile: |
@@ -923,7 +924,7 @@ Resources:
       Description: Convert a string to lower
       Handler: index.handler
       Role: !GetAtt ToLowerRole.Arn
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Timeout: 900
       Code:
         ZipFile: |
@@ -1634,7 +1635,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-stack-topic-handler"
       Description: Registers Node IPs into Round Robin DNS and manages stack if budgets are hit
       Handler: index.handler
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Role: !GetAtt StackTopicHandlerRole.Arn
       Timeout: 900
       Code:
@@ -1728,7 +1729,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-efs-create-or-restore"
       Description: Creates or restores EFS volumes
       Handler: index.handler
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Role: !GetAtt EFSCreateOrRestoreRole.Arn
       Timeout: 900
       Code:
@@ -2088,7 +2089,7 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location:
-        ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/keymaster
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/keymaster-public
         SemanticVersion: 0.1.13
       Parameters:
         KeymasterRoleArn: !GetAtt KeymasterRole.Arn
@@ -2486,8 +2487,8 @@ Resources:
           ToPort: !FindInMap [ServicesMeta, RetTurnExternal, Port]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogExternal, AppPort]
+          ToPort: !FindInMap [ServicesMeta, DialogExternal, AppPort]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, DialogTurnExternal, Port]
@@ -2656,6 +2657,7 @@ Resources:
         Version: '2012-10-17'
       ManagedPolicyArns:
         - !Ref BasePolicy
+        - !Ref CleanupRecordsEC2AppPolicy
 
   StreamRole:
     Type: AWS::IAM::Role
@@ -2671,6 +2673,44 @@ Resources:
         Version: '2012-10-17'
       ManagedPolicyArns:
         - !Ref BasePolicy
+
+# CleanupRecordsEC2AppPolicy
+# Used for the cron job on app role and app,stream role instances that removes extra A records
+  CleanupRecordsEC2AppPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - autoscaling:DescribeAutoScalingGroups
+              - ec2:DescribeInstances
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
+              - route53:ChangeResourceRecordSets
+              - route53:ListResourceRecordSets
+            Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+          - Effect: Allow
+            Action:
+              - route53:*
+            Resource:
+              - !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+              - !If [HasManagedDomain, !Sub "arn:aws:route53:::hostedzone/${ExternalZoneInfo.Id}", "arn:aws:route53:::hostedzone/DEADZONE*"]
+          - Effect: Allow
+            Action:
+              - autoscaling:DescribeAutoScalingGroups
+              - ec2:DescribeInstances
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
+              - route53:ChangeResourceRecordSets
+              - route53:ListResourceRecordSets
+            Resource: !Sub "arn:aws:route53:::hostedzone/${InternalZoneInfo.Id}"
+
 
   BasePolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -3044,7 +3084,7 @@ Resources:
             S3OriginConfig:
               OriginAccessIdentity: ""
           - Id: !Sub "${AWS::StackName}-app"
-            DomainName: !Sub '${LowerStackName.Value}-app.${InternalZoneInfo.Name}'
+            DomainName: !If [ RequestedALB, !Sub "${LowerStackName.Value}-app-alb.${InternalZoneInfo.Name}", !Sub "${LowerStackName.Value}-app.${InternalZoneInfo.Name}"]
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -3158,8 +3198,8 @@ Resources:
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: !FindInMap [ServicesMeta, DialogExternal, Port]
-          ToPort: !FindInMap [ServicesMeta, DialogExternal, Port]
+          FromPort: !FindInMap [ServicesMeta, DialogExternal, StreamPort]
+          ToPort: !FindInMap [ServicesMeta, DialogExternal, StreamPort]
           CidrIp: !If [HasInboundCidrOverride, !Ref InboundCidrOverride, "0.0.0.0/0"]
         - IpProtocol: tcp
           FromPort: !FindInMap [ServicesMeta, DialogTurnExternal, Port]
@@ -3797,7 +3837,7 @@ Outputs:
 
   JanusExternalPort:
     Description: Janus External Port [reticulum/janus/janus_port]
-    Value: !FindInMap [ServicesMeta, DialogExternal, Port]
+    Value: !If [HasStreamingServers, !FindInMap [ServicesMeta, DialogExternal, StreamPort], !FindInMap [ServicesMeta, DialogExternal, AppPort] ]
 
   JanusAdminPort:
     Description: Janus Admin Port [janus-gateway/transports.http/admin_port,reticulum/janus/admin_port]
@@ -3934,6 +3974,10 @@ Outputs:
   AppAssetsDNS:
     Description: Storage URL Host [reticulum/uploads/host]
     Value: !Sub "https://${AppAssetsDNS}"
+  
+  AppAssetsHost:
+    Description: Storage Host [hubs/general/uploads_host]
+    Value: !Sub "${AppAssetsDNS}"
 
   SmtpSendAccessKey:
     Description: SMTP send access key for email zone [reticulum/email/username]
