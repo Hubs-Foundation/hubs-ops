@@ -1403,7 +1403,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Handler: index.handler
-      Runtime: python2.7
+      Runtime: python3.6
       Role: !GetAtt EmptyBucketRole.Arn
       Timeout: 240
       Code:
