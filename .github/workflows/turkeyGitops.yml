@@ -14,9 +14,13 @@ jobs:
     if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/prod'
     runs-on: ubuntu-latest
     steps:
+      - name: docker login
+        uses: docker/login-action@v1
+        with:
+          username: mozillareality
+          password: ${{ secrets.DOCKER_HUB_PWD }}    
       - name: promote artifact
         run: |
-          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username $registryName --password-stdin
           docker pull ${{ inputs.promoteFrom }}
           docker tag ${{ inputs.promoteFrom }} ${{ inputs.promoteTo }}
           sudo docker push ${{ inputs.promoteTo }}
