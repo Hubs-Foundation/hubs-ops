@@ -1401,7 +1401,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Handler: index.handler
-      Runtime: python2.7
+      Runtime: python3.6
       Role: !GetAtt EmptyBucketRole.Arn
       Timeout: 240
       Code:
@@ -2090,7 +2090,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/keymaster-public
-        SemanticVersion: 0.1.13
+        SemanticVersion: 0.0.1
       Parameters:
         KeymasterRoleArn: !GetAtt KeymasterRole.Arn
   NearsparkApplication:
@@ -2098,7 +2098,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/nearspark
-        SemanticVersion: 0.1.0
+        SemanticVersion: 0.0.1
       Parameters:
         NearsparkRoleArn: !GetAtt NearsparkRole.Arn
   SpeelycaptorApplication:
@@ -2106,7 +2106,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
-        SemanticVersion: 0.1.2
+        SemanticVersion: 0.0.1
       Parameters:
         SpeelycaptorRoleArn: !GetAtt SpeelycaptorRole.Arn
         SpeelycaptorScratchBucketId: !Ref SpeelycaptorScratchBucket
@@ -2117,7 +2117,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
-        SemanticVersion: 0.2.0
+        SemanticVersion: 0.0.1
       Parameters:
         PhotomnemonicRoleArn: !GetAtt PhotomnemonicRole.Arn
   NearsparkApiGatewayRestApi:
