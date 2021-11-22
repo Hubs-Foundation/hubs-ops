@@ -5,7 +5,8 @@ if [[ -z "$HUBS_OPS_SECRETS_PATH" ]]; then
 
 git clone https://git-codecommit.us-west-1.amazonaws.com/v1/repos/hubs-ops-secrets
 
-Then set HUBS_OPS_SECRETS_PATH to point to the cloned repo."
+Then set HUBS_OPS_SECRETS_PATH to point to the cloned repo.
+Use complete path, not '~' such as /Users/username/path/to/hubs-ops-secrets"
   exit 1
 fi
 
