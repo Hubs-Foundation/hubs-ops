@@ -1,0 +1,135 @@
+# turkey gitops reusable workflow
+
+on:
+  workflow_call:
+    inputs:
+      registry:
+        type: string
+        default: mozillareality
+      dockerfile:
+        type: string
+        default: Dockerfile
+    secrets:
+      DOCKER_HUB_PWD:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          path: "./repo"
+      - name: docker setup buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          install: true
+      - name: docker login
+        uses: docker/login-action@v1
+        with:
+          username: ${{ inputs.registry }}
+          password: ${{ secrets.DOCKER_HUB_PWD }}
+      - name: docker build(x) push
+        uses: docker/build-push-action@v2
+        with:
+          context: repo/
+          file: repo/${{ inputs.dockerfile }}
+          tags: ${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number  }}
+          cache-from: type=registry,ref=${{ inputs.registry }}/${{ github.workflow }}:buildcache
+          cache-to: type=registry,ref=${{ inputs.registry }}/${{ github.workflow }}:buildcache,mode=max
+          push: true
+  promote:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: "master: pull GITHUB_RUN_NUMBER and tag to ${GITHUB_SHA::7} and dev"
+        run: |
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.registry }} --password-stdin
+          toTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
+          echo "[info] promoting :$fromTag to :$toTag"          
+          docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
+          toTag=${{ inputs.registry }}/${{ github.workflow }}:dev
+          echo "[info] promoting :$fromTag to :$toTag"          
+          docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
+  release_staging:
+    runs-on: ubuntu-latest
+    needs: promote
+    environment: staging
+    steps:
+      - name: "pull ${GITHUB_SHA::7} and tag to staging"
+        run: |
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.registry }} --password-stdin
+          toTag=${{ inputs.registry }}/${{ github.workflow }}:staging                    
+          echo "[info] promoting :$fromTag to :$toTag"
+          docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
+      - name: checkout codebase for tagging
+        uses: actions/checkout@v2
+        with:
+          path: ./staging
+      - name: tag staging commit
+        run: |
+          cd ./staging
+          tag="staging.$(date '+%y%m%d').GITHUB_RUN_NUMBER"
+          git tag $tag ${GITHUB_SHA::7} && git push origin $tag
+  release_prod:
+    runs-on: ubuntu-latest
+    environment: prod
+    needs: promote
+    steps:
+      - name: promote artifact to prod
+        run: |
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
+          toTag=${{ inputs.registry }}/${{ github.workflow }}:prod
+          echo "promoting :$fromTag to :$toTag"
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.registry }} --password-stdin
+          docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
+      - name: checkout codebase for tagging
+        uses: actions/checkout@v2
+        with:
+          path: ./prod
+      - name: tag release commit
+        run: |
+          cd ./prod
+          tag="prod.$(date '+%y%m%d').GITHUB_RUN_NUMBER"
+          git tag $tag ${GITHUB_SHA::7} && git push origin $tag       
+
+
+# jobs:
+#   promote:
+#     if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/prod'
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: docker login
+#         uses: docker/login-action@v1
+#         with:
+#           username: mozillareality
+#           password: ${{ secrets.DOCKER_HUB_PWD }}    
+#       - name: promote artifact
+#         run: |
+#           docker pull ${{ inputs.promoteFrom }}
+#           docker tag ${{ inputs.promoteFrom }} ${{ inputs.promoteTo }}
+#           sudo docker push ${{ inputs.promoteTo }}
+#           echo "promoted :${{ inputs.promoteFrom }} to :${{ inputs.promoteTo }}"
+
+#   staging_pr_to_prod:
+#     if: github.ref == 'refs/heads/staging'
+#     runs-on: ubuntu-latest
+#     needs: promote
+#     steps:
+#       - name: create pr for staging -> prod
+#         run: |
+#           gh pr create -H staging -B prod
+
+#   prod_cut_release_branch:
+#     if: github.ref == 'refs/heads/prod'
+#     runs-on: ubuntu-latest
+#     needs: promote
+#     steps:
+#       - name: cut release branch for prod
+#         run: |
+#           git checkout -b releases/$(date '+%y%m%d').$GITHUB_RUN_NUMBER
+          
