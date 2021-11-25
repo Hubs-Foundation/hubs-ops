@@ -2,6 +2,9 @@
 
 on:
   workflow_call:
+    secrets:
+      DOCKER_HUB_PWD:
+        required: true  
     inputs:
       registry:
         type: string
@@ -9,8 +12,6 @@ on:
       dockerfile:
         type: string
         default: Dockerfile
-    secrets:
-      DOCKER_HUB_PWD:
 
 jobs:
   build:
