@@ -51,7 +51,7 @@ jobs:
           toTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
           echo "[info] promoting :$fromTag to :$toTag"          
           docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
-          toTag=${{ inputs.registry }}/${{ github.workflow }}:dev
+          toTag=${{ inputs.registry }}/${{ github.workflow }}:dev-$GITHUB_RUN_NUMBER
           echo "[info] promoting :$fromTag to :$toTag"          
           docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
   release_staging:
@@ -63,7 +63,7 @@ jobs:
         run: |
           fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
           echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.registry }} --password-stdin
-          toTag=${{ inputs.registry }}/${{ github.workflow }}:staging                    
+          toTag=${{ inputs.registry }}/${{ github.workflow }}:staging-$GITHUB_RUN_NUMBER
           echo "[info] promoting :$fromTag to :$toTag"
           docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
       - name: checkout codebase for tagging
@@ -83,7 +83,7 @@ jobs:
       - name: promote artifact to prod
         run: |
           fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
-          toTag=${{ inputs.registry }}/${{ github.workflow }}:prod
+          toTag=${{ inputs.registry }}/${{ github.workflow }}:prod-$GITHUB_RUN_NUMBER
           echo "promoting :$fromTag to :$toTag"
           echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.registry }} --password-stdin
           docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
