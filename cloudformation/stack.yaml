@@ -2100,7 +2100,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/nearspark
-        SemanticVersion: 0.0.1
+        SemanticVersion: 0.1.1
       Parameters:
         NearsparkRoleArn: !GetAtt NearsparkRole.Arn
   SpeelycaptorApplication:
