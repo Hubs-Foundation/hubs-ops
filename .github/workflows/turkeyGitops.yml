@@ -39,8 +39,8 @@ jobs:
           cache-from: type=registry,ref=${{ inputs.registry }}/${{ github.workflow }}:buildcache
           cache-to: type=registry,ref=${{ inputs.registry }}/${{ github.workflow }}:buildcache,mode=max
           push: true
-  promote:
-    if: github.ref == 'refs/heads/master'
+  release_dev:
+    if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/hotfix/') }}
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -56,7 +56,7 @@ jobs:
           docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
   release_staging:
     runs-on: ubuntu-latest
-    needs: promote
+    needs: release_dev
     environment: staging
     steps:
       - name: "pull ${GITHUB_SHA::7} and tag to staging"
