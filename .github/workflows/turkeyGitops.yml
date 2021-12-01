@@ -78,7 +78,7 @@ jobs:
   release_prod:
     runs-on: ubuntu-latest
     environment: prod
-    needs: promote
+    needs: release_dev
     steps:
       - name: promote artifact to prod
         run: |
