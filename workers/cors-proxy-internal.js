@@ -1,4 +1,7 @@
-const ALLOWED_ORIGINS = ["https://hubs.local:8080", "https://hubs.local:9090", "https://hubs.local:4000", "https://dev.reticulum.io", "https://smoke-dev.reticulum.io", "https://hubs.mozilla.com", "https://smoke-hubs.mozilla.com", "https://photomnemonic-utils.reticulum.io"];
+const ALLOWED_ORIGINS = [
+  "https://hubs.local:8080", "https://hubs.local:9090", "https://hubs.local:4000", "https://dev.reticulum.io", "https://smoke-dev.reticulum.io",
+  "https://hubs.mozilla.com", "https://smoke-hubs.mozilla.com", "https://photomnemonic-utils.reticulum.io"
+];
 const PROXY_HOST = "https://hubs-proxy.com";
 
 addEventListener("fetch", e => {
@@ -38,6 +41,10 @@ addEventListener("fetch", e => {
 
     responseHeaders.set("Vary", "Origin");
     responseHeaders.set('X-Content-Type-Options', "nosniff");
+    
+    const responseContentType = responseHeaders.get("Content-Type").toLowerCase();
+    if (responseContentType.includes("script")) responseHeaders.set("Content-Type", "text/plain");
+    if (responseContentType.includes("html")) responseHeaders.set("Content-Type", "text/plain");
 
     return new Response(res.body, { status: res.status, statusText: res.statusText, headers: responseHeaders });
   })());
