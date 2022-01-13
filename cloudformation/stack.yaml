@@ -2108,7 +2108,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/speelycaptor
-        SemanticVersion: 0.0.1
+        SemanticVersion: 0.1.3
       Parameters:
         SpeelycaptorRoleArn: !GetAtt SpeelycaptorRole.Arn
         SpeelycaptorScratchBucketId: !Ref SpeelycaptorScratchBucket
