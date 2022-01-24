@@ -54,8 +54,8 @@ jobs:
           toTag=${{ inputs.registry }}/${{ github.workflow }}:dev-$GITHUB_RUN_NUMBER
           echo "[info] promoting :$fromTag to :$toTag"          
           docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
-          ! curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.dev.myhubs.net/webhooks/ghaturkey
-          ! curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.myhubs.net/webhooks/ghaturkey
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.dev.myhubs.net/webhooks/ghaturkey || true
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.myhubs.net/webhooks/ghaturkey || true
   release_staging:
     runs-on: ubuntu-latest
     needs: release_dev
@@ -68,8 +68,9 @@ jobs:
           toTag=${{ inputs.registry }}/${{ github.workflow }}:staging-$GITHUB_RUN_NUMBER
           echo "[info] promoting :$fromTag to :$toTag"
           docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
-          ! curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"beta\"}" https://api.dev.myhubs.net/webhooks/ghaturkey
-          ! curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"beta\"}" https://api.myhubs.net/webhooks/ghaturkey
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"beta\"}" https://api.dev.myhubs.net/webhooks/ghaturkey || true
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"beta\"}" https://api.myhubs.net/webhooks/ghaturkey || true
+          
       - name: checkout codebase for tagging
         uses: actions/checkout@v2
         with:
@@ -91,8 +92,8 @@ jobs:
           echo "promoting :$fromTag to :$toTag"
           echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.registry }} --password-stdin
           docker pull $fromTag && docker tag $fromTag $toTag && sudo docker push $toTag
-          ! curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"stable\"}" https://api.dev.myhubs.net/webhooks/ghaturkey
-          ! curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"stable\"}" https://api.myhubs.net/webhooks/ghaturkey
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"stable\"}" https://api.dev.myhubs.net/webhooks/ghaturkey || true
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"stable\"}" https://api.myhubs.net/webhooks/ghaturkey || true
       - name: checkout codebase for tagging
         uses: actions/checkout@v2
         with:
