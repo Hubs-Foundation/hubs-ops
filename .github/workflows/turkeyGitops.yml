@@ -28,7 +28,7 @@ jobs:
         if: ${{ inputs.codePath != ''}}
         run: |
           mkdir ./_repo
-          cp -rf ./repo/${{ inputs.codePath }} ./_repo
+          cp -rf ./repo/${{ inputs.codePath }}/* ./_repo
           rm -rf ./repo
           mv ./_repo ./repo
           ls ./repo
