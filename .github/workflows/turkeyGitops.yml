@@ -30,7 +30,7 @@ jobs:
           mkdir ./_repo
           cp -rf ./repo/${{ inputs.codePath }} ./_repo
           rm -rf ./repo
-          mv -R ./_repo ./repo
+          mv ./_repo ./repo
           ls ./repo
       - name: docker setup buildx
         uses: docker/setup-buildx-action@v1
