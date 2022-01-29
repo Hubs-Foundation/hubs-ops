@@ -3,12 +3,15 @@
 on:
   workflow_call:
     inputs:
+      codePath:
+        type: string
+        default: 
       registry:
         type: string
-        default: mozillareality
+        default: mozillareality      
       dockerfile:
         type: string
-        default: Dockerfile
+        default: Dockerfile      
     secrets:
       DOCKER_HUB_PWD:
         required: true
@@ -17,10 +20,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
+      - name: checkout repo
         uses: actions/checkout@v2
         with:
           path: "./repo"
+      - name: use codePath for multirepo
+        if: ${{ inputs.codePath != "" }}
+        run: |
+          mkdir ./_repo
+          cp -rf ./repo/${{ inputs.codePath }} ./_repo
+          mv ./_repo ./repo
+          ls ./repo
       - name: docker setup buildx
         uses: docker/setup-buildx-action@v1
         with:
@@ -78,7 +88,7 @@ jobs:
       - name: tag staging commit
         run: |
           cd ./staging
-          tag="staging.$(date '+%y%m%d').$GITHUB_RUN_NUMBER"
+          tag="${GITHUB_WORKFLOW}.staging.$(date '+%y%m%d').$GITHUB_RUN_NUMBER"
           git tag $tag ${GITHUB_SHA::7} && git push origin $tag         
   release_prod:
     runs-on: ubuntu-latest
@@ -101,6 +111,6 @@ jobs:
       - name: tag release commit
         run: |
           cd ./prod
-          tag="prod.$(date '+%y%m%d').$GITHUB_RUN_NUMBER"
+          tag="${GITHUB_WORKFLOW}.prod.$(date '+%y%m%d').$GITHUB_RUN_NUMBER"
           git tag $tag ${GITHUB_SHA::7} && git push origin $tag                
         
