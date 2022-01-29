@@ -25,10 +25,10 @@ jobs:
         with:
           path: "./repo"
       - name: use codePath for multirepo
-        if: ${{ inputs.codePath }}
+        if: ${{ inputs.codePath != ''}}
         run: |
           mkdir ./_repo
-          cp -rf ./repo/${{ inputs.codePath !='' }} ./_repo
+          cp -rf ./repo/${{ inputs.codePath }} ./_repo
           mv ./_repo ./repo
           ls ./repo
       - name: docker setup buildx
