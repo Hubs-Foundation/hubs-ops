@@ -2119,7 +2119,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
-        SemanticVersion: 0.0.1
+        SemanticVersion: 0.3.0
       Parameters:
         PhotomnemonicRoleArn: !GetAtt PhotomnemonicRole.Arn
   NearsparkApiGatewayRestApi:
