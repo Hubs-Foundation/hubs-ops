@@ -1244,12 +1244,7 @@ Resources:
                  - ses:VerifyDomainIdentity
                  - ses:VerifyEmailIdentity
                Resource:
-                 - "*"
-             - Effect: Allow
-               Action:
-                 - logs:*
-               Resource: arn:aws:logs:*:*:*
-
+                 - "*"       
   SESDomainRecords:
     Type: AWS::Route53::RecordSetGroup
     Properties:
