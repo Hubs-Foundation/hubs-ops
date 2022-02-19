@@ -46,7 +46,7 @@ jobs:
         with:
           context: repo/
           file: repo/${{ inputs.dockerfile }}
-          tags: ${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number  }}
+          tags: ${{ inputs.registry }}/${{ github.workflow }}:latest,${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
           cache-from: type=registry,ref=${{ inputs.registry }}/${{ github.workflow }}:buildcache
           cache-to: type=registry,ref=${{ inputs.registry }}/${{ github.workflow }}:buildcache,mode=max
           push: true
