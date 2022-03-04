@@ -50,6 +50,7 @@ jobs:
           cache-from: type=registry,ref=${{ inputs.registry }}/${{ github.workflow }}:buildcache
           cache-to: type=registry,ref=${{ inputs.registry }}/${{ github.workflow }}:buildcache,mode=max
           push: true
+  
   release_dev:
     if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/hotfix/') }}
     runs-on: ubuntu-latest
@@ -68,12 +69,13 @@ jobs:
           echo "[info] promoting :$fromTag to :$toTag"          
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
           
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.dev.myhubs.net/webhooks/ghaturkey || true
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.myhubs.net/webhooks/ghaturkey || true
+          
           toTag=${{ inputs.registry }}/${{ github.workflow }}:dev-latest
           echo "[info] promoting :$fromTag to :$toTag"          
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
           
-          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.dev.myhubs.net/webhooks/ghaturkey || true
-          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.myhubs.net/webhooks/ghaturkey || true
   release_staging:
     runs-on: ubuntu-latest
     needs: release_dev
@@ -86,14 +88,14 @@ jobs:
           
           toTag=${{ inputs.registry }}/${{ github.workflow }}:beta-$GITHUB_RUN_NUMBER
           echo "[info] promoting :$fromTag to :$toTag"
-          sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
-          
-          toTag=${{ inputs.registry }}/${{ github.workflow }}:beta-latest
-          echo "[info] promoting :$fromTag to :$toTag"
-          sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag          
+          sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag                  
           
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"beta\"}" https://api.dev.myhubs.net/webhooks/ghaturkey || true
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"beta\"}" https://api.myhubs.net/webhooks/ghaturkey || true
+
+          toTag=${{ inputs.registry }}/${{ github.workflow }}:beta-latest
+          echo "[info] promoting :$fromTag to :$toTag"
+          sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
           
       - name: checkout codebase for tagging
         uses: actions/checkout@v2
@@ -104,6 +106,7 @@ jobs:
           cd ./staging
           tag="${GITHUB_WORKFLOW}.staging.$(date '+%y%m%d').$GITHUB_RUN_NUMBER"
           git tag $tag ${GITHUB_SHA::7} && git push origin $tag         
+  
   release_prod:
     runs-on: ubuntu-latest
     environment: prod
@@ -117,13 +120,13 @@ jobs:
           toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-$GITHUB_RUN_NUMBER
           echo "promoting :$fromTag to :$toTag"          
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
-  
-          toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-latest
-          echo "promoting :$fromTag to :$toTag"
-          sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
           
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"stable\"}" https://api.dev.myhubs.net/webhooks/ghaturkey || true
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"stable\"}" https://api.myhubs.net/webhooks/ghaturkey || true
+          
+          toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-latest
+          echo "promoting :$fromTag to :$toTag"
+          sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
       - name: checkout codebase for tagging
         uses: actions/checkout@v2
         with:
