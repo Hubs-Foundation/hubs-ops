@@ -33,9 +33,9 @@ ARBRE_SMOKE_RULE_ARN=$(aws --region us-west-1 elbv2 describe-rules --listener-ar
 if [ $POOL == "earth" ]; then
   aws --region $REGION elbv2 modify-rule --rule-arn $EARTH_RULE_ARN --conditions Field=host-header,Values="$HOST,$SECONDARY_HOST,$CORS_HOST"
   aws --region $REGION elbv2 modify-rule --rule-arn $ARBRE_SMOKE_RULE_ARN --conditions Field=host-header,Values="smoke-$HOST,smoke-$CORS_HOST"
-  aws --region $REGION elbv2 set-rule-priorities --rule-priorities "RuleArn=$EARTH_RULE_ARN,Priority=1" "RuleArn=$ARBRE_SMOKE_RULE_ARN,Priority=2" "RuleArn=$EARTH_SMOKE_RULE_ARN,Priority=3" "RuleArn=$ARBRE_RULE_ARN,Priority=4"
+  aws --region $REGION elbv2 set-rule-priorities --rule-priorities "RuleArn=$EARTH_RULE_ARN,Priority=11" "RuleArn=$ARBRE_SMOKE_RULE_ARN,Priority=12" "RuleArn=$EARTH_SMOKE_RULE_ARN,Priority=13" "RuleArn=$ARBRE_RULE_ARN,Priority=14"
 else
   aws --region $REGION elbv2 modify-rule --rule-arn $ARBRE_RULE_ARN --conditions Field=host-header,Values="$HOST,$SECONDARY_HOST,$CORS_HOST"
   aws --region $REGION elbv2 modify-rule --rule-arn $EARTH_SMOKE_RULE_ARN --conditions Field=host-header,Values="smoke-$HOST,smoke-$CORS_HOST"
-  aws --region $REGION elbv2 set-rule-priorities --rule-priorities "RuleArn=$ARBRE_RULE_ARN,Priority=1" "RuleArn=$EARTH_SMOKE_RULE_ARN,Priority=2" "RuleArn=$ARBRE_SMOKE_RULE_ARN,Priority=3" "RuleArn=$EARTH_RULE_ARN,Priority=4"
+  aws --region $REGION elbv2 set-rule-priorities --rule-priorities "RuleArn=$ARBRE_RULE_ARN,Priority=11" "RuleArn=$EARTH_SMOKE_RULE_ARN,Priority=12" "RuleArn=$ARBRE_SMOKE_RULE_ARN,Priority=13" "RuleArn=$EARTH_RULE_ARN,Priority=14"
 fi
