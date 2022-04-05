@@ -15,6 +15,10 @@ on:
     secrets:
       DOCKER_HUB_PWD:
         required: true
+env:
+  turkey_domain_dev: dev.myhubs.net
+  turkey_domain_staging: staging.myhubs.net
+  turkey_domain_prod: myhubs.net
 
 jobs:
   build:
@@ -69,8 +73,9 @@ jobs:
           echo "[info] promoting :$fromTag to :$toTag"          
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
           
-          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.dev.myhubs.net/webhooks/ghaturkey || true
-          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.myhubs.net/webhooks/ghaturkey || true
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.{{ env.turkey_domain_dev }}/webhooks/ghaturkey || true
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.{{ env.turkey_domain_staging }}/webhooks/ghaturkey || true
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.{{ env.turkey_domain_prod }}/webhooks/ghaturkey || true
           
           toTag=${{ inputs.registry }}/${{ github.workflow }}:dev-latest
           echo "[info] promoting :$fromTag to :$toTag"          
@@ -90,9 +95,10 @@ jobs:
           echo "[info] promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag                  
           
-          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"beta\"}" https://api.dev.myhubs.net/webhooks/ghaturkey || true
-          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"beta\"}" https://api.myhubs.net/webhooks/ghaturkey || true
-
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.{{ env.turkey_domain_dev }}/webhooks/ghaturkey || true
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.{{ env.turkey_domain_staging }}/webhooks/ghaturkey || true
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.{{ env.turkey_domain_prod }}/webhooks/ghaturkey || true
+          
           toTag=${{ inputs.registry }}/${{ github.workflow }}:beta-latest
           echo "[info] promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
@@ -121,9 +127,10 @@ jobs:
           echo "promoting :$fromTag to :$toTag"          
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
           
-          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"stable\"}" https://api.dev.myhubs.net/webhooks/ghaturkey || true
-          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"stable\"}" https://api.myhubs.net/webhooks/ghaturkey || true
-          
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.{{ env.turkey_domain_dev }}/webhooks/ghaturkey || true
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.{{ env.turkey_domain_staging }}/webhooks/ghaturkey || true
+          curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.{{ env.turkey_domain_prod }}/webhooks/ghaturkey || true
+
           toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-latest
           echo "promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
