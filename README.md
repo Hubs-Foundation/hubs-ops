@@ -29,7 +29,7 @@ Host *.reticulum.io
 User ubuntu
 PreferredAuthentications publickey,keyboard-interactive
 IdentityFile ~/.ssh/mozilla_mr_id_rsa
-ForwardAgent yes%
+ForwardAgent yes
 ```
 
 See the `helpers.sh` source for more documenation on each command.
