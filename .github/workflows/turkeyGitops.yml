@@ -76,8 +76,7 @@ jobs:
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.${{ env.turkey_domain_dev }}/webhooks/ghaturkey
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.${{ env.turkey_domain_staging }}/webhooks/ghaturkey
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"dev\"}" https://api.${{ env.turkey_domain_prod }}/webhooks/ghaturkey
-          true
-          
+                    
           toTag=${{ inputs.registry }}/${{ github.workflow }}:dev-latest
           echo "[info] promoting :$fromTag to :$toTag"          
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
@@ -99,8 +98,7 @@ jobs:
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"beta\"}" https://api.${{ env.turkey_domain_dev }}/webhooks/ghaturkey
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"beta\"}" https://api.${{ env.turkey_domain_staging }}/webhooks/ghaturkey
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"beta\"}" https://api.${{ env.turkey_domain_prod }}/webhooks/ghaturkey
-          true
-          
+                    
           toTag=${{ inputs.registry }}/${{ github.workflow }}:beta-latest
           echo "[info] promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
@@ -132,8 +130,7 @@ jobs:
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"stable\"}" https://api.${{ env.turkey_domain_dev }}/webhooks/ghaturkey
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"stable\"}" https://api.${{ env.turkey_domain_staging }}/webhooks/ghaturkey
           curl -X POST --data "{\"tag\":\"$toTag\",\"channel\":\"stable\"}" https://api.${{ env.turkey_domain_prod }}/webhooks/ghaturkey
-          true
-
+          
           toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-latest
           echo "promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
