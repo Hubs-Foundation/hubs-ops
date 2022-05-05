@@ -2885,7 +2885,7 @@ Resources:
       LoadBalancerArn: !Ref AppALB
       Port: 443
       Protocol: HTTPS
-      SslPolicy: ELBSecurityPolicy-2015-05
+      SslPolicy: ELBSecurityPolicy-FS-1-2-Res-2019-08
       Certificates:
         - CertificateArn: !If [HasManagedDomain, !If [IsEast, !Ref ExternalZoneSSLCertLocalIfEast, !Ref ExternalZoneSSLCertLocalIfNonEast], !Ref UnmanagedDomainCertArn]
       DefaultActions:
