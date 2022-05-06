@@ -2079,7 +2079,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/aws-cfn-ses-domain
-        SemanticVersion: 0.4.1
+        SemanticVersion: 0.4.2
       Parameters:
         SESDomainRoleArn: !GetAtt SESDomainRole.Arn
   KeymasterApplication:
