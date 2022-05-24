@@ -1,0 +1,18 @@
+name: Monthly Corn Job
+on:
+  schedule:
+    # Run monthly on the first day of the month at 12:10 am 
+    - cron: "0 10 1 * *"
+jobs:
+  cron:
+   runs-on: ubuntu-latest
+   steps:
+     - uses: actions/checkout@v2
+     - name: Run compare sh 
+       
+       # section runs the compare sha 
+       run: | 
+        if [ "$(git rev-parse qa-test)" != "$(git rev-parse master)" ];  then 
+        echo "They're Different." 
+        git tag releasing_branch
+        fi  
