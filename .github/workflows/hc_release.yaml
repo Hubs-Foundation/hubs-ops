@@ -1,18 +1,26 @@
 name: Monthly Corn Job
 on:
   schedule:
-    # Run monthly on the first day of the month at 12:10 am 
-    - cron: "0 10 1 * *"
+    # Run monthly on the first day of the month at 12:10 am
+    - cron: "0 23 1 * *"
+
 jobs:
   cron:
-   runs-on: ubuntu-latest
-   steps:
-     - uses: actions/checkout@v2
-     - name: Run compare sh 
-       
-       # section runs the compare sha 
-       run: | 
-        if [ "$(git rev-parse qa-test)" != "$(git rev-parse master)" ];  then 
-        echo "They're Different." 
-        git tag releasing_branch
-        fi  
+    runs-on: ubuntu-latest
+    outputs:
+      diff: ${{steps.compare.outputs.diff}}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run compare sh
+      - id:
+          compare
+          # section runs the compare sha
+        run: |
+          if [ "$(git rev-parse bp-test)" != "$(git rev-parse master)" ];  then 
+          echo  "::set-output name=diff::different"
+          fi
+          done
+      - name: change branch pointer
+        id: change
+        if: steps.compare.outputs.diff = 'different'
+        run: echo "there different"
