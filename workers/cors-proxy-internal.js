@@ -58,6 +58,8 @@ addEventListener("fetch", (event) => {
 
       responseHeaders.set("Vary", "Origin");
       responseHeaders.set("X-Content-Type-Options", "nosniff");
+      responseHeaders.set("Content-Security-Policy", "default-src 'none'");
+      responseHeaders.delete("Set-Cookie");
 
       const responseContentType = (responseHeaders.get("Content-Type") || "").toLowerCase();
       if (responseContentType.includes("script") || responseContentType.includes("html")) {
