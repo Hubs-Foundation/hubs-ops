@@ -8,47 +8,45 @@ const ALLOWED_ORIGINS = [
   "https://smoke-hubs.mozilla.com",
   "https://photomnemonic-utils.reticulum.io",
 ];
-const PROXY_HOST = "https://hubs-proxy.com";
+const PROXY_URL = "https://hubs-proxy.com";
 
-addEventListener("fetch", (e) => {
-  const request = e.request;
+addEventListener("fetch", (event) => {
+  const request = event.request;
   const origin = request.headers.get("Origin");
-  const proxyUrl = new URL(PROXY_HOST);
-  let targetUrl = request.url.substring(PROXY_HOST.length + 1).replace(/^http(s?):\/([^/])/, "http$1://$2");
+  const proxyUrl = new URL(PROXY_URL);
 
-  if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
-    targetUrl = proxyUrl.protocol + "//" + targetUrl;
+  const protocolWithSingleSlash = /^http(s?):\/([^/])/;
+  let targetUrlStr = request.url.substring(PROXY_URL.length + 1).replace(protocolWithSingleSlash, "http$1://$2");
+  if (!targetUrlStr.startsWith("http://") && !targetUrlStr.startsWith("https://")) {
+    targetUrlStr = proxyUrl.protocol + "//" + targetUrlStr;
   }
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete("Origin"); // Some domains disallow access from improper Origins
 
-  e.respondWith(
+  event.respondWith(
     (async () => {
-      const res = await fetch(targetUrl, {
+      const res = await fetch(targetUrlStr, {
         headers: requestHeaders,
         method: request.method,
         redirect: "manual",
         referrer: request.referrer,
         referrerPolicy: request.referrerPolicy,
       });
+
       const responseHeaders = new Headers(res.headers);
 
-      const redirectLocation = responseHeaders.get("Location") || responseHeaders.get("location");
-
+      const redirectLocation = responseHeaders.get("Location");
       if (redirectLocation) {
         if (!redirectLocation.startsWith("/")) {
-          responseHeaders.set("Location", proxyUrl.protocol + "//" + proxyUrl.host + "/" + redirectLocation);
+          responseHeaders.set("Location", PROXY_URL + "/" + redirectLocation);
         } else {
-          const tUrl = new URL(targetUrl);
-          responseHeaders.set(
-            "Location",
-            proxyUrl.protocol + "//" + proxyUrl.host + "/" + tUrl.origin + redirectLocation
-          );
+          const targetUrl = new URL(targetUrlStr);
+          responseHeaders.set("Location", PROXY_URL + "/" + targetUrl.origin + redirectLocation);
         }
       }
 
-      if (origin && ALLOWED_ORIGINS.indexOf(origin) >= 0) {
+      if (origin && ALLOWED_ORIGINS.includes(origin)) {
         responseHeaders.set("Access-Control-Allow-Origin", origin);
         responseHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
         responseHeaders.set("Access-Control-Allow-Headers", "Range");
@@ -61,9 +59,10 @@ addEventListener("fetch", (e) => {
       responseHeaders.set("Vary", "Origin");
       responseHeaders.set("X-Content-Type-Options", "nosniff");
 
-      const responseContentType = responseHeaders.get("Content-Type").toLowerCase();
-      if (responseContentType.includes("script")) responseHeaders.set("Content-Type", "text/plain");
-      if (responseContentType.includes("html")) responseHeaders.set("Content-Type", "text/plain");
+      const responseContentType = (responseHeaders.get("Content-Type") || "").toLowerCase();
+      if (responseContentType.includes("script") || responseContentType.includes("html")) {
+        responseHeaders.set("Content-Type", "text/plain");
+      }
 
       return new Response(res.body, {
         status: res.status,
