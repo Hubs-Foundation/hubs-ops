@@ -1,11 +1,8 @@
-name: Monthly Corn Job
+name: compare branches
 on:
-  schedule:
-    # Run monthly on the first day of the month at 12:10 am
-    - cron: "0 23 1 * *"
-
+  workflow_call:
 jobs:
-  cron:
+  compare:
     runs-on: ubuntu-latest
     outputs:
       diff: ${{steps.compare.outputs.diff}}
@@ -18,8 +15,9 @@ jobs:
         run: |
           if [ "$(git rev-parse bp-test)" != "$(git rev-parse master)" ];  then 
           echo  "::set-output name=diff::different"
+          else 
+            exit
           fi
-          done
       - name: change branch pointer
         id: change
         if: steps.compare.outputs.diff = 'different'
