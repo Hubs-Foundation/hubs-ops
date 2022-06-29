@@ -1,24 +1,24 @@
 name: compare branches
 on:
   workflow_call:
+    inputs:
+      releasing:
+       type: string 
+       default: releasing_branch
+      main:
+       type: string
+       default: main
 jobs:
   compare:
     runs-on: ubuntu-latest
     outputs:
       diff: ${{steps.compare.outputs.diff}}
     steps:
-      - uses: actions/checkout@v2
-      - name: Run compare sh
-      - id:
-          compare
-          # section runs the compare sha
+      - uses: actions/checkout@v2 
         run: |
           if [ "$(git rev-parse bp-test)" != "$(git rev-parse master)" ];  then 
           echo  "::set-output name=diff::different"
           else 
             exit
           fi
-      - name: change branch pointer
-        id: change
-        if: steps.compare.outputs.diff = 'different'
-        run: echo "there different"
+          end 
