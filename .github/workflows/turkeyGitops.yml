@@ -8,7 +8,10 @@ on:
         default: 
       registry:
         type: string
-        default: mozillareality      
+        default: mozillareality
+      DOCKER_HUB_USR:
+        type: string
+        default: mozillareality
       dockerfile:
         type: string
         default: Dockerfile      
@@ -39,7 +42,7 @@ jobs:
       - name: docker login
         uses: docker/login-action@v1
         with:
-          username: ${{ inputs.registry }}
+          username: ${{ inputs.DOCKER_HUB_USR }}
           password: ${{ secrets.DOCKER_HUB_PWD }}
       - name: docker build(x) push
         uses: docker/build-push-action@v2
@@ -59,7 +62,7 @@ jobs:
       - name: "master: pull GITHUB_RUN_NUMBER and tag to ${GITHUB_SHA::7} and dev"
         run: |
           fromTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
-          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.registry }} --password-stdin
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin
           
           toTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
           echo "[info] promoting :$fromTag to :$toTag"          
@@ -81,7 +84,7 @@ jobs:
       - name: "pull ${GITHUB_SHA::7} and tag to staging"
         run: |
           fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
-          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.registry }} --password-stdin
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin
           
           toTag=${{ inputs.registry }}/${{ github.workflow }}:beta-$GITHUB_RUN_NUMBER
           echo "[info] promoting :$fromTag to :$toTag"
@@ -109,7 +112,7 @@ jobs:
       - name: promote artifact to prod
         run: |
           fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
-          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.registry }} --password-stdin
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin
           
           toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-$GITHUB_RUN_NUMBER
           echo "promoting :$fromTag to :$toTag"          
