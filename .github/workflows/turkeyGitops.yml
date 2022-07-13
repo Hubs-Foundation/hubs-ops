@@ -77,8 +77,9 @@ jobs:
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
           
   release_staging:
+    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
     runs-on: ubuntu-latest
-    needs: release_dev
+    needs: build
     environment: staging
     steps:
       - name: "pull ${GITHUB_SHA::7} and tag to staging"
@@ -105,9 +106,10 @@ jobs:
 #           git tag $tag ${GITHUB_SHA::7} && git push origin $tag         
   
   release_prod:
+    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
     runs-on: ubuntu-latest
+    needs: build
     environment: prod
-    needs: release_dev
     steps:
       - name: promote artifact to prod
         run: |
