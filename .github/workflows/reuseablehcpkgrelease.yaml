@@ -3,7 +3,7 @@ on:
   workflow_call:
    inputs:
     main:
-     deprecationMessage: "Main Branch"
+     description:  "Main Branch"
      required: true
      type: string
     releasing:
@@ -19,7 +19,7 @@ jobs:
       diff: ${{steps.compare.outputs.diff}}
     steps:
       - uses: actions/checkout@v2
-      - run: | 
+      - run: |  
           main = ${{imputs.main}}
           releasing = ${{inputs.releasing}}
           echo $main
