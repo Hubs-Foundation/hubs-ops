@@ -15,7 +15,7 @@ jobs:
       diff: ${{steps.compare.outputs.diff}}
     steps:
       - uses: actions/checkout@v2 
-        run: |
+      - run: |
           if [ "$(git rev-parse bp-test)" != "$(git rev-parse master)" ];  then 
           echo  "::set-output name=diff::different"
           else 
