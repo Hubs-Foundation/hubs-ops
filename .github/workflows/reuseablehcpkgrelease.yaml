@@ -1,24 +1,32 @@
 name: compare branches
 on:
   workflow_call:
-    inputs:
-      releasing:
-       type: string 
-       default: releasing_branch
-      main:
-       type: string
-       default: main
+   inputs:
+    main:
+     deprecationMessage: "Main Branch"
+     required: true
+     type: string
+    releasing:
+      description: "releasing Branch"
+      required: true
+      type: string
+
+
 jobs:
   compare:
     runs-on: ubuntu-latest
     outputs:
       diff: ${{steps.compare.outputs.diff}}
     steps:
-      - uses: actions/checkout@v2 
-      - run: |
-          if [ "$(git rev-parse bp-test)" != "$(git rev-parse master)" ];  then 
-          echo  "::set-output name=diff::different"
-          else 
-            exit
-          fi
-          end 
+      - uses: actions/checkout@v2
+      - run: | 
+          main = ${{imputs.main}}
+          releasing = ${{inputs.releasing}}
+          echo $main
+          echo $releasing
+          # if [ "$(git rev-parse bp-test)" != "$(git rev-parse master)" ];  then 
+          # echo  "::set-output name=diff::different"
+          # else 
+          #   exit
+          # fi
+          # end 
