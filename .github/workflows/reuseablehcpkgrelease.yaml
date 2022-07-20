@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: |  
-          main = ${{imputs.main}}
+          main = ${{inputs.main}}
           releasing = ${{inputs.releasing}}
           echo $main
           echo $releasing
