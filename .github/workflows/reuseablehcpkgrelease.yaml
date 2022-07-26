@@ -19,5 +19,12 @@ jobs:
       diff: ${{steps.compare.outputs.diff}}
     steps:
       - uses: actions/checkout@v2
-      - run:  bash .github/workflows/compare.sh
+      - run: | 
+          if [ "$(git rev-parse ${{inputs.releasing}})" != "$(git rev-parse ${{inputs.main}})" ] then 
+          echo  "Different"
+          else 
+          echo "Same"
+          exit
+          fi
+
 
