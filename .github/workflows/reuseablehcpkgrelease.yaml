@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: | 
-          if [ "$(git rev-parse ${{inputs.releasing}})" != "$(git rev-parse ${{inputs.main}})" ] then 
+          if [ "$(git rev-parse ${{inputs.releasing}})" != "$(git rev-parse ${{inputs.main}})" ]; then 
           echo  "Different"
           else 
           echo "Same"
