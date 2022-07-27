@@ -15,8 +15,6 @@ on:
 jobs:
   compare:
     runs-on: ubuntu-latest
-    outputs:
-      diff: ${{steps.compare.outputs.diff}}
     steps:
       - uses: actions/checkout@v2
       - run: | 
@@ -27,9 +25,10 @@ jobs:
           echo "Same"
           exit
           fi
+        id: hcsh 
   launch:
     needs: compare
-    if: ${{needs.compare.outputs.diff}} == 'launch'
+    if: ${{needs.hcsh.outputs.diff}} == 'launch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
