@@ -22,9 +22,19 @@ jobs:
       - run: | 
           if [ "$(git rev-parse ${{inputs.releasing}})" != "$(git rev-parse ${{inputs.main}})" ]; then 
           echo  "Different"
+          "::set-output name=diff::launch"
           else 
           echo "Same"
           exit
           fi
+  launch:
+    needs: compare
+    if: ${{needs.compare.outputs.diff}} == 'launch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: | 
+          echo "Starting Release Process"
+
 
 
