@@ -18,22 +18,42 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: | 
+          
           if [ "$(git rev-parse ${{inputs.releasing}})" != "$(git rev-parse ${{inputs.main}})" ]; then 
           echo "Branches are different launching package release" 
-          echo '::set-output name=diff::launch'
+          echo '::set-output name=decision::launch'
+          
           else 
           echo "Same"
           exit
+          
           fi
-        id: hcsh 
+        id: chkDiff 
   launch:
     needs: compare
-    if: ${{needs.hcsh.outputs.diff}} == 'launch'
+    if: ${{needs.chkDiff.outputs.decision} == 'launch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - run: | 
+          
           echo "Starting Release Process"
+          tag=hc.test.$(date '+%Y-%m-%d')
+          qaTestBranch=${{inputs.releasing}}
+          echo "Releasing Branch:$qaTestBranch"
+          
+          git reset HEAD --hard
+          git checkout master
+          git pull origin master
+          
+          sha=$(git rev-parse --verify HEAD)
+          echo "master branch sha: $sha"
+          
+          git checkout $qaTestBranch
+          git update-ref refs/heads/$qaTestBranch $sha
+          git push origin $qaTestBranch
+          git tag $tag
+          git push origin $tag
 
 
 
