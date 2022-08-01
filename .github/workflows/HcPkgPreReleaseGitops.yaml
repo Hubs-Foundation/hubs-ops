@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - id: chkDiff 
       - run: | 
           
           if [ "$(git rev-parse ${{inputs.releasing}})" != "$(git rev-parse ${{inputs.main}})" ]; then 
@@ -26,9 +27,8 @@ jobs:
           else 
           echo "Same"
           exit
-          
           fi
-        id: chkDiff 
+  
   launch:
     needs: compare
     if: ${{needs.chkDiff.outputs.decision} == 'launch'
