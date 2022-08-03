@@ -54,7 +54,7 @@ jobs:
           cache-to: type=registry,ref=${{ inputs.registry }}/${{ github.workflow }}:buildcache,mode=max
           push: true
           build-args:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          - GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
   release_dev:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
