@@ -10,6 +10,10 @@ on:
       description: "releasing Branch"
       required: true
       type: string
+    qaTestBranch:
+      description: "Qa test branch"
+      required: true 
+      type: string
 
 
 jobs:
@@ -20,13 +24,13 @@ jobs:
       - id: chkDiff 
       - run: | 
           
-          if [ "$(git rev-parse ${{inputs.releasing}})" != "$(git rev-parse ${{inputs.main}})" ]; then 
-          echo "Branches are different launching package release" 
-          echo '::set-output name=decision::launch'
-          
+          if [ "$(git rev-parse ${{inputs.qaTestBranch}})" != "$(git rev-parse ${{inputs.main}})" ]; 
+          then 
+           echo "Branches are different launching package release" 
+           echo '::set-output name=decision::launch'
           else 
-          echo "Same"
-          exit
+            echo "Same"
+            exit
           fi
   
   launch:
@@ -36,24 +40,28 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: | 
-          
-          echo "Starting Release Process"
-          tag=hc.test.$(date '+%Y-%m-%d')
-          qaTestBranch=${{inputs.releasing}}
-          echo "Releasing Branch:$qaTestBranch"
-          
-          git reset HEAD --hard
-          git checkout master
-          git pull origin master
-          
-          sha=$(git rev-parse --verify HEAD)
-          echo "master branch sha: $sha"
-          
-          git checkout $qaTestBranch
-          git update-ref refs/heads/$qaTestBranch $sha
-          git push origin $qaTestBranch
-          git tag $tag
-          git push origin $tag
+        echo "prep work"
+        git fetch origin  ${{inputs.releasing}}
+        git fetch origin  ${{inputs.qatestBranch}}
+        tag=hc.test.$(date'+&Y-%m-%d)
 
+        echo "point hubs-cloud to current qa-test"
+        git reset HEAD --hard 
+        git checkout origin ${{inputs.qaTestBranch}}
+        git pull origin ${{inputs.qaTestBranch}}
+        sha=$(git rev-parse --verify HEAD)
+        echo "{{inputs.qaTestBranch}} branch sha:" $sha
+        git checkout ${{inputs.releasingbranch}}
+        git update-ref refs/heads/${{inputs.releasing}} $sha 
+        git push origin ${{inputs.releasing}}
 
-
+        echo "point qa-test branch to current master"
+        git reset HEAD --hard
+        git checkout master 
+        sha=$(git rev-parse --verfiy HEAD)
+        echo "master branch sha:" $sha
+        git checkout ${{inputs.releasing}}
+        git update-ref  refs/heads/${{inputs.releasingbranch}} $sha 
+        git push origin ${{inputs.releasing}}
+        git tag  $tag 
+        git push origin $tag
