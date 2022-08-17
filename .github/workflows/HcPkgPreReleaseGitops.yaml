@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: | 
         echo "prep work"
-        git switch ${{inputs.main}}
+        git checkout ${{inputs.main}}
         git fetch origin  ${{inputs.releasing}}
         git fetch origin  ${{inputs.qatestBranch}}
         tag=hc.test.$(date'+&Y-%m-%d)
