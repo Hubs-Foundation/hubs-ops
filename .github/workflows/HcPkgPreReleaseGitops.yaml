@@ -21,13 +21,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - id: chkDiff 
       - run: | 
           
           if [ "$(git rev-parse ${{inputs.qaTestBranch}})" != "$(git rev-parse ${{inputs.main}})" ]; 
           then 
            echo "Branches are different launching package release" 
-           echo '::set-output name=decision::launch'
+           echo "::set-output name=decision::launch"
           else 
             echo "Same"
             exit
@@ -35,7 +34,7 @@ jobs:
   
   launch:
     needs: compare
-    if: ${{needs.chkDiff.outputs.decision} == 'launch'
+    if: ${{needs.compare.outputs.decision}} == 'launch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
