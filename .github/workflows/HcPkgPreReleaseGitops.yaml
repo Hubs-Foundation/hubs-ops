@@ -64,7 +64,7 @@ jobs:
          sha=$(git rev-parse --verfiy HEAD)
          echo "master branch sha: $sha"
          git checkout ${{inputs.releasing}}
-         git update-ref  'refs/heads/${{inputs.releasingbranch}}' $sha 
+         git update-ref  'refs/heads/${{inputs.releasing}}' $sha 
          git push origin ${{inputs.releasing}}
          git tag  $tag 
          git push origin $tag
