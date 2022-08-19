@@ -45,7 +45,8 @@ jobs:
          echo "prep work"
          git fetch origin  ${{inputs.releasing}}
          git fetch origin  ${{inputs.qatestBranch}}
-         tag='hc.test.$(date'+&Y-%m-%d)'
+         tag="hc.test.$(date'+&Y-%m-%d)"
+         echo "$tag"
 
          echo "point hubs-cloud to current qa-test"
          git reset HEAD --hard 
