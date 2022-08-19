@@ -21,8 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 
       - run: | 
-          
+          git fetch 
           if [ "$(git rev-parse ${{inputs.qaTestBranch}})" != "$(git rev-parse ${{inputs.main}})" ]; 
           then 
            echo "Branches are different launching package release" 
@@ -38,9 +40,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 
       - run: |
          echo "prep work"
-         git checkout ${{inputs.main}}
          git fetch origin  ${{inputs.releasing}}
          git fetch origin  ${{inputs.qatestBranch}}
          tag=hc.test.$(date'+&Y-%m-%d)
@@ -50,14 +53,14 @@ jobs:
          git checkout origin ${{inputs.qaTestBranch}}
          git pull origin ${{inputs.qaTestBranch}}
          sha=$(git rev-parse --verify HEAD)
-         echo "{{inputs.qaTestBranch}} branch sha:" $sha
+         echo "${{inputs.qaTestBranch}} branch sha:" $sha
          git checkout ${{inputs.releasingbranch}}
          git update-ref refs/heads/${{inputs.releasing}} $sha 
          git push origin ${{inputs.releasing}}
 
          echo "point qa-test branch to current master"
          git reset HEAD --hard
-         git checkout master 
+         git checkout ${{inputs.main}} 
          sha=$(git rev-parse --verfiy HEAD)
          echo "master branch sha:" $sha
          git checkout ${{inputs.releasing}}
