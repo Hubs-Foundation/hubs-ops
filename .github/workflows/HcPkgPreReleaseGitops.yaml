@@ -22,9 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0 
+          fetch-depth: 0
       - run: | 
-          if [ "$(git rev-parse ${{inputs.qaTestBranch}})" != "$(git rev-parse ${{inputs.main}})" ]; 
+          list= $(git rev-list)
+          echo "$list"  
+          if [ "$(git rev-parse origin/${{inputs.qaTestBranch}})" != "$(git rev-parse origin/${{inputs.main}})" ]; 
           then 
            echo "Branches are different launching package release" 
            echo "::set-output name=decision::launch"
@@ -40,12 +42,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0 
+          fetch-depth: 0
       - run: |
          echo "prep work"
          git fetch origin  ${{inputs.releasing}}
          git fetch origin  ${{inputs.qatestBranch}}
-         tag="hc.test.$(date'+&Y-%m-%d)"
+         tag="hc.test.$(date '+%y-%m-%d')"
          echo "$tag"
 
          echo "point hubs-cloud to current qa-test"
