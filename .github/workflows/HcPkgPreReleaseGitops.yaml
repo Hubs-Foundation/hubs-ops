@@ -23,17 +23,16 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - run: | 
-          list= $(git rev-list)
-          echo "$list"  
-          if [ "$(git rev-parse origin/${{inputs.qaTestBranch}})" != "$(git rev-parse origin/${{inputs.main}})" ]; 
-          then 
-           echo "Branches are different launching package release" 
-           echo "::set-output name=decision::launch"
-          else 
-            echo "Same"
-            exit
-          fi
+      - run: |   
+             release="$(git rev-parse qa-test)"
+             main="$(git rev-parse master)"
+             if [[  "$release"  !=  "$main"  ]];
+             then 
+             echo "Branches are different launching package release" 
+             #echo "::set-output name=decision::launch"
+             else 
+             echo "Same"
+             fi
   
   launch:
     needs: compare
