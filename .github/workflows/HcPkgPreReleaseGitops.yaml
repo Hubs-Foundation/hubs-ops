@@ -24,8 +24,8 @@ jobs:
         with:
           fetch-depth: 0
       - run: |   
-             release="$(git rev-parse qa-test)"
-             main="$(git rev-parse master)"
+             release="$(git rev-parse origin/qa-test)"
+             main="$(git rev-parse origin/master)"
              if [[  "$release"  !=  "$main"  ]];
              then 
              echo "Branches are different launching package release" 
