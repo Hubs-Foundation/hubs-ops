@@ -20,6 +20,15 @@ on:
         required: true
 
 jobs:
+  testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: testing
+        run: |
+          echo "github.actor: $github.actor"
+          gh api 'orgs/mozilla/teams/hubs-admin/members' --jq '.[].login' | grep -w $github.actor \
+            && echo "release personal channel for $github.actor"
+
   build:
     runs-on: ubuntu-latest
     steps:
