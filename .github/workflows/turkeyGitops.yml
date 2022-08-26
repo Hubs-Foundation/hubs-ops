@@ -24,8 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: testing
-        run: |
+        run: |          
           echo "github.actor: $github.actor"
+          echo ${{ secrets.GITHUB_TOKEN }} | gh auth login --with-token
           gh api 'orgs/mozilla/teams/hubs-admin/members' --jq '.[].login' | grep -w $github.actor \
             && echo "release personal channel for $github.actor"
 
