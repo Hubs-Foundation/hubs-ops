@@ -67,6 +67,20 @@ jobs:
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
   
+  release_personal:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/smoke/') }}
+    needs: build
+    steps:
+      - name: "smoke: pull GITHUB_RUN_NUMBER and tag to $actor"
+        run: |
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin
+          toTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.actor }}-$GITHUB_RUN_NUMBER
+          echo "[info] promoting :$fromTag to :$toTag"          
+          sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
+          
+  
   release_dev:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
