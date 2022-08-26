@@ -20,17 +20,6 @@ on:
         required: true
 
 jobs:
-  testing:
-    runs-on: ubuntu-latest
-    steps:
-      - name: testing
-        run: |          
-          actor=${{ github.actor }}
-          echo "github.actor: $actor"
-          echo ${{ secrets.GITHUB_TOKEN }} | gh auth login --with-token
-          gh api 'orgs/mozilla/teams/hubs-admin/members' --jq '.[].login' | grep -w $actor \
-            && echo "release personal channel for $actor"
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -67,7 +56,7 @@ jobs:
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
   
-  release_personal:
+  release_smoke:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/heads/smoke/') }}
     needs: build
