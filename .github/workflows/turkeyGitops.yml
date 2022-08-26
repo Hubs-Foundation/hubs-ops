@@ -25,10 +25,11 @@ jobs:
     steps:
       - name: testing
         run: |          
-          echo "github.actor: $github.actor"
+          actor=${{ github.actor }}
+          echo "github.actor: $actor"
           echo ${{ secrets.GITHUB_TOKEN }} | gh auth login --with-token
-          gh api 'orgs/mozilla/teams/hubs-admin/members' --jq '.[].login' | grep -w $github.actor \
-            && echo "release personal channel for $github.actor"
+          gh api 'orgs/mozilla/teams/hubs-admin/members' --jq '.[].login' | grep -w $actor \
+            && echo "release personal channel for $actor"
 
   build:
     runs-on: ubuntu-latest
