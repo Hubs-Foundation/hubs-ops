@@ -58,7 +58,7 @@ jobs:
   
   release_smoke:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/heads/smoke/') }}
+#     if: ${{ startsWith(github.ref, 'refs/heads/smoke/') }}
     needs: build
     steps:
 #       - name: "smoke: pull GITHUB_RUN_NUMBER and tag to $actor"
