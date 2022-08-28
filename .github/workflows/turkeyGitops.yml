@@ -75,6 +75,7 @@ jobs:
       - uses: google-github-actions/get-gke-credentials@main
         with:
           credentials: ${{ secrets.GCP_TURKEYGITOPS_SA_B64 }}
+          project_id: ${{ secrets.GKE_PROJECT }} 
           cluster_name: "devmyhubsnet5hmnp"
           location: "us-central1"
       - name: Deploy
