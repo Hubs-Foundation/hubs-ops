@@ -81,7 +81,7 @@ jobs:
       - id: 'auth'
         uses: 'google-github-actions/auth@v0'
         with:
-          credentials_json: '${{ secrets.GCP_TURKEYGITOPS_SA_B64 }}'
+          credentials_json: '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}'
       - id: 'get-credentials'
         uses: 'google-github-actions/get-gke-credentials@v0'
         with:
