@@ -18,6 +18,8 @@ on:
     secrets:
       DOCKER_HUB_PWD:
         required: true
+      GCP_TURKEYGITOPS_SA_JSON:
+        required: false
 
 jobs:
   build:
