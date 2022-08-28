@@ -68,16 +68,25 @@ jobs:
 #           toTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.actor }}-$GITHUB_RUN_NUMBER
 #           echo "[info] promoting :$fromTag to :$toTag"          
 #           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
-      - uses: google-github-actions/setup-gcloud@main
+#       - uses: google-github-actions/setup-gcloud@main
+#         with:
+#           service_account_key: ${{ secrets.GCP_TURKEYGITOPS_SA_B64 }}
+#           project_id: ${{ secrets.GKE_PROJECT }}          
+#       - uses: google-github-actions/get-gke-credentials@main
+#         with:
+#           credentials: ${{ secrets.GCP_TURKEYGITOPS_SA_B64 }}
+#           project_id: ${{ secrets.GKE_PROJECT }} 
+#           cluster_name: "devmyhubsnet5hmnp"
+#           location: "us-central1"
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v0'
         with:
-          service_account_key: ${{ secrets.GCP_TURKEYGITOPS_SA_B64 }}
-          project_id: ${{ secrets.GKE_PROJECT }}          
-      - uses: google-github-actions/get-gke-credentials@main
+          credentials_json: '${{ secrets.GCP_TURKEYGITOPS_SA_B64 }}'
+      - id: 'get-credentials'
+        uses: 'google-github-actions/get-gke-credentials@v0'
         with:
-          credentials: ${{ secrets.GCP_TURKEYGITOPS_SA_B64 }}
-          project_id: ${{ secrets.GKE_PROJECT }} 
-          cluster_name: "devmyhubsnet5hmnp"
-          location: "us-central1"
+          cluster_name: 'devmyhubsnet5hmnp'
+          location: 'us-central1-b'
       - name: Deploy
         run: |
           nsName=hc-$actor
