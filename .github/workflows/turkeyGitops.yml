@@ -5,7 +5,6 @@ on:
     inputs:
       codePath:
         type: string
-        default: 
       registry:
         type: string
         default: mozillareality
@@ -14,10 +13,16 @@ on:
         default: mozillareality
       dockerfile:
         type: string
-        default: Dockerfile      
+        default: Dockerfile
+      smoke_k8s_deployment:
+        type: string
+      smoke_k8s_deployment_container:
+        type: string
     secrets:
       DOCKER_HUB_PWD:
         required: true
+      GCP_TURKEYGITOPS_SA_JSON:
+        required: false
 
 jobs:
   build:
@@ -56,6 +61,29 @@ jobs:
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
   
+  release_smoke:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.smoke_k8s_deployment != '' && inputs.smoke_k8s_deployment_container != '' }}
+    needs: build
+    steps:
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v0'
+        with:
+          credentials_json: ${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}
+      - id: 'get-credentials'
+        uses: 'google-github-actions/get-gke-credentials@v0'
+        with:
+          cluster_name: 'devmyhubsnet5hmnp'
+          location: 'us-central1-b'
+      - name: Deploy
+        run: |
+          nsName=hc-${{ github.actor }}
+          deploymentName=${{ github.event.repository.name }}
+          containerName=${{ github.workflow }}
+          deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
+          echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
+          kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag
+          
   release_dev:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
@@ -95,17 +123,7 @@ jobs:
 
           toTag=${{ inputs.registry }}/${{ github.workflow }}:beta-latest
           echo "[info] promoting :$fromTag to :$toTag"
-          sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
-          
-#       - name: checkout codebase for tagging
-#         uses: actions/checkout@v2
-#         with:
-#           path: ./staging
-#       - name: tag staging commit
-#         run: |
-#           cd ./staging
-#           tag="${GITHUB_WORKFLOW}.staging.$(date '+%y%m%d').$GITHUB_RUN_NUMBER"
-#           git tag $tag ${GITHUB_SHA::7} && git push origin $tag         
+          sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag  
   
   release_prod:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
@@ -125,14 +143,3 @@ jobs:
           toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-latest
           echo "promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
-          
-#       - name: checkout codebase for tagging
-#         uses: actions/checkout@v2
-#         with:
-#           path: ./prod
-#       - name: tag release commit
-#         run: |
-#           cd ./prod
-#           tag="${GITHUB_WORKFLOW}.prod.$(date '+%y%m%d').$GITHUB_RUN_NUMBER"
-#           git tag $tag ${GITHUB_SHA::7} && git push origin $tag                
-        
