@@ -63,7 +63,7 @@ jobs:
   
   release_smoke:
     runs-on: ubuntu-latest
-    if: ${{ inputs.smoke_k8s_deployment != "" && inputs.smoke_k8s_deployment_container != "" }}
+    if: ${{ inputs.smoke_k8s_deployment != '' && inputs.smoke_k8s_deployment_container != '' }}
     needs: build
     steps:
       - id: 'auth'
