@@ -14,7 +14,10 @@ on:
         default: mozillareality
       dockerfile:
         type: string
-        default: Dockerfile      
+        default: Dockerfile
+      smoke:
+        type: boolean
+        default: false
     secrets:
       DOCKER_HUB_PWD:
         required: true
@@ -60,26 +63,9 @@ jobs:
   
   release_smoke:
     runs-on: ubuntu-latest
-#     if: ${{ startsWith(github.ref, 'refs/heads/smoke/') }}
+    if: ${{ inputs.smoke }}
     needs: build
     steps:
-#       - name: "smoke: pull GITHUB_RUN_NUMBER and tag to $actor"
-#         run: |
-#           fromTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
-#           echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin
-#           toTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.actor }}-$GITHUB_RUN_NUMBER
-#           echo "[info] promoting :$fromTag to :$toTag"          
-#           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
-#       - uses: google-github-actions/setup-gcloud@main
-#         with:
-#           service_account_key: ${{ secrets.GCP_TURKEYGITOPS_SA_B64 }}
-#           project_id: ${{ secrets.GKE_PROJECT }}          
-#       - uses: google-github-actions/get-gke-credentials@main
-#         with:
-#           credentials: ${{ secrets.GCP_TURKEYGITOPS_SA_B64 }}
-#           project_id: ${{ secrets.GKE_PROJECT }} 
-#           cluster_name: "devmyhubsnet5hmnp"
-#           location: "us-central1"
       - id: 'auth'
         uses: 'google-github-actions/auth@v0'
         with:
@@ -91,9 +77,9 @@ jobs:
           location: 'us-central1-b'
       - name: Deploy
         run: |
-          nsName=hc-$actor
+          nsName=hc-${{ github.actor }}
           deploymentName=${{ github.event.repository.name }}
-          containerName=${{ github.event.repository.name }}
+          containerName=${{ github.workflow }}
           deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
           echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
           kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag
@@ -137,17 +123,7 @@ jobs:
 
           toTag=${{ inputs.registry }}/${{ github.workflow }}:beta-latest
           echo "[info] promoting :$fromTag to :$toTag"
-          sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
-          
-#       - name: checkout codebase for tagging
-#         uses: actions/checkout@v2
-#         with:
-#           path: ./staging
-#       - name: tag staging commit
-#         run: |
-#           cd ./staging
-#           tag="${GITHUB_WORKFLOW}.staging.$(date '+%y%m%d').$GITHUB_RUN_NUMBER"
-#           git tag $tag ${GITHUB_SHA::7} && git push origin $tag         
+          sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag  
   
   release_prod:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
@@ -167,14 +143,3 @@ jobs:
           toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-latest
           echo "promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
-          
-#       - name: checkout codebase for tagging
-#         uses: actions/checkout@v2
-#         with:
-#           path: ./prod
-#       - name: tag release commit
-#         run: |
-#           cd ./prod
-#           tag="${GITHUB_WORKFLOW}.prod.$(date '+%y%m%d').$GITHUB_RUN_NUMBER"
-#           git tag $tag ${GITHUB_SHA::7} && git push origin $tag                
-        
