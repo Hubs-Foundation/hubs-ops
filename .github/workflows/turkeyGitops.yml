@@ -82,7 +82,7 @@ jobs:
           containerName=${{ github.workflow }}
           deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
           echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
-          kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag
+          kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
           
   release_dev:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
