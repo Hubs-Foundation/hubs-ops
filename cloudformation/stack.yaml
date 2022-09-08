@@ -1064,7 +1064,7 @@ Resources:
       Description: Cloudformation custom resource for DNS validated certificates
       Handler: index.handler
       Role: !GetAtt CustomAcmCertificateLambdaExecutionRole.Arn
-      Runtime: python3.6
+      Runtime: python3.9
       Timeout: 900
     Type: AWS::Lambda::Function
   CustomAcmCertificateLambdaExecutionRole:
@@ -1398,7 +1398,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Handler: index.handler
-      Runtime: python3.6
+      Runtime: python3.9
       Role: !GetAtt EmptyBucketRole.Arn
       Timeout: 240
       Code:
@@ -1466,7 +1466,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-ses-password"
       Handler: index.handler
-      Runtime: python3.6
+      Runtime: python3.9
       Role: !GetAtt SESPasswordRole.Arn
       Timeout: 240
       Code:
@@ -3682,7 +3682,7 @@ Resources:
       DBSubnetGroupName: !Ref AppDbSubnet
       Engine: aurora-postgresql
       EngineMode: serverless
-      EngineVersion: 11
+      EngineVersion: 12
       KmsKeyId: !If [CreateDiskEncryptionKey, !Ref DiskKmsKey, !Ref "AWS::NoValue"]
       StorageEncrypted: true
       MasterUsername: !If [IsRestore, !Ref "AWS::NoValue", !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]]
