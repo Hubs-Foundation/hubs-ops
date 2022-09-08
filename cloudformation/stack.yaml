@@ -2079,7 +2079,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/aws-cfn-ses-domain
-        SemanticVersion: 0.4.0
+        SemanticVersion: 0.4.2
       Parameters:
         SESDomainRoleArn: !GetAtt SESDomainRole.Arn
   KeymasterApplication:
@@ -3682,7 +3682,7 @@ Resources:
       DBSubnetGroupName: !Ref AppDbSubnet
       Engine: aurora-postgresql
       EngineMode: serverless
-      EngineVersion: 10.7
+      EngineVersion: 11
       KmsKeyId: !If [CreateDiskEncryptionKey, !Ref DiskKmsKey, !Ref "AWS::NoValue"]
       StorageEncrypted: true
       MasterUsername: !If [IsRestore, !Ref "AWS::NoValue", !Join ['', ['{{resolve:secretsmanager:', !Ref AppDbSecret, ':SecretString:username}}' ]]]
