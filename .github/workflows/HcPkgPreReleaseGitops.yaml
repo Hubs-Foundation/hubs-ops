@@ -48,10 +48,10 @@ jobs:
          git fetch origin  ${{inputs.qatestBranch}}
          tag="hc.test.$(date '+%y-%m-%d')"
          echo "$tag"
-         git remote show origin
+         
          echo "point hubs-cloud to current qa-test"
          git reset HEAD --hard 
-         git checkout origin ${{inputs.qaTestBranch}}
+         git checkout ${{inputs.qaTestBranch}}
          git pull origin ${{inputs.qaTestBranch}}
          sha=$(git rev-parse --verify HEAD)
          echo "${{inputs.qaTestBranch}} branch sha: $sha"
