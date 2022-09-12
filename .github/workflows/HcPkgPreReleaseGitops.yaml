@@ -53,7 +53,7 @@ jobs:
          git reset HEAD --hard 
          git checkout ${{inputs.qaTestBranch}}
          git pull origin ${{inputs.qaTestBranch}}
-         sha=$(git rev-parse --verify HEAD)
+         sha=$(git rev-parse --verfiy HEAD)
          echo "${{inputs.qaTestBranch}} branch sha: $sha"
          git checkout ${{inputs.releasing}}
          git update-ref 'refs/heads/${{inputs.releasing}}' $sha 
