@@ -61,7 +61,7 @@ jobs:
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
   
-  release_smoke:
+  release_personal:
     runs-on: ubuntu-latest
     if: ${{ inputs.smoke_k8s_deployment != '' && inputs.smoke_k8s_deployment_container != '' }}
     needs: build
