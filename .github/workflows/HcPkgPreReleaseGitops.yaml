@@ -53,7 +53,7 @@ jobs:
          git reset HEAD --hard 
          git checkout ${{inputs.qaTestBranch}}
          git pull origin ${{inputs.qaTestBranch}}
-         sha=$(git rev-parse --verfiy HEAD)
+         sha=$(git rev-parse  HEAD)
          echo "${{inputs.qaTestBranch}} branch sha: $sha"
          git checkout ${{inputs.releasing}}
          git update-ref 'refs/heads/${{inputs.releasing}}' $sha 
@@ -62,7 +62,7 @@ jobs:
          echo "point qa-test branch to current master"
          git reset HEAD --hard
          git checkout ${{inputs.main}} 
-         sha=$(git rev-parse --verfiy HEAD)
+         sha=$(git rev-parse  HEAD)
          echo "master branch sha: $sha"
          git checkout ${{inputs.releasing}}
          git update-ref  'refs/heads/${{inputs.releasing}}' $sha 
