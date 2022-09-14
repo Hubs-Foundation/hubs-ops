@@ -162,7 +162,7 @@ jobs:
           echo "promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
   build_hc_bio:
-    if: ${{ secrets.BLDR_HAB_TOKEN != '' && secrets.BLDR_RET_TOKEN != '' && secrets.BLDR_RET_PUB_B64 != ''}}  
+    if: ${{ secrets.BLDR_HAB_TOKEN != '' && secrets.BLDR_RET_TOKEN != '' && secrets.BLDR_RET_PUB_B64 != '' }}  
     runs-on: ubuntu-latest
     environment: hc-bio
     steps:
