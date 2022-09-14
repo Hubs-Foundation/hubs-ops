@@ -18,10 +18,28 @@ on:
         type: string
       smoke_k8s_deployment_container:
         type: string
+      qa_branch_name:
+        type: string
+        default: qa-test
+      qa_channel_name:
+        type: string
+        default: polycosm-unstable
+      hc_branch_name:
+        type: string
+        default: hubs-cloud
+      hc_channel_name:
+        type: string
+        default: polycosm-stable        
     secrets:
       DOCKER_HUB_PWD:
         required: true
       GCP_TURKEYGITOPS_SA_JSON:
+        required: false
+      BLDR_HAB_TOKEN:
+        required: false
+      BLDR_RET_TOKEN:
+        required: false
+      BLDR_RET_PUB_B64:
         required: false
 
 jobs:
@@ -143,3 +161,52 @@ jobs:
           toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-latest
           echo "promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
+  build_hc_bio:
+    if: ${{ secrets.BLDR_HAB_TOKEN != '' && secrets.BLDR_RET_TOKEN != '' && secrets.BLDR_RET_PUB_B64 != ''}}  
+    runs-on: ubuntu-latest
+    environment: hc-bio
+    steps:
+      - name: hab-wrap-and-push-min
+        run: |
+          export BLDR_HAB_TOKEN=${{ secrets. BLDR_HAB_TOKEN}}
+          export BLDR_RET_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
+          export BLDR_RET_PUB_B64=${{ secrets. BLDR_RET_PUB_B64}}      
+          bash scripts/hab-wrap-and-push-min.sh
+          hartArr=$(find /hab/cache/artifacts/mozillareality-*.hart -printf "%f")
+          echo "${hartArr[0]}/${hartArr[1]}/${hartArr[2]}/${hartArr[3]}" > bioPkgName
+      - name: Upload bioPkgName
+        uses: actions/upload-artifact@v3
+        with:
+          name: bioPkgName
+          path: bioPkgName
+  release_qa:
+    needs: build_hc_bio
+    runs-on: ubuntu-latest
+    environment: hc-bio-qa
+    steps:
+      - name: Download bioPkgName
+        uses: actions/download-artifact@v3
+        with:
+          name: bioPkgName
+      - name: promote bioPkg
+        run: |
+          export HAB_BLDR_URL="https://bldr.reticulum.io"
+          export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
+          pkg=$(cat bioPkgName)
+          bio pkg promote $pkg ${{ inputs.qa_channel_name }}
+  release_stable:
+    needs: release_qa
+    runs-on: ubuntu-latest
+    environment: hc-bio-prod
+    steps:
+      - name: Download bioPkgName
+        uses: actions/download-artifact@v3
+        with:
+          name: bioPkgName
+      - name: promote bioPkg
+        run: |
+          export HAB_BLDR_URL="https://bldr.reticulum.io"
+          export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
+          pkg=$(cat bioPkgName)
+          bio pkg promote $pkg ${{ inputs.hc_channel_name }}
+
