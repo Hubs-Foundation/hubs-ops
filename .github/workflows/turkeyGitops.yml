@@ -165,6 +165,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: hc-bio
     steps:
+      - name: checkout repo
+        uses: actions/checkout@v2
       - name: hab-wrap-and-push-min
         run: |
           export BLDR_HAB_TOKEN=${{ secrets. BLDR_HAB_TOKEN}}
