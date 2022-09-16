@@ -164,6 +164,7 @@ jobs:
   build_hc_bio:
     runs-on: ubuntu-latest
     environment: hc-bio
+    needs: build
     steps:
       - name: checkout repo
         uses: actions/checkout@v2
