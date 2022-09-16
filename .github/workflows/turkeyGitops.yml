@@ -170,7 +170,7 @@ jobs:
         uses: actions/checkout@v2
       - name: hab-wrap-and-push-min
         run: >
-          docker run -it --privileged \
+          docker run -i --privileged \
             -v $PWD:/hubs -v $PWD/harts:/hab/cache/artifacts \
             -e BLDR_HAB_TOKEN=${{ secrets. BLDR_HAB_TOKEN}} \
             -e BLDR_RET_TOKEN=${{ secrets. BLDR_RET_TOKEN}} \
