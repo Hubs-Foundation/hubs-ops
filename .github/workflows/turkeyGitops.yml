@@ -169,10 +169,13 @@ jobs:
         uses: actions/checkout@v2
       - name: hab-wrap-and-push-min
         run: |
-          export BLDR_HAB_TOKEN=${{ secrets. BLDR_HAB_TOKEN}}
-          export BLDR_RET_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
-          export BLDR_RET_PUB_B64=${{ secrets. BLDR_RET_PUB_B64}}      
-          bash scripts/hab-wrap-and-push-min.sh
+          docker run -it --privileged \
+            -v $PWD:/hubs \
+            -v $PWD/harts:/hab/cache/artifacts
+            --env BLDR_HAB_TOKEN=${{ secrets. BLDR_HAB_TOKEN}} \
+            --env BLDR_RET_TOKEN=${{ secrets. BLDR_RET_TOKEN}} \
+            --env BLDR_RET_PUB_B64=${{ secrets. BLDR_RET_PUB_B64}} \
+            mozillareality/hubs:${{ github.run_number }} bash /hubs/scripts/hab-wrap-and-push-min.sh
           hartArr=$(find /hab/cache/artifacts/mozillareality-*.hart -printf "%f")
           echo "${hartArr[0]}/${hartArr[1]}/${hartArr[2]}/${hartArr[3]}" > bioPkgName
       - name: Upload bioPkgName
