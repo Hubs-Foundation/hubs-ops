@@ -180,6 +180,7 @@ jobs:
           hart=$(find ./harts/mozillareality-${{ github.workflow }}*.hart -printf "%f")
           hartArr=(${hart//-/ })
           echo "${hartArr[0]}/${hartArr[1]}/${hartArr[2]}/${hartArr[3]}" > bioPkgName
+          echo "cat bioPkgName: " && cat bioPkgName
       - name: Upload bioPkgName
         uses: actions/upload-artifact@v3
         with:
@@ -196,10 +197,14 @@ jobs:
           name: bioPkgName
       - name: promote bioPkg
         run: |
+          org="biome-sh";repo="biome"
+          ver=$(curl -s https://api.github.com/repos/$org/$repo/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
+          dl="https://github.com/$org/$repo/releases/download/$ver/bio-${ver#"v"}-x86_64-linux.tar.gz"
+          echo "[info] getting bio from: $dl" && curl -L -o bio.gz $dl && tar -xf bio.gz && ./bio --version                 
           export HAB_BLDR_URL="https://bldr.reticulum.io"
           export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
-          pkg=$(cat bioPkgName)
-          bio pkg promote $pkg ${{ inputs.qa_channel_name }}
+          pkg=$(cat bioPkgName)          
+          ./bio pkg promote $pkg ${{ inputs.qa_channel_name }}
   release_stable:
     needs: release_qa
     runs-on: ubuntu-latest
@@ -211,8 +216,12 @@ jobs:
           name: bioPkgName
       - name: promote bioPkg
         run: |
+          org="biome-sh";repo="biome"
+          ver=$(curl -s https://api.github.com/repos/$org/$repo/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
+          dl="https://github.com/$org/$repo/releases/download/$ver/bio-${ver#"v"}-x86_64-linux.tar.gz"
+          echo "[info] getting bio from: $dl" && curl -L -o bio.gz $dl && tar -xf bio.gz && ./bio --version                 
           export HAB_BLDR_URL="https://bldr.reticulum.io"
           export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
-          pkg=$(cat bioPkgName)
-          bio pkg promote $pkg ${{ inputs.hc_channel_name }}
+          pkg=$(cat bioPkgName)        
+          ./bio pkg promote $pkg ${{ inputs.hc_channel_name }}
 
