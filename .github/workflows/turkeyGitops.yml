@@ -192,13 +192,15 @@ jobs:
           name: bioPkgName
       - name: promote bioPkg
         run: |
+          pkg=$(cat bioPkgName)
+          echo "pkg=<$pkg>...rest is not yet ready"
+          exit 1
           org="biome-sh";repo="biome"
           ver=$(curl -s https://api.github.com/repos/$org/$repo/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
           dl="https://github.com/$org/$repo/releases/download/$ver/bio-${ver#"v"}-x86_64-linux.tar.gz"
           echo "[info] getting bio from: $dl" && curl -L -o bio.gz $dl && tar -xf bio.gz && ./bio --version                 
           export HAB_BLDR_URL="https://bldr.reticulum.io"
-          export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
-          pkg=$(cat bioPkgName)          
+          export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}                    
           ./bio pkg promote $pkg ${{ inputs.qa_channel_name }}
   release_stable:
     needs: release_qa
