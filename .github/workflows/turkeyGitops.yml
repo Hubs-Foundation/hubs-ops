@@ -169,14 +169,8 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v2
       - name: hab-wrap-and-push-min
-        run: >
-          docker run -i --privileged \
-            -v $PWD/harts:/hab/cache/artifacts \
-            -v $PWD:/${{ github.workflow }} -v $PWD/harts:/hab/cache/artifacts \
-            -e BLDR_HAB_TOKEN=${{ secrets. BLDR_HAB_TOKEN}} \
-            -e BLDR_RET_TOKEN=${{ secrets. BLDR_RET_TOKEN}} \
-            -e BLDR_RET_PUB_B64=${{ secrets. BLDR_RET_PUB_B64}} \
-            mozillareality/${{ github.workflow }}:${{ github.run_number }} bash /${{ github.workflow }}/scripts/hab-wrap-and-push-min.sh 1>stdouts
+        run: |
+          docker run -i --privileged -v $PWD/harts:/hab/cache/artifacts -v $PWD:/${{ github.workflow }} -v $PWD/harts:/hab/cache/artifacts -e BLDR_HAB_TOKEN=${{ secrets. BLDR_HAB_TOKEN}} -e BLDR_RET_TOKEN=${{ secrets. BLDR_RET_TOKEN}} -e BLDR_RET_PUB_B64=${{ secrets. BLDR_RET_PUB_B64}} mozillareality/${{ github.workflow }}:${{ github.run_number }} bash /${{ github.workflow }}/scripts/hab-wrap-and-push-min.sh 1>stdouts
           pkgNameRaw=$(tail -2 stdouts | head -1)
           echo "pkgNameRaw: $pkgNameRaw"
           echo $pkgNameRaw | sed -rn 's~.*(mozillareality\/.*)~\1~p' > bioPkgName
