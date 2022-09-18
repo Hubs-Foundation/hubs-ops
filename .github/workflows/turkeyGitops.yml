@@ -176,13 +176,12 @@ jobs:
             -e BLDR_HAB_TOKEN=${{ secrets. BLDR_HAB_TOKEN}} \
             -e BLDR_RET_TOKEN=${{ secrets. BLDR_RET_TOKEN}} \
             -e BLDR_RET_PUB_B64=${{ secrets. BLDR_RET_PUB_B64}} \
-            mozillareality/${{ github.workflow }}:${{ github.run_number }} bash /${{ github.workflow }}/scripts/hab-wrap-and-push-min.sh
-          hart=$(find $PWD/harts/mozillareality-${{ github.workflow }}*.hart -printf "%f")
-          echo "hartFile: " + $hart
-          hartArr=(${hart//-/ })
-          pkgName="${hartArr[0]}/${hartArr[1]}/${hartArr[2]}/${hartArr[3]}"
-          echo "$pkgName" > bioPkgName
-          echo "cat bioPkgName: " && cat bioPkgName
+            mozillareality/${{ github.workflow }}:${{ github.run_number }} bash /${{ github.workflow }}/scripts/hab-wrap-and-push-min.sh 1>stdouts
+          pkgNameRaw=$(tail -2 stdouts | head -1)
+          echo "pkgNameRaw: $pkgNameRaw"
+          echo $pkgNameRaw | sed -rn 's~.*(mozillareality\/.*)~\1~p' > bioPkgName
+          echo "bioPkgName: " && cat bioPkgName
+          
       - name: Upload bioPkgName
         uses: actions/upload-artifact@v3
         with:
