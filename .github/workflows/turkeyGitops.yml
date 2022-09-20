@@ -167,6 +167,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: hc-bio
     needs: build
+    if: ${{ inputs.bio_script_path != '' }}
     steps:
       - name: checkout repo
         uses: actions/checkout@v2
