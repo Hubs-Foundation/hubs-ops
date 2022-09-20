@@ -14,9 +14,9 @@ on:
       dockerfile:
         type: string
         default: Dockerfile
-      smoke_k8s_deployment:
+      personal_k8s_deployment:
         type: string
-      smoke_k8s_deployment_container:
+      personal_k8s_deployment_container:
         type: string
       qa_branch_name:
         type: string
@@ -81,7 +81,7 @@ jobs:
   
   release_personal:
     runs-on: ubuntu-latest
-    if: ${{ inputs.smoke_k8s_deployment != '' && inputs.smoke_k8s_deployment_container != '' }}
+    if: ${{ inputs.personal_k8s_deployment != '' && inputs.personal_k8s_deployment_container != '' }}
     needs: build
     steps:
       - id: 'auth'
