@@ -173,7 +173,7 @@ jobs:
         uses: actions/checkout@v2
       - name: hab-wrap-and-push-min
         run: |
-          docker run -i --privileged -v $PWD/harts:/hab/cache/artifacts -v $PWD:/${{ github.workflow }} -v $PWD/harts:/hab/cache/artifacts -e BLDR_HAB_TOKEN=${{ secrets. BLDR_HAB_TOKEN}} -e BLDR_RET_TOKEN=${{ secrets. BLDR_RET_TOKEN}} -e BLDR_RET_PUB_B64=${{ secrets. BLDR_RET_PUB_B64}} mozillareality/${{ github.workflow }}:${{ github.run_number }} bash /repo/${{ inputs.bio_script_path }} 1>stdouts
+          docker run -i --privileged -v $PWD/harts:/hab/cache/artifacts -v $PWD:/repo -e BLDR_HAB_TOKEN=${{ secrets. BLDR_HAB_TOKEN}} -e BLDR_RET_TOKEN=${{ secrets. BLDR_RET_TOKEN}} -e BLDR_RET_PUB_B64=${{ secrets. BLDR_RET_PUB_B64}} mozillareality/${{ github.workflow }}:${{ github.run_number }} bash /repo/${{ inputs.bio_script_path }} 1>stdouts
           pkgNameRaw=$(tail -2 stdouts | head -1)
           echo "pkgNameRaw: $pkgNameRaw"
           echo $pkgNameRaw | sed -rn 's~.*(mozillareality\/.*)~\1~p' > bioPkgName
@@ -185,6 +185,7 @@ jobs:
           name: bioPkgName
           path: bioPkgName
   release_qa:
+    if: ${{ github.ref == 'refs/heads/qa-test' }}
     needs: build_hc_bio
     runs-on: ubuntu-latest
     environment: hc-bio-qa
@@ -196,12 +197,13 @@ jobs:
       - name: promote bioPkg
         run: |
           pkg=$(cat bioPkgName)
-          echo "pkg=<$pkg>...rest is not yet ready"
-          exit 1
+          echo "[info] releasing pkg=<$pkg>"
+          echo "[info] getting bio"
           org="biome-sh";repo="biome"
           ver=$(curl -s https://api.github.com/repos/$org/$repo/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
           dl="https://github.com/$org/$repo/releases/download/$ver/bio-${ver#"v"}-x86_64-linux.tar.gz"
-          echo "[info] getting bio from: $dl" && curl -L -o bio.gz $dl && tar -xf bio.gz && ./bio --version                 
+          echo "[info] getting bio from: $dl" && curl -L -o bio.gz $dl && tar -xf bio.gz && ./bio --version
+          echo "[info] releasing <$pkg> to <${{ inputs.qa_channel_name }}>"
           export HAB_BLDR_URL="https://bldr.reticulum.io"
           export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}                    
           ./bio pkg promote $pkg ${{ inputs.qa_channel_name }}
@@ -216,12 +218,15 @@ jobs:
           name: bioPkgName
       - name: promote bioPkg
         run: |
+          pkg=$(cat bioPkgName)
+          echo "[info] releasing pkg=<$pkg>"
+          echo "[info] getting bio"
           org="biome-sh";repo="biome"
           ver=$(curl -s https://api.github.com/repos/$org/$repo/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
           dl="https://github.com/$org/$repo/releases/download/$ver/bio-${ver#"v"}-x86_64-linux.tar.gz"
-          echo "[info] getting bio from: $dl" && curl -L -o bio.gz $dl && tar -xf bio.gz && ./bio --version                 
+          echo "[info] getting bio from: $dl" && curl -L -o bio.gz $dl && tar -xf bio.gz && ./bio --version
+          echo "[info] releasing <$pkg> to <${{ inputs.hc_channel_name }}>"
           export HAB_BLDR_URL="https://bldr.reticulum.io"
           export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
-          pkg=$(cat bioPkgName)        
           ./bio pkg promote $pkg ${{ inputs.hc_channel_name }}
 
