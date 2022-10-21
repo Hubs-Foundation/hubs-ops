@@ -43,6 +43,8 @@ on:
         required: false
       BLDR_RET_PUB_B64:
         required: false
+      BLDR_HAB_PVT_B64:
+        required: false
 
 jobs:
   build:
