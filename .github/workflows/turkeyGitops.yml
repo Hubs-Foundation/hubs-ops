@@ -150,7 +150,7 @@ jobs:
   release_prod:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: release_staging
     environment: prod
     steps:
       - name: promote artifact to prod
