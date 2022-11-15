@@ -129,7 +129,7 @@ jobs:
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
           
   release_staging:
-    name: staging release ( HMC / turkey-demo )
+    name: HMC / turkey-demo (staging release)
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
     runs-on: ubuntu-latest
     needs: build
