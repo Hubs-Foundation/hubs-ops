@@ -129,6 +129,7 @@ jobs:
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
           
   release_staging:
+    name: staging release ( HMC / turkey-demo )
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
     runs-on: ubuntu-latest
     needs: build
@@ -210,6 +211,7 @@ jobs:
           export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}                    
           ./bio pkg promote $pkg ${{ inputs.qa_channel_name }}
   release_stable:
+    name: production release
     needs: release_qa
     runs-on: ubuntu-latest
     environment: hc-bio-prod
