@@ -234,4 +234,12 @@ jobs:
           export HAB_BLDR_URL="https://bldr.reticulum.io"
           export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
           ./bio pkg promote $pkg ${{ inputs.hc_channel_name }}
-
+      - name: checkout codebase for tagging
+        uses: actions/checkout@v2
+        with:
+          path: ./prod
+      - name: tag release commit
+        run: |
+          cd ./prod
+          tag="${GITHUB_WORKFLOW}.stable-$GITHUB_RUN_NUMBER.$(date '+%Y-%m-%d')"
+          git tag $tag ${GITHUB_SHA::7} && git push origin $tag
