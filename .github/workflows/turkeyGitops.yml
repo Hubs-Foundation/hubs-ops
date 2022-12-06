@@ -233,5 +233,7 @@ jobs:
           echo "[info] releasing <$pkg> to <${{ inputs.hc_channel_name }}>"
           export HAB_BLDR_URL="https://bldr.reticulum.io"
           export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
+          echo "prod deployment starting in 10 min"
+          sleep 600
           ./bio pkg promote $pkg ${{ inputs.hc_channel_name }}
 
