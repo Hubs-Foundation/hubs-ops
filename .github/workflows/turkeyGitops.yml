@@ -100,8 +100,8 @@ jobs:
       - name: Deploy
         run: |
           nsName=hc-${{ github.actor }}
-          deploymentName=${{ github.event.repository.name }}
-          containerName=${{ github.workflow }}
+          deploymentName=${{ inputs.personal_k8s_deployment }}
+          containerName=${{ inputs.personal_k8s_deployment_container }}
           deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
           echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
           kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
