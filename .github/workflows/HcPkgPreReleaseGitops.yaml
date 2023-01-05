@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
       - run: |
          echo "prep work"
-         git fetch origin  ${{inputs.releaseTrackingBranch}
+         git fetch origin  ${{inputs.releaseTrackingBranch}}
          git fetch origin  ${{inputs.qatestBranch}}
          tag="hc.test.$(date '+%y-%m-%d')"
          echo "$tag"
