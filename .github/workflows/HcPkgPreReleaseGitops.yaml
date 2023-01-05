@@ -6,7 +6,7 @@ on:
      description:  "Main Branch"
      required: true
      type: string
-    releasing:
+    releaseTrackingBranch:
       description: "releasing Branch"
       required: true
       type: string
@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
       - run: |
          echo "prep work"
-         git fetch origin  ${{inputs.releasing}}
+         git fetch origin  ${{inputs.releaseTrackingBranch}
          git fetch origin  ${{inputs.qatestBranch}}
          tag="hc.test.$(date '+%y-%m-%d')"
          echo "$tag"
@@ -36,17 +36,17 @@ jobs:
          git pull origin ${{inputs.qaTestBranch}}
          sha=$(git rev-parse  HEAD)
          echo "${{inputs.qaTestBranch}} branch sha: $sha"
-         git checkout ${{inputs.releasing}}
-         git update-ref 'refs/heads/${{inputs.releasing}}' $sha 
-         git push origin ${{inputs.releasing}}
+         git checkout ${{inputs.releaseTrackingBranch}}
+         git update-ref 'refs/heads/${{inputs.releaseTrackingBranch}}' $sha 
+         git push origin ${{inputs.releaseTrackingBranch}}
 
          echo "point qa-test branch to current master"
          git reset HEAD --hard
          git checkout ${{inputs.main}} 
          sha=$(git rev-parse  HEAD)
          echo "master branch sha: $sha"
-         git checkout ${{inputs.releasing}}
-         git update-ref  'refs/heads/${{inputs.releasing}}' $sha 
-         git push  origin ${{inputs.releasing}} -f
+         git checkout ${{inputs.releaseTrackingBranch}}
+         git update-ref  'refs/heads/${{inputs.releaseTrackingBranch}}' $sha 
+         git push  origin ${{inputs.releaseTrackingBranch}} -f
          git tag  $tag 
          git push origin $tag
