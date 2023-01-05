@@ -30,7 +30,7 @@ jobs:
          tag="hc.test.$(date '+%y-%m-%d')"
          echo "$tag"
          
-         echo "point hubs-cloud to current qa-test"
+         echo "point releaseTrackingBranch to current qa-test"
          git reset HEAD --hard 
          git checkout ${{inputs.qaTestBranch}}
          git pull origin ${{inputs.qaTestBranch}}
@@ -45,8 +45,8 @@ jobs:
          git checkout ${{inputs.main}} 
          sha=$(git rev-parse  HEAD)
          echo "master branch sha: $sha"
-         git checkout ${{inputs.releaseTrackingBranch}}
-         git update-ref  'refs/heads/${{inputs.releaseTrackingBranch}}' $sha 
-         git push  origin ${{inputs.releaseTrackingBranch}} -f
+         git checkout ${{inputs.qatestBranch}}
+         git update-ref  'refs/heads/${{inputs.qatestBranch}}' $sha 
+         git push  origin ${{inputs.qatestBranch}} -f
          git tag  $tag 
          git push origin $tag
