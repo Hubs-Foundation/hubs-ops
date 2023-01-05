@@ -1,0 +1,52 @@
+name: compare branches
+on:
+  workflow_call:
+   inputs:
+    main:
+     description:  "Main Branch"
+     required: true
+     type: string
+    releasing:
+      description: "releasing Branch"
+      required: true
+      type: string
+    qaTestBranch:
+      description: "Qa test branch"
+      required: true 
+      type: string
+
+
+jobs:
+ launch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - run: |
+         echo "prep work"
+         git fetch origin  ${{inputs.releasing}}
+         git fetch origin  ${{inputs.qatestBranch}}
+         tag="hc.test.$(date '+%y-%m-%d')"
+         echo "$tag"
+         
+         echo "point hubs-cloud to current qa-test"
+         git reset HEAD --hard 
+         git checkout ${{inputs.qaTestBranch}}
+         git pull origin ${{inputs.qaTestBranch}}
+         sha=$(git rev-parse  HEAD)
+         echo "${{inputs.qaTestBranch}} branch sha: $sha"
+         git checkout ${{inputs.releasing}}
+         git update-ref 'refs/heads/${{inputs.releasing}}' $sha 
+         git push origin ${{inputs.releasing}}
+
+         echo "point qa-test branch to current master"
+         git reset HEAD --hard
+         git checkout ${{inputs.main}} 
+         sha=$(git rev-parse  HEAD)
+         echo "master branch sha: $sha"
+         git checkout ${{inputs.releasing}}
+         git update-ref  'refs/heads/${{inputs.releasing}}' $sha 
+         git push  origin ${{inputs.releasing}} -f
+         git tag  $tag 
+         git push origin $tag
