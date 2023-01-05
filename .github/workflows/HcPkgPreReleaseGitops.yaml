@@ -1,6 +1,6 @@
 name: compare branches
 on:
-  workflow_call:
+  workflow_dispatch:
    inputs:
     main:
      description:  "Main Branch"
