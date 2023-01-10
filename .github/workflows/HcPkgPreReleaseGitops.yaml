@@ -47,6 +47,6 @@ jobs:
          echo "master branch sha: $sha"
          git checkout ${{inputs.qatestBranch}}
          git update-ref  'refs/heads/${{inputs.qatestBranch}}' $sha 
-         git push  origin ${{inputs.qatestBranch}} -f
+         git push origin ${{inputs.qatestBranch}}
          git tag  $tag 
          git push origin $tag
