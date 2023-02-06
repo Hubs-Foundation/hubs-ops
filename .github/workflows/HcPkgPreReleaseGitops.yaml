@@ -24,13 +24,13 @@ jobs:
         with:
           fetch-depth: 0
       - run: |
-         echo "prep work"
+         echo "Prep work"
          git fetch origin  ${{inputs.releaseTrackingBranch}}
          git fetch origin  ${{inputs.qatestBranch}}
-         tag="hc.test.$(date '+%y-%m-%d')"
+         tag="hc.test.$(date '+%Y-%m-%d')"
          echo "$tag"
          
-         echo "point releaseTrackingBranch to current qa-test"
+         echo "Point releaseTrackingBranch to current qa-test"
          git reset HEAD --hard 
          git checkout ${{inputs.qaTestBranch}}
          git pull origin ${{inputs.qaTestBranch}}
@@ -40,7 +40,7 @@ jobs:
          git update-ref 'refs/heads/${{inputs.releaseTrackingBranch}}' $sha 
          git push origin ${{inputs.releaseTrackingBranch}}
 
-         echo "point qa-test branch to current master"
+         echo "Point qa-test branch to current master"
          git reset HEAD --hard
          git checkout ${{inputs.main}} 
          sha=$(git rev-parse  HEAD)
