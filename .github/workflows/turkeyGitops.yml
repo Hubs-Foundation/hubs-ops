@@ -235,3 +235,25 @@ jobs:
           sleep 600
           ./bio pkg promote $pkg ${{ inputs.hc_channel_name }}
 
+  dev_deploy_smoke:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.personal_k8s_deployment != '' && inputs.personal_k8s_deployment_container != '' }}
+    needs: build
+    steps:
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v0'
+        with:
+          credentials_json: ${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}
+      - id: 'get-credentials'
+        uses: 'google-github-actions/get-gke-credentials@v0'
+        with:
+          cluster_name: 'devmyhubsnet5hmnp'
+          location: 'us-central1-b'
+      - name: Deploy
+        run: |
+          nsName=hc-smoke01
+          deploymentName=${{ inputs.personal_k8s_deployment }}
+          containerName=${{ inputs.personal_k8s_deployment_container }}
+          deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
+          echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
+          kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
