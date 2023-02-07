@@ -239,6 +239,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.personal_k8s_deployment != '' && inputs.personal_k8s_deployment_container != '' }}
     needs: build
+    environment: smoke
     steps:
       - id: 'auth'
         uses: 'google-github-actions/auth@v0'
