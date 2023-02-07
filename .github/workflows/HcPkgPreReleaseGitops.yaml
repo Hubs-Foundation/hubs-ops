@@ -38,7 +38,7 @@ jobs:
          echo "${{inputs.qaTestBranch}} branch sha: $sha"
          git checkout ${{inputs.releaseTrackingBranch}}
          git update-ref 'refs/heads/${{inputs.releaseTrackingBranch}}' $sha 
-         git push origin ${{inputs.releaseTrackingBranch}}
+         git push origin ${{inputs.releaseTrackingBranch}} -f
 
          echo "Point qa-test branch to current master"
          git reset HEAD --hard
@@ -47,6 +47,6 @@ jobs:
          echo "master branch sha: $sha"
          git checkout ${{inputs.qatestBranch}}
          git update-ref  'refs/heads/${{inputs.qatestBranch}}' $sha 
-         git push origin ${{inputs.qatestBranch}}
+         git push origin ${{inputs.qatestBranch}} -f 
          git tag  $tag 
          git push origin $tag
