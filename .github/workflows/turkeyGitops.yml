@@ -31,7 +31,9 @@ on:
         default: hubs-cloud
       hc_channel_name:
         type: string
-        default: polycosm-stable        
+        default: polycosm-stable
+      smoke-room:
+        type: string
     secrets:
       DOCKER_HUB_PWD:
         required: true
