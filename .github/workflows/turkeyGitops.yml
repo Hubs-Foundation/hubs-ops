@@ -254,7 +254,7 @@ jobs:
           location: 'us-central1-b'
       - name: Deploy
         run: |
-          nsName=hc-${{inputs.smoke-room}}
+          nsName=hc-${{inputs.smoke-instance}}
           deploymentName=${{ inputs.personal_k8s_deployment }}
           containerName=${{ inputs.personal_k8s_deployment_container }}
           deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
