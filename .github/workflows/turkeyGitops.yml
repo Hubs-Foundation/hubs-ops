@@ -14,9 +14,9 @@ on:
       dockerfile:
         type: string
         default: Dockerfile
-      personal_k8s_deployment:
+      k8s_deployment:
         type: string
-      personal_k8s_deployment_container:
+      k8s_deployment_container:
         type: string
       bio_script_path:
         type: string
@@ -32,7 +32,7 @@ on:
       hc_channel_name:
         type: string
         default: polycosm-stable
-      smoke-room:
+      smoke-instance:
         type: string
     secrets:
       DOCKER_HUB_PWD:
@@ -87,7 +87,7 @@ jobs:
   
   dev_deploy_personal:
     runs-on: ubuntu-latest
-    if: ${{ inputs.personal_k8s_deployment != '' && inputs.personal_k8s_deployment_container != '' }}
+    if: ${{ inputs.k8s_deployment != '' && inputs.k8s_deployment_container != '' }}
     needs: build
     steps:
       - id: 'auth'
@@ -102,8 +102,8 @@ jobs:
       - name: Deploy
         run: |
           nsName=hc-${{ github.actor }}
-          deploymentName=${{ inputs.personal_k8s_deployment }}
-          containerName=${{ inputs.personal_k8s_deployment_container }}
+          deploymentName=${{ inputs.k8s_deployment }}
+          containerName=${{ inputs.k8s_deployment_container }}
           deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
           echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
           kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
@@ -239,7 +239,7 @@ jobs:
 
   dev_deploy_smoke:
     runs-on: ubuntu-latest
-    if: ${{ inputs.personal_k8s_deployment != '' && inputs.personal_k8s_deployment_container != '' }}
+    if: ${{ inputs.k8s_deployment != '' && inputs.k8s_deployment_container != '' }}
     needs: build
     environment: smoke
     steps:
@@ -255,8 +255,8 @@ jobs:
       - name: Deploy
         run: |
           nsName=hc-${{inputs.smoke-instance}}
-          deploymentName=${{ inputs.personal_k8s_deployment }}
-          containerName=${{ inputs.personal_k8s_deployment_container }}
+          deploymentName=${{ inputs.k8s_deployment }}
+          containerName=${{ inputs.k8s_deployment_container }}
           deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
           echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
           kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
