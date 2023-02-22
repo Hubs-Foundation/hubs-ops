@@ -14,9 +14,9 @@ on:
       dockerfile:
         type: string
         default: Dockerfile
-      personal_k8s_deployment:
+      k8s_deployment:
         type: string
-      personal_k8s_deployment_container:
+      k8s_deployment_container:
         type: string
       bio_script_path:
         type: string
@@ -31,7 +31,9 @@ on:
         default: hubs-cloud
       hc_channel_name:
         type: string
-        default: polycosm-stable        
+        default: polycosm-stable
+      smoke-instance:
+        type: string
     secrets:
       DOCKER_HUB_PWD:
         required: true
@@ -85,7 +87,7 @@ jobs:
   
   dev_deploy_personal:
     runs-on: ubuntu-latest
-    if: ${{ inputs.personal_k8s_deployment != '' && inputs.personal_k8s_deployment_container != '' }}
+    if: ${{ inputs.k8s_deployment != '' && inputs.k8s_deployment_container != '' }}
     needs: build
     steps:
       - id: 'auth'
@@ -100,8 +102,8 @@ jobs:
       - name: Deploy
         run: |
           nsName=hc-${{ github.actor }}
-          deploymentName=${{ inputs.personal_k8s_deployment }}
-          containerName=${{ inputs.personal_k8s_deployment_container }}
+          deploymentName=${{ inputs.k8s_deployment }}
+          containerName=${{ inputs.k8s_deployment_container }}
           deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
           echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
           kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
@@ -235,3 +237,26 @@ jobs:
           sleep 600
           ./bio pkg promote $pkg ${{ inputs.hc_channel_name }}
 
+  dev_deploy_smoke:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.k8s_deployment != '' && inputs.k8s_deployment_container != '' }}
+    needs: build
+    environment: smoke
+    steps:
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v0'
+        with:
+          credentials_json: ${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}
+      - id: 'get-credentials'
+        uses: 'google-github-actions/get-gke-credentials@v0'
+        with:
+          cluster_name: 'devmyhubsnet5hmnp'
+          location: 'us-central1-b'
+      - name: Deploy
+        run: |
+          nsName=hc-${{inputs.smoke-instance}}
+          deploymentName=${{ inputs.k8s_deployment }}
+          containerName=${{ inputs.k8s_deployment_container }}
+          deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
+          echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
+          kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
