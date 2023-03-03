@@ -2,34 +2,6 @@
 
 exec 2>&1
 
-#mkdir -p "{{ pkg.svc_config_path }}/env"
-#envdir {{ pkg.svc_config_path }}/env gunicorn -w {{ cfg.general.num_workers }} -b {{ cfg.general.bind_ip }}:{{ cfg.general.port }} app:app
 cd {{ pkg.path }}
 ls -lha cd {{ pkg.path }}
 gunicorn -w {{ cfg.general.num_workers }} -b {{ cfg.general.bind_ip }}:{{ cfg.general.port }} app:app
-
-
-
-# #!/bin/bash
-
-# # exec 2>&1
-
-# # mkdir -p "{{ pkg.svc_config_path }}/env"
-# # envdir {{ pkg.svc_config_path }}/env gunicorn -w {{ cfg.general.num_workers }} -b {{ cfg.general.bind_ip }}:{{ cfg.general.port }} youtube_dl_server.app:app
-# # cd {{ pkg.path }}
-# pkgDir={{ pkg.path }}
-# echo "----------------------- ytdl ----------------------"
-# echo "pkgDir: $pkgDir"
-# ls -lha {{ pkg.path }}
-# echo "----------------------- ytdl ----------------------"
-
-# {{ pkg.path }}/gunicorn app:app -w 2 --threads 2 -b 0.0.0.0:8080
-
-
-
-# docker run -i --privileged -v $PWD/harts:/hab/cache/artifacts 
-# -v $PWD:/repo -e BLDR_HAB_TOKEN=${{ secrets.BLDR_HAB_TOKEN}} 
-# -e BLDR_RET_TOKEN=${{ secrets.BLDR_RET_TOKEN}} 
-# -e BLDR_RET_PUB_B64=${{ secrets.BLDR_RET_PUB_B64}} 
-# -e BLDR_HAB_PVT_B64=${{ secrets.BLDR_HAB_PVT_B64}} 
-# mozillareality/${{ github.workflow }}:${{ github.run_number }} bash /repo/${{ inputs.bio_script_path }} | tee stdouts

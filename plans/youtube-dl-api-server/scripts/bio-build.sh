@@ -1,15 +1,15 @@
 set -e
 
-# build with docker:
+# to build with docker:
 #   docker run -i --privileged -v $PWD:/repo mozillareality/hubs bash /repo/scripts/bio-build.sh
 #
 # any alpine image with bash will work
 
 
-# BLDR_RET_PUB_B64='U0lHLVBVQi0xC
-# BLDR_HAB_PVT_B64='U0lHLVNFQy0xC
-# BLDR_HAB_TOKEN='_Qk9YLTEKYmxkci
-# BLDR_RET_TOKEN='_Qk9YLTEKYmxkci
+# BLDR_RET_PUB_B64='U0lHLVBVQi0xC......
+# BLDR_HAB_PVT_B64='U0lHLVNFQy0xC......
+# BLDR_HAB_TOKEN='_Qk9YLTEKYmxkci......
+# BLDR_RET_TOKEN='_Qk9YLTEKYmxkci......
 
 apk add git curl py3-pip
 
