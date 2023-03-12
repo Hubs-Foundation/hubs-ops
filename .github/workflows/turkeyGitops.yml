@@ -34,6 +34,9 @@ on:
         default: polycosm-stable
       smoke-instance:
         type: string
+      push_gcr:
+        type: boolean
+        default: false
     secrets:
       DOCKER_HUB_PWD:
         required: true
@@ -167,6 +170,28 @@ jobs:
           toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-latest
           echo "promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
+
+
+  push_gcr:
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ inputs.push_gcr }}
+    steps:
+      - name: push-gcr
+        run: |
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin          
+          sudo docker pull $fromTag
+          
+          toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:${GITHUB_RUN_NUMBER}"
+          sudo docker tag $fromTag $toTag  
+          
+          echo "$fromTag --> $toTag"                    
+          gcloud auth activate-service-account hubs-dev-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=gcpsakey.json
+          gcloud auth configure-docker -q gcr.io
+          sudo docker push $toTag
+          
+          
   hc_build_bio_pkg:
     runs-on: ubuntu-latest
     environment: hc-bio
