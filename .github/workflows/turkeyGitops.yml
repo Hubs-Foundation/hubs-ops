@@ -187,7 +187,7 @@ jobs:
           sudo docker tag $fromTag $toTag  
           
           echo "$fromTag --> $toTag"       
-          echo "${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}" | base64 -d > gcpsakey.json             
+          echo "${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}" > gcpsakey.json             
           gcloud auth activate-service-account hubs-dev-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=gcpsakey.json
           gcloud auth configure-docker -q gcr.io
           sudo docker push $toTag
