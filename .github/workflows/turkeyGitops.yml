@@ -177,6 +177,10 @@ jobs:
     needs: build
     if: ${{ inputs.push_gcr }}
     steps:
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v0'
+        with:
+          credentials_json: ${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}
       - name: push-gcr
         run: |
           fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
@@ -187,7 +191,6 @@ jobs:
           sudo docker tag $fromTag $toTag  
           
           echo "$fromTag --> $toTag"       
-          echo "${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}" > gcpsakey.json             
           gcloud auth activate-service-account hubs-dev-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=gcpsakey.json
           gcloud auth configure-docker -q gcr.io
           sudo docker push $toTag
