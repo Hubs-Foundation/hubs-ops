@@ -179,7 +179,7 @@ jobs:
     steps:
       - name: push-gcr
         run: |
-          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
           echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin          
           sudo docker pull $fromTag
           
