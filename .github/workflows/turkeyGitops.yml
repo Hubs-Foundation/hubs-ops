@@ -191,7 +191,6 @@ jobs:
           sudo docker tag $fromTag $toTag  
           
           echo "$fromTag --> $toTag"       
-          gcloud auth activate-service-account hubs-dev-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=gcpsakey.json
           gcloud auth configure-docker -q gcr.io
           sudo docker push $toTag
           
