@@ -189,8 +189,8 @@ jobs:
           echo "$fromTag --> $toTag"
           echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
           wc key.json
-          gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
-          gcloud auth configure-docker -q gcr.io
+          sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
+          sudo gcloud auth configure-docker -q gcr.io
           sudo docker push $toTag
                     
   hc_build_bio_pkg:
