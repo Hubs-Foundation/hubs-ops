@@ -177,7 +177,7 @@ jobs:
 
   gcr_beta:
     runs-on: ubuntu-latest
-    needs: tag_dev
+    needs: tag_beta
     if: ${{ inputs.push_gcr }}
     steps:
       - name: push-gcr
@@ -218,7 +218,7 @@ jobs:
 
   gcr_stable:
     runs-on: ubuntu-latest
-    needs: tag_dev
+    needs: tag_stable
     if: ${{ inputs.push_gcr }}
     steps:
       - name: push-gcr
