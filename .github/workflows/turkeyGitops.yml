@@ -34,6 +34,9 @@ on:
         default: polycosm-stable
       smoke-instance:
         type: string
+      docker_args-env:
+        type: string
+        default: '-'
     secrets:
       DOCKER_HUB_PWD:
         required: true
@@ -46,6 +49,8 @@ on:
       BLDR_RET_PUB_B64:
         required: false
       BLDR_HAB_PVT_B64:
+        required: false
+      docker_args-contentful_token:
         required: false
 
 jobs:
@@ -84,6 +89,8 @@ jobs:
           push: true
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            ENV=${{ inputs.docker_args-env }}
+            CONTENTFUL_TOKEN=$${{ secrets.docker_args-contentful_token }}
   
   dev_deploy_personal:
     runs-on: ubuntu-latest
@@ -109,7 +116,7 @@ jobs:
           kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
           
   tag_dev:
-    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+    if: ${{ inputs.docker_args-env != 'prod' && github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -131,7 +138,7 @@ jobs:
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
           
   tag_beta:
-    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
+    if: ${{ inputs.docker_args-env != 'dev' && github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
     runs-on: ubuntu-latest
     needs: build
     environment: staging
