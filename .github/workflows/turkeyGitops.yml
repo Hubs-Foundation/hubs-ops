@@ -36,7 +36,7 @@ on:
         type: string
       docker_args-env:
         type: string
-        default: prod
+        default: '-'
     secrets:
       DOCKER_HUB_PWD:
         required: true
@@ -116,7 +116,7 @@ jobs:
           kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
           
   tag_dev:
-    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+    if: ${{ inputs.docker_args-env != 'prod' && github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     needs: build
     steps:
