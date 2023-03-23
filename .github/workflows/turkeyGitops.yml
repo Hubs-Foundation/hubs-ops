@@ -50,7 +50,7 @@ on:
         required: false
       BLDR_HAB_PVT_B64:
         required: false
-      docker_args-contentful_token:
+      docker_args-contentful_token_b64:
         required: false
 
 jobs:
@@ -90,7 +90,7 @@ jobs:
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
             ENV=${{ inputs.docker_args-env }}
-            CONTENTFUL_TOKEN=$${{ secrets.docker_args-contentful_token }}
+            CONTENTFUL_TOKEN_b64=$${{ secrets.docker_args-contentful_token_b64 }}
   
   dev_deploy_personal:
     runs-on: ubuntu-latest
