@@ -160,7 +160,7 @@ jobs:
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
 
 
-  gcr_dev:
+  tag_dev_gcr:
     runs-on: ubuntu-latest
     needs: tag_dev
     if: ${{ inputs.push_gcr }}
