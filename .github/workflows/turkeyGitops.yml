@@ -34,6 +34,9 @@ on:
         default: polycosm-stable
       smoke-instance:
         type: string
+      push_gcr:
+        type: boolean
+        default: false
       docker_args-env:
         type: string
         default: '-'
@@ -91,6 +94,25 @@ jobs:
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
             ENV=${{ inputs.docker_args-env }}
             CONTENTFUL_TOKEN_b64=$${{ secrets.docker_args-contentful_token_b64 }}
+  push_gcr:
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ inputs.push_gcr }}
+    steps:
+      - name: push-gcr
+        run: |
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin          
+          sudo docker pull $fromTag
+
+          toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:${GITHUB_RUN_NUMBER}"
+          sudo docker tag $fromTag $toTag  
+
+          echo "$fromTag --> $toTag"
+          echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
+          sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
+          sudo gcloud auth configure-docker -q gcr.io
+          sudo docker push $toTag
   
   dev_deploy_personal:
     runs-on: ubuntu-latest
@@ -136,6 +158,27 @@ jobs:
           toTag=${{ inputs.registry }}/${{ github.workflow }}:dev-latest
           echo "[info] promoting :$fromTag to :$toTag"          
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
+
+
+  tag_dev_gcr:
+    runs-on: ubuntu-latest
+    needs: tag_dev
+    if: ${{ inputs.push_gcr }}
+    steps:
+      - name: push-gcr
+        run: |
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin          
+          sudo docker pull $fromTag
+          
+          toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:dev-${GITHUB_RUN_NUMBER}"
+          sudo docker tag $fromTag $toTag  
+          
+          echo "$fromTag --> $toTag"
+          echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
+          sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
+          sudo gcloud auth configure-docker -q gcr.io
+          sudo docker push $toTag
           
   tag_beta:
     if: ${{ inputs.docker_args-env != 'dev' && github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
@@ -156,6 +199,27 @@ jobs:
           echo "[info] promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag  
   
+
+  tag_beta_gcr:
+    runs-on: ubuntu-latest
+    needs: tag_beta
+    if: ${{ inputs.push_gcr }}
+    steps:
+      - name: push-gcr
+        run: |
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin          
+          sudo docker pull $fromTag
+          
+          toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:beta-${GITHUB_RUN_NUMBER}"
+          sudo docker tag $fromTag $toTag  
+          
+          echo "$fromTag --> $toTag"
+          echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
+          sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
+          sudo gcloud auth configure-docker -q gcr.io
+          sudo docker push $toTag
+          
   tag_stable:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
     runs-on: ubuntu-latest
@@ -174,6 +238,28 @@ jobs:
           toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-latest
           echo "promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
+
+
+  tag_stable_gcr:
+    runs-on: ubuntu-latest
+    needs: tag_stable
+    if: ${{ inputs.push_gcr }}
+    steps:
+      - name: push-gcr
+        run: |
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
+          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin          
+          sudo docker pull $fromTag
+          
+          toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:stable-${GITHUB_RUN_NUMBER}"
+          sudo docker tag $fromTag $toTag  
+          
+          echo "$fromTag --> $toTag"
+          echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
+          sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
+          sudo gcloud auth configure-docker -q gcr.io
+          sudo docker push $toTag
+          
   hc_build_bio_pkg:
     runs-on: ubuntu-latest
     environment: hc-bio
