@@ -186,9 +186,9 @@ jobs:
     needs: build
     environment: staging
     steps:
-      - name: "pull ${GITHUB_SHA::7} and tag to staging"
+      - name: "pull :${{ github.run_number }} and tag to staging"
         run: |
-          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
           echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin
           
           toTag=${{ inputs.registry }}/${{ github.workflow }}:beta-$GITHUB_RUN_NUMBER
@@ -228,7 +228,7 @@ jobs:
     steps:
       - name: promote artifact to prod
         run: |
-          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_SHA::7}
+          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
           echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin
           
           toTag=${{ inputs.registry }}/${{ github.workflow }}:stable-$GITHUB_RUN_NUMBER
