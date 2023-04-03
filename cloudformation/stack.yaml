@@ -2114,7 +2114,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:558986605633:applications/photomnemonic
-        SemanticVersion: 0.3.0
+        SemanticVersion: 0.3.3
       Parameters:
         PhotomnemonicRoleArn: !GetAtt PhotomnemonicRole.Arn
   NearsparkApiGatewayRestApi:
@@ -3335,7 +3335,7 @@ Resources:
           - AlarmNotification
           - ScheduledActions
         MinInstancesInService: !If [IsOffline, 0, !Ref AppInstanceCount]
-        WaitOnResourceSignals: true
+        WaitOnResourceSignals: false
     Properties:
       AutoScalingGroupName: !Sub "${AWS::StackName}-app"
       AvailabilityZones: !If [AppIsClusterPlacement, [!GetAtt SubnetAPublic.AvailabilityZone], [!GetAtt SubnetAPublic.AvailabilityZone, !GetAtt SubnetBPublic.AvailabilityZone]]
