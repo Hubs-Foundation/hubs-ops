@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Hubs Cloud: Private Social VR in your web browser. Your own self-hosted hub powered by Hubs by Mozilla. Full documentation: https://github.com/mozilla/hubs-cloud
+  Hubs Cloud: Private Social VR in your web browser. Your own self-hosted hub powered by Hubs by Mozilla. Full documentation: https://github.com/mozilla/hubs-cloud Version 1.1.6
 Transform: "AWS::Serverless-2016-10-31"
 
 Metadata:
@@ -2253,7 +2253,15 @@ Resources:
     Properties:
       AccessControl: PublicRead
       BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-assets", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
-      CorsConfiguration:
+    OwnershipControls:
+       Rules:
+          - ObjectOwnership: ObjectWriter
+    PublicAccessBlockConfiguration:
+       BlockPublicAcls: false
+       BlockPublicPolicy: false
+       IgnorePublicAcls: false
+       RestrictPublicBuckets: false
+    CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
               - "*"
@@ -2286,6 +2294,14 @@ Resources:
     Properties:
       AccessControl: PublicRead
       BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-root-redirector", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      OwnershipControls:
+           Rules:
+                - ObjectOwnership: ObjectWriter
+      PublicAccessBlockConfiguration:
+           BlockPublicAcls: false
+           BlockPublicPolicy: false
+           IgnorePublicAcls: false
+           RestrictPublicBuckets: false
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
@@ -2314,6 +2330,14 @@ Resources:
     Properties:
       AccessControl: PublicRead
       BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-link-redirector", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
+      OwnershipControls:
+           Rules:
+                - ObjectOwnership: ObjectWriter
+      PublicAccessBlockConfiguration:
+           BlockPublicAcls: false
+           BlockPublicPolicy: false
+           IgnorePublicAcls: false
+           RestrictPublicBuckets: false
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
