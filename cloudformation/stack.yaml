@@ -1744,7 +1744,6 @@ Resources:
   BoxKeysBucket:
     Type: AWS::S3::Bucket
     Properties:
-      AccessControl: Private
       BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-box-keys", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   EmptyBuckets:
     Type: Custom::EmptyBuckets
@@ -1827,7 +1826,6 @@ Resources:
   SpeelycaptorScratchBucket:
     Type: AWS::S3::Bucket
     Properties:
-      AccessControl: Private
       BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-speelycaptor-scratch", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   SpeelycaptorRole:
     Type: AWS::IAM::Role
@@ -2251,30 +2249,29 @@ Resources:
   AssetsBucket:
     Type: AWS::S3::Bucket
     Properties:
-      AccessControl: PublicRead
       BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-assets", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
-    OwnershipControls:
-       Rules:
-          - ObjectOwnership: ObjectWriter
-    PublicAccessBlockConfiguration:
-       BlockPublicAcls: false
-       BlockPublicPolicy: false
-       IgnorePublicAcls: false
-       RestrictPublicBuckets: false
-    CorsConfiguration:
-        CorsRules:
-          - AllowedHeaders:
-              - "*"
-            AllowedMethods:
-              - GET
-              - HEAD
-            AllowedOrigins:
-              - !Sub "https://${DomainName}"
-              - !Sub "https://${ShortlinkZoneInfo.Name}"
-              - !Sub "https://hubs.local:8080"
-              - !Sub "https://localhost:8080"
-            ExposedHeaders: []
-            MaxAge: 31536000
+      OwnershipControls:
+         Rules:
+            - ObjectOwnership: ObjectWriter
+      PublicAccessBlockConfiguration:
+         BlockPublicAcls: false
+         BlockPublicPolicy: false
+         IgnorePublicAcls: false
+         RestrictPublicBuckets: false
+      CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders:
+                - "*"
+              AllowedMethods:
+                - GET
+                - HEAD
+              AllowedOrigins:
+                - !Sub "https://${DomainName}"
+                - !Sub "https://${ShortlinkZoneInfo.Name}"
+                - !Sub "https://hubs.local:8080"
+                - !Sub "https://localhost:8080"
+              ExposedHeaders: []
+              MaxAge: 31536000
   AssetsPublicBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -2292,7 +2289,6 @@ Resources:
   RootRedirectorBucket:
     Type: AWS::S3::Bucket
     Properties:
-      AccessControl: PublicRead
       BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-root-redirector", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
       OwnershipControls:
            Rules:
@@ -2328,7 +2324,6 @@ Resources:
   LinkRedirectorBucket:
     Type: AWS::S3::Bucket
     Properties:
-      AccessControl: PublicRead
       BucketName: !Join ["-", [ !Sub "${LowerStackName.Value}-link-redirector", !Select [0, !Split [ "-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
       OwnershipControls:
            Rules:
