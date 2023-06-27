@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Hubs Cloud: Private Social VR in your web browser. Your own self-hosted hub powered by Hubs by Mozilla. Full documentation: https://github.com/mozilla/hubs-cloud Version 1.1.6
+  Hubs Cloud: Private Social VR in your web browser. Your own self-hosted hub powered by Hubs by Mozilla. Full documentation: https://github.com/mozilla/hubs-cloud Version 1.1.7
 Transform: "AWS::Serverless-2016-10-31"
 
 Metadata:
@@ -3301,10 +3301,11 @@ Resources:
           Fn::GetAtt: [ AppAssetsCloudfrontDistribution, DomainName ]
         HostedZoneId: Z2FDTNDATAQYW2
 
-  AppLaunchConfiguration:
-    Type: AWS::AutoScaling::LaunchConfiguration
+  AppLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
     Properties:
-      AssociatePublicIpAddress: true
+      NetworkInterface:
+        - AssociatePublicIpAddress: true
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -3388,10 +3389,11 @@ Resources:
       - BioServiceKeys
       - BioUserKey
 
-  StreamLaunchConfiguration:
-    Type: AWS::AutoScaling::LaunchConfiguration
+  StreamLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
     Properties:
-      AssociatePublicIpAddress: true
+      NetworkInterface:
+        - AssociatePublicIpAddress: true
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
