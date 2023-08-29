@@ -1,33 +1,30 @@
-name: Monthly Release
-
+name: Automated Change log
 on:
   workflow_call:
-
 jobs:
   release:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+      - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Generate Release Notes
-        id: release-notes
-        run: |
-          RELEASE_NOTES=$(git log --format="- %s" $(git describe --tags --abbrev=0)..HEAD)
-          echo "::set-output name=notes::$RELEASE_NOTES"
+      - name: conentional changelog action
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@latest
+        with:
+          tag-prefix: "hubs-prod"
 
-      - name: Set Tag
-        run: |
-          TAG_NAME=$(date -u +"%Y-%m-%d")
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
-
-      - name: Create Release
+      - name: create release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.set-tag.outputs.tag }}
-          release_name: Release ${{ steps.set-tag.outputs.tag }}
-          body: ${{ steps.release-notes.outputs.notes }}
+          tag_name: hubs-prod-${{ steps.date.outputs.date }}
+          release_name: Release ${{ steps.date.outputs.date }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
