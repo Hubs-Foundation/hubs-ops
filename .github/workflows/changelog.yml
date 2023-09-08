@@ -8,15 +8,14 @@ jobs:
     steps:
       - name: Current date
         id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: conentional changelog action
+        run: echo "date=$(echo date +'%Y-%m-%d')" >>  $GITHUB_OUTPUT
+      - name: conventional changelog action
         id: changelog
         uses: TriPSs/conventional-changelog-action@latest
         with:
           tag-prefix: "hubs-prod"
+          skip-version-file: true
+          git-push: false
 
       - name: create release
         uses: actions/create-release@v1
