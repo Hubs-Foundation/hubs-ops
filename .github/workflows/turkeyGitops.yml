@@ -260,75 +260,75 @@ jobs:
           sudo gcloud auth configure-docker -q gcr.io
           sudo docker push $toTag
           
-  hc_build_bio_pkg:
-    runs-on: ubuntu-latest
-    environment: hc-bio
-    needs: build
-    if: ${{ inputs.bio_script_path != '' }}
-    steps:
-      - name: checkout repo
-        uses: actions/checkout@v2
-      - name: hab-wrap-and-push-min
-        run: |
-          docker run -i --privileged -v $PWD/harts:/hab/cache/artifacts -v $PWD:/repo -e BLDR_HAB_TOKEN=${{ secrets.BLDR_HAB_TOKEN}} -e BLDR_RET_TOKEN=${{ secrets.BLDR_RET_TOKEN}} -e BLDR_RET_PUB_B64=${{ secrets.BLDR_RET_PUB_B64}} -e BLDR_HAB_PVT_B64=${{ secrets.BLDR_HAB_PVT_B64}} mozillareality/${{ github.workflow }}:${{ github.run_number }} bash /repo/${{ inputs.bio_script_path }} | tee stdouts
-          pkgNameRaw=$(tail -2 stdouts | head -1)
-          echo "pkgNameRaw: $pkgNameRaw"
-          echo $pkgNameRaw | sed -rn 's~.*(mozillareality\/.*)~\1~p' > bioPkgName
-          echo "bioPkgName: " && cat bioPkgName
+  # hc_build_bio_pkg:
+  #   runs-on: ubuntu-latest
+  #   environment: hc-bio
+  #   needs: build
+  #   if: ${{ inputs.bio_script_path != '' }}
+  #   steps:
+  #     - name: checkout repo
+  #       uses: actions/checkout@v2
+  #     - name: hab-wrap-and-push-min
+  #       run: |
+  #         docker run -i --privileged -v $PWD/harts:/hab/cache/artifacts -v $PWD:/repo -e BLDR_HAB_TOKEN=${{ secrets.BLDR_HAB_TOKEN}} -e BLDR_RET_TOKEN=${{ secrets.BLDR_RET_TOKEN}} -e BLDR_RET_PUB_B64=${{ secrets.BLDR_RET_PUB_B64}} -e BLDR_HAB_PVT_B64=${{ secrets.BLDR_HAB_PVT_B64}} mozillareality/${{ github.workflow }}:${{ github.run_number }} bash /repo/${{ inputs.bio_script_path }} | tee stdouts
+  #         pkgNameRaw=$(tail -2 stdouts | head -1)
+  #         echo "pkgNameRaw: $pkgNameRaw"
+  #         echo $pkgNameRaw | sed -rn 's~.*(mozillareality\/.*)~\1~p' > bioPkgName
+  #         echo "bioPkgName: " && cat bioPkgName
           
-      - name: Upload bioPkgName
-        uses: actions/upload-artifact@v3
-        with:
-          name: bioPkgName
-          path: bioPkgName
-  hc_release_qa:
-    if: ${{ github.ref == 'refs/heads/qa-test' }}
-    needs: hc_build_bio_pkg
-    runs-on: ubuntu-latest
-    environment: hc-bio-qa
-    steps:
-      - name: Download bioPkgName
-        uses: actions/download-artifact@v3
-        with:
-          name: bioPkgName
-      - name: promote bioPkg
-        run: |
-          pkg=$(cat bioPkgName)
-          echo "[info] releasing pkg=<$pkg>"
-          echo "[info] getting bio"
-          org="biome-sh";repo="biome"
-          ver=$(curl -s https://api.github.com/repos/$org/$repo/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-          dl="https://github.com/$org/$repo/releases/download/$ver/bio-${ver#"v"}-x86_64-linux.tar.gz"
-          echo "[info] getting bio from: $dl" && curl -L -o bio.gz $dl && tar -xf bio.gz && ./bio --version
-          echo "[info] releasing <$pkg> to <${{ inputs.qa_channel_name }}>"
-          export HAB_BLDR_URL="https://bldr.reticulum.io"
-          export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}                    
-          ./bio pkg promote $pkg ${{ inputs.qa_channel_name }}
-  hc_release_stable:
-    name: HC production release
-    needs: hc_release_qa
-    runs-on: ubuntu-latest
-    environment: hc-bio-prod
-    steps:
-      - name: Download bioPkgName
-        uses: actions/download-artifact@v3
-        with:
-          name: bioPkgName
-      - name: promote bioPkg
-        run: |
-          pkg=$(cat bioPkgName)
-          echo "[info] releasing pkg=<$pkg>"
-          echo "[info] getting bio"
-          org="biome-sh";repo="biome"
-          ver=$(curl -s https://api.github.com/repos/$org/$repo/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-          dl="https://github.com/$org/$repo/releases/download/$ver/bio-${ver#"v"}-x86_64-linux.tar.gz"
-          echo "[info] getting bio from: $dl" && curl -L -o bio.gz $dl && tar -xf bio.gz && ./bio --version
-          echo "[info] releasing <$pkg> to <${{ inputs.hc_channel_name }}>"
-          export HAB_BLDR_URL="https://bldr.reticulum.io"
-          export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
-          echo "prod deployment starting in 10 min"
-          sleep 600
-          ./bio pkg promote $pkg ${{ inputs.hc_channel_name }}
+  #     - name: Upload bioPkgName
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: bioPkgName
+  #         path: bioPkgName
+  # hc_release_qa:
+  #   if: ${{ github.ref == 'refs/heads/qa-test' }}
+  #   needs: hc_build_bio_pkg
+  #   runs-on: ubuntu-latest
+  #   environment: hc-bio-qa
+  #   steps:
+  #     - name: Download bioPkgName
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: bioPkgName
+  #     - name: promote bioPkg
+  #       run: |
+  #         pkg=$(cat bioPkgName)
+  #         echo "[info] releasing pkg=<$pkg>"
+  #         echo "[info] getting bio"
+  #         org="biome-sh";repo="biome"
+  #         ver=$(curl -s https://api.github.com/repos/$org/$repo/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
+  #         dl="https://github.com/$org/$repo/releases/download/$ver/bio-${ver#"v"}-x86_64-linux.tar.gz"
+  #         echo "[info] getting bio from: $dl" && curl -L -o bio.gz $dl && tar -xf bio.gz && ./bio --version
+  #         echo "[info] releasing <$pkg> to <${{ inputs.qa_channel_name }}>"
+  #         export HAB_BLDR_URL="https://bldr.reticulum.io"
+  #         export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}                    
+  #         ./bio pkg promote $pkg ${{ inputs.qa_channel_name }}
+  # hc_release_stable:
+  #   name: HC production release
+  #   needs: hc_release_qa
+  #   runs-on: ubuntu-latest
+  #   environment: hc-bio-prod
+  #   steps:
+  #     - name: Download bioPkgName
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: bioPkgName
+  #     - name: promote bioPkg
+  #       run: |
+  #         pkg=$(cat bioPkgName)
+  #         echo "[info] releasing pkg=<$pkg>"
+  #         echo "[info] getting bio"
+  #         org="biome-sh";repo="biome"
+  #         ver=$(curl -s https://api.github.com/repos/$org/$repo/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
+  #         dl="https://github.com/$org/$repo/releases/download/$ver/bio-${ver#"v"}-x86_64-linux.tar.gz"
+  #         echo "[info] getting bio from: $dl" && curl -L -o bio.gz $dl && tar -xf bio.gz && ./bio --version
+  #         echo "[info] releasing <$pkg> to <${{ inputs.hc_channel_name }}>"
+  #         export HAB_BLDR_URL="https://bldr.reticulum.io"
+  #         export HAB_AUTH_TOKEN=${{ secrets. BLDR_RET_TOKEN}}
+  #         echo "prod deployment starting in 10 min"
+  #         sleep 600
+  #         ./bio pkg promote $pkg ${{ inputs.hc_channel_name }}
 
   dev_deploy_smoke:
     runs-on: ubuntu-latest
