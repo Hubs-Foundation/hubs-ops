@@ -1,6 +1,6 @@
-# Hubs by Mozilla Ops
+# Hubs Ops
 
-This repo contains all the necessary scripts and tools for standing up infrastructure for Hubs by Mozilla on AWS.
+This repo contains all the necessary scripts and tools for standing up infrastructure for Hubs on AWS.
 
 ## Contents:
 
