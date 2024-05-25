@@ -696,8 +696,14 @@ Resources:
                 if (properties.Id) {
                   return zone.Id === "/hostedzone/" + properties.Id;
                 } else {
-                  var tldParts = properties.Domain.split(".");
-                  var tld = tldParts[tldParts.length - 2] + "." + tldParts[tldParts.length - 1];
+                  var domain = properties.Domain.slice(-1) === "."
+                      ? properties.Domain
+                      : properties.Domain + "."
+                  if (zone.Name === domain) {
+                    return true;
+                  }
+                  var tldParts = domain.split(".").filter(Boolean);
+                  var tld = tldParts.slice(1, tldParts.length).join(".");
                   return zone.Name === tld + ".";
                 }
               });
