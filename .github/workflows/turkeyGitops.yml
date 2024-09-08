@@ -94,48 +94,53 @@ jobs:
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
             ENV=${{ inputs.docker_args-env }}
             CONTENTFUL_TOKEN_b64=$${{ secrets.docker_args-contentful_token_b64 }}
-  push_gcr:
-    runs-on: ubuntu-latest
-    needs: build
-    if: ${{ inputs.push_gcr }}
-    steps:
-      - name: push-gcr
-        run: |
-          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
-          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin          
-          sudo docker pull $fromTag
 
-          toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:${GITHUB_RUN_NUMBER}"
-          sudo docker tag $fromTag $toTag  
-
-          echo "$fromTag --> $toTag"
-          echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
-          sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
-          sudo gcloud auth configure-docker -q gcr.io
-          sudo docker push $toTag
+  # Google Container Registry isn't currently set up as of 2024-09-08
+  # so commenting out push_gcr for now.
+  # push_gcr:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   if: ${{ inputs.push_gcr }}
+  #   steps:
+  #     - name: push-gcr
+  #       run: |
+  #         fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
+  #         echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin
+  #         sudo docker pull $fromTag
+  #
+  #         toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:${GITHUB_RUN_NUMBER}"
+  #         sudo docker tag $fromTag $toTag
+  #
+  #         echo "$fromTag --> $toTag"
+  #         echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
+  #         sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
+  #         sudo gcloud auth configure-docker -q gcr.io
+  #         sudo docker push $toTag
   
-  dev_deploy_personal:
-    runs-on: ubuntu-latest
-    if: ${{ inputs.k8s_deployment != '' && inputs.k8s_deployment_container != '' }}
-    needs: build
-    steps:
-      - id: 'auth'
-        uses: 'google-github-actions/auth@v0'
-        with:
-          credentials_json: ${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}
-      - id: 'get-credentials'
-        uses: 'google-github-actions/get-gke-credentials@v0'
-        with:
-          cluster_name: 'devmyhubsnet5hmnp'
-          location: 'us-central1-b'
-      - name: Deploy
-        run: |
-          nsName=hc-${{ github.actor }}
-          deploymentName=${{ inputs.k8s_deployment }}
-          containerName=${{ inputs.k8s_deployment_container }}
-          deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
-          echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
-          kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
+  # An official Hubs instance isn't currently set up as of 2024-09-08
+  # so commenting out dev_deploy_personal for now.
+  # dev_deploy_personal:
+  #   runs-on: ubuntu-latest
+  #   if: ${{ inputs.k8s_deployment != '' && inputs.k8s_deployment_container != '' }}
+  #   needs: build
+  #   steps:
+  #     - id: 'auth'
+  #       uses: 'google-github-actions/auth@v0'
+  #       with:
+  #         credentials_json: ${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}
+  #     - id: 'get-credentials'
+  #       uses: 'google-github-actions/get-gke-credentials@v0'
+  #       with:
+  #         cluster_name: 'devmyhubsnet5hmnp'
+  #         location: 'us-central1-b'
+  #     - name: Deploy
+  #       run: |
+  #         nsName=hc-${{ github.actor }}
+  #         deploymentName=${{ inputs.k8s_deployment }}
+  #         containerName=${{ inputs.k8s_deployment_container }}
+  #         deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
+  #         echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
+  #         kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
           
   tag_dev:
     if: ${{ inputs.docker_args-env != 'prod' && github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
@@ -159,26 +164,27 @@ jobs:
           echo "[info] promoting :$fromTag to :$toTag"          
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
 
-
-  tag_dev_gcr:
-    runs-on: ubuntu-latest
-    needs: tag_dev
-    if: ${{ inputs.push_gcr }}
-    steps:
-      - name: push-gcr
-        run: |
-          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
-          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin          
-          sudo docker pull $fromTag
-          
-          toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:dev-${GITHUB_RUN_NUMBER}"
-          sudo docker tag $fromTag $toTag  
-          
-          echo "$fromTag --> $toTag"
-          echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
-          sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
-          sudo gcloud auth configure-docker -q gcr.io
-          sudo docker push $toTag
+  # Google Container Registry isn't currently set up as of 2024-09-08
+  # so commenting out tag_dev_gcr for now.
+  #   tag_dev_gcr:
+  #     runs-on: ubuntu-latest
+  #     needs: tag_dev
+  #     if: ${{ inputs.push_gcr }}
+  #     steps:
+  #       - name: push-gcr
+  #         run: |
+  #           fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
+  #           echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin
+  #           sudo docker pull $fromTag
+  #
+  #           toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:dev-${GITHUB_RUN_NUMBER}"
+  #           sudo docker tag $fromTag $toTag
+  #
+  #           echo "$fromTag --> $toTag"
+  #           echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
+  #           sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
+  #           sudo gcloud auth configure-docker -q gcr.io
+  #           sudo docker push $toTag
           
   tag_beta:
     if: ${{ inputs.docker_args-env != 'dev' && github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
@@ -199,26 +205,27 @@ jobs:
           echo "[info] promoting :$fromTag to :$toTag"
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag  
   
-
-  tag_beta_gcr:
-    runs-on: ubuntu-latest
-    needs: tag_beta
-    if: ${{ inputs.push_gcr }}
-    steps:
-      - name: push-gcr
-        run: |
-          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
-          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin          
-          sudo docker pull $fromTag
-          
-          toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:beta-${GITHUB_RUN_NUMBER}"
-          sudo docker tag $fromTag $toTag  
-          
-          echo "$fromTag --> $toTag"
-          echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
-          sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
-          sudo gcloud auth configure-docker -q gcr.io
-          sudo docker push $toTag
+  # Google Container Registry isn't currently set up as of 2024-09-08
+  # so commenting out tag_beta_gcr for now.
+  #   tag_beta_gcr:
+  #     runs-on: ubuntu-latest
+  #     needs: tag_beta
+  #     if: ${{ inputs.push_gcr }}
+  #     steps:
+  #       - name: push-gcr
+  #         run: |
+  #           fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
+  #           echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin
+  #           sudo docker pull $fromTag
+  #
+  #           toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:beta-${GITHUB_RUN_NUMBER}"
+  #           sudo docker tag $fromTag $toTag
+  #
+  #           echo "$fromTag --> $toTag"
+  #           echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
+  #           sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
+  #           sudo gcloud auth configure-docker -q gcr.io
+  #           sudo docker push $toTag
           
   tag_stable:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/hotfix/') }}
@@ -240,26 +247,29 @@ jobs:
           sudo docker pull $fromTag && sudo docker tag $fromTag $toTag && sudo docker push $toTag
 
 
-  tag_stable_gcr:
-    runs-on: ubuntu-latest
-    needs: tag_stable
-    if: ${{ inputs.push_gcr }}
-    steps:
-      - name: push-gcr
-        run: |
-          fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
-          echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin          
-          sudo docker pull $fromTag
-          
-          toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:stable-${GITHUB_RUN_NUMBER}"
-          sudo docker tag $fromTag $toTag  
-          
-          echo "$fromTag --> $toTag"
-          echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
-          sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
-          sudo gcloud auth configure-docker -q gcr.io
-          sudo docker push $toTag
-          
+  # Google Container Registry isn't currently set up as of 2024-09-08
+  # so commenting out tag_stable_gcr for now.
+  #   tag_stable_gcr:
+  #     runs-on: ubuntu-latest
+  #     needs: tag_stable
+  #     if: ${{ inputs.push_gcr }}
+  #     steps:
+  #       - name: push-gcr
+  #         run: |
+  #           fromTag=${{ inputs.registry }}/${{ github.workflow }}:${GITHUB_RUN_NUMBER}
+  #           echo ${{ secrets.DOCKER_HUB_PWD }} | sudo docker login --username ${{ inputs.DOCKER_HUB_USR }} --password-stdin
+  #           sudo docker pull $fromTag
+  #
+  #           toTag="gcr.io/hubs-dev-333333/${{ github.workflow }}:stable-${GITHUB_RUN_NUMBER}"
+  #           sudo docker tag $fromTag $toTag
+  #
+  #           echo "$fromTag --> $toTag"
+  #           echo '${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}' > key.json
+  #           sudo gcloud auth activate-service-account turkeygitops-sa@hubs-dev-333333.iam.gserviceaccount.com --key-file=./key.json
+  #           sudo gcloud auth configure-docker -q gcr.io
+  #           sudo docker push $toTag
+
+  # Hubs Cloud workflows.  Hubs Cloud was sunset in March 2024.
   # hc_build_bio_pkg:
   #   runs-on: ubuntu-latest
   #   environment: hc-bio
@@ -330,26 +340,28 @@ jobs:
   #         sleep 600
   #         ./bio pkg promote $pkg ${{ inputs.hc_channel_name }}
 
-  dev_deploy_smoke:
-    runs-on: ubuntu-latest
-    if: ${{ inputs.k8s_deployment != '' && inputs.k8s_deployment_container != '' }}
-    needs: build
-    environment: smoke
-    steps:
-      - id: 'auth'
-        uses: 'google-github-actions/auth@v0'
-        with:
-          credentials_json: ${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}
-      - id: 'get-credentials'
-        uses: 'google-github-actions/get-gke-credentials@v0'
-        with:
-          cluster_name: 'devmyhubsnet5hmnp'
-          location: 'us-central1-b'
-      - name: Deploy
-        run: |
-          nsName=hc-${{inputs.smoke-instance}}
-          deploymentName=${{ inputs.k8s_deployment }}
-          containerName=${{ inputs.k8s_deployment_container }}
-          deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
-          echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
-          kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
+  # Smoke instances aren't currently set up as of 2024-09-08
+  # so commenting out dev_deploy_smoke for now.
+  # dev_deploy_smoke:
+  #   runs-on: ubuntu-latest
+  #   if: ${{ inputs.k8s_deployment != '' && inputs.k8s_deployment_container != '' }}
+  #   needs: build
+  #   environment: smoke
+  #   steps:
+  #     - id: 'auth'
+  #       uses: 'google-github-actions/auth@v0'
+  #       with:
+  #         credentials_json: ${{ secrets.GCP_TURKEYGITOPS_SA_JSON }}
+  #     - id: 'get-credentials'
+  #       uses: 'google-github-actions/get-gke-credentials@v0'
+  #       with:
+  #         cluster_name: 'devmyhubsnet5hmnp'
+  #         location: 'us-central1-b'
+  #     - name: Deploy
+  #       run: |
+  #         nsName=hc-${{inputs.smoke-instance}}
+  #         deploymentName=${{ inputs.k8s_deployment }}
+  #         containerName=${{ inputs.k8s_deployment_container }}
+  #         deployTag=${{ inputs.registry }}/${{ github.workflow }}:${{ github.run_number }}
+  #         echo "[info] deploying $deployTag to ns: $nsName, deployment: $deploymentName, container: $containerName"
+  #         kubectl -n $nsName set image deployment/$deploymentName $containerName=$deployTag || true
