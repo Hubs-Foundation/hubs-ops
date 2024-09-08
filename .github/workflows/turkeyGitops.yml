@@ -7,10 +7,10 @@ on:
         type: string
       registry:
         type: string
-        default: mozillareality
+        default: hubsfoundation
       DOCKER_HUB_USR:
         type: string
-        default: mozillareality
+        default: hubsfoundation
       dockerfile:
         type: string
         default: Dockerfile
