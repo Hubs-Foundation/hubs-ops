@@ -23,30 +23,35 @@ jobs:
       - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
         with:
           fetch-depth: 0
+          persist-credentials: false
       - run: |
          echo "Prep work"
-         git fetch origin  ${{inputs.releaseTrackingBranch}}
-         git fetch origin  ${{inputs.qatestBranch}}
+         git fetch origin  ${INPUTS_RELEASETRACKINGBRANCH}
+         git fetch origin  ${INPUTS_QATESTBRANCH}
          tag="hc.test.$(date '+%Y-%m-%d')"
          echo "$tag"
          
          echo "Point releaseTrackingBranch to current qa-test"
          git reset HEAD --hard 
-         git checkout ${{inputs.qaTestBranch}}
-         git pull origin ${{inputs.qaTestBranch}}
+         git checkout ${INPUTS_QATESTBRANCH}
+         git pull origin ${INPUTS_QATESTBRANCH}
          sha=$(git rev-parse  HEAD)
-         echo "${{inputs.qaTestBranch}} branch sha: $sha"
-         git checkout ${{inputs.releaseTrackingBranch}}
-         git update-ref 'refs/heads/${{inputs.releaseTrackingBranch}}' $sha 
-         git push origin ${{inputs.releaseTrackingBranch}} -f
+         echo "${INPUTS_QATESTBRANCH} branch sha: $sha"
+         git checkout ${INPUTS_RELEASETRACKINGBRANCH}
+         git update-ref 'refs/heads/${INPUTS_RELEASETRACKINGBRANCH}' $sha 
+         git push origin ${INPUTS_RELEASETRACKINGBRANCH} -f
 
          echo "Point qa-test branch to current master"
          git reset HEAD --hard
-         git checkout ${{inputs.main}} 
+         git checkout ${INPUTS_MAIN} 
          sha=$(git rev-parse  HEAD)
          echo "master branch sha: $sha"
-         git checkout ${{inputs.qatestBranch}}
-         git update-ref  'refs/heads/${{inputs.qatestBranch}}' $sha 
-         git push origin ${{inputs.qatestBranch}} -f 
+         git checkout ${INPUTS_QATESTBRANCH}
+         git update-ref  'refs/heads/${INPUTS_QATESTBRANCH}' $sha 
+         git push origin ${INPUTS_QATESTBRANCH} -f 
          git tag  $tag 
          git push origin $tag
+        env:
+          INPUTS_RELEASETRACKINGBRANCH: ${{inputs.releaseTrackingBranch}}
+          INPUTS_QATESTBRANCH: ${{inputs.qatestBranch}}
+          INPUTS_MAIN: ${{inputs.main}}
