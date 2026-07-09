@@ -1,0 +1,29 @@
+name: Automated Change log
+on:
+  workflow_call:
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Current date
+        id: date
+        run: echo "date=$(echo date +'%Y-%m-%d')" >>  $GITHUB_OUTPUT
+      - name: conventional changelog action
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@latest
+        with:
+          tag-prefix: "hubs-prod"
+          skip-version-file: true
+          git-push: false
+
+      - name: create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: hubs-prod-${{ steps.date.outputs.date }}
+          release_name: Release ${{ steps.date.outputs.date }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
