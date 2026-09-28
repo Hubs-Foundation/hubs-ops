@@ -116,12 +116,12 @@ resource "aws_iam_role_policy" "ret-db-monitoring-policy" {
 
 resource "aws_db_parameter_group" "ret-db-parameter-group" {
   name = "${var.shared["env"]}-ret-db-parameter-group"
-  family = "postgres10"
+  family = "postgres14"
 }
 
 resource "aws_db_parameter_group" "ret-dw-parameter-group" {
   name = "${var.shared["env"]}-ret-dw-parameter-group"
-  family = "postgres10"
+  family = "postgres14"
 }
 
 resource "aws_db_instance" "ret-db" {
@@ -131,7 +131,7 @@ resource "aws_db_instance" "ret-db" {
   backup_window = "09:30-10:00"
   db_subnet_group_name = "${aws_db_subnet_group.ret-db-subnet-group.id}"
   engine = "postgres"
-  engine_version = "10.6"
+  engine_version = "14"
   final_snapshot_identifier = "${var.shared["env"]}-ret-db-final"
   identifier_prefix = "${var.shared["env"]}-ret-db"
   instance_class = "${var.instance_class}"
@@ -146,7 +146,7 @@ resource "aws_db_instance" "ret-db" {
   password = "${var.password}"
   port = 5432
   publicly_accessible = false
-  storage_encrypted = false
+  storage_encrypted = true
   storage_type = "${var.storage_type}"
   username = "postgres"
   vpc_security_group_ids = ["${aws_security_group.ret-db.id}"]
@@ -160,7 +160,7 @@ resource "aws_db_instance" "ret-db-replica" {
   replicate_source_db = "${aws_db_instance.ret-db.identifier}"
   apply_immediately = true
   engine = "postgres"
-  engine_version = "10.6"
+  engine_version = "14"
   final_snapshot_identifier = "${var.shared["env"]}-ret-db-replica-final"
   identifier_prefix = "${var.shared["env"]}-ret-db-replica"
   instance_class = "${var.instance_class}"
@@ -173,7 +173,7 @@ resource "aws_db_instance" "ret-db-replica" {
   parameter_group_name = "${aws_db_parameter_group.ret-db-parameter-group.name}"
   port = 5432
   publicly_accessible = false
-  storage_encrypted = false
+  storage_encrypted = true
   storage_type = "${var.storage_type}"
   username = "postgres"
   vpc_security_group_ids = ["${aws_security_group.ret-db.id}"]
@@ -188,7 +188,7 @@ resource "aws_db_instance" "ret-dw" {
   apply_immediately = true
   db_subnet_group_name = "${aws_db_subnet_group.ret-dw-subnet-group.id}"
   engine = "postgres"
-  engine_version = "10.6"
+  engine_version = "14"
   final_snapshot_identifier = "${var.shared["env"]}-ret-dw-final"
   identifier_prefix = "${var.shared["env"]}-ret-dw"
   instance_class = "${var.dw_instance_class}"
@@ -199,7 +199,7 @@ resource "aws_db_instance" "ret-dw" {
   password = "${var.dw_password}"
   port = 5432
   publicly_accessible = true
-  storage_encrypted = false
+  storage_encrypted = true
   storage_type = "${var.storage_type}"
   username = "postgres"
   vpc_security_group_ids = ["${aws_security_group.ret-dw.id}"]
